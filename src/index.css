@@ -1,0 +1,95 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #1d4ed8;
+  --color-primary-hover: #1e40af;
+  --color-success: #16a34a;
+  --color-warning: #d97706;
+  --color-error: #dc2626;
+  --color-info: #0284c7;
+}
+
+body {
+  margin: 0;
+}
+
+:root {
+  --sidebar-hover-bg: transparent;
+}
+
+.sidebar-hover-btn:hover {
+  background-color: var(--sidebar-hover-bg) !important;
+}
+
+.subscription-row-expiring > td {
+  background-color: rgba(217, 119, 6, 0.12) !important;
+}
+
+.print-receipt-title {
+  text-align: center;
+  margin: 0 0 12px !important;
+}
+
+.print-receipt-amount {
+  font-size: 18px;
+}
+
+.print-receipt-issued {
+  display: block;
+  text-align: center;
+  margin-top: 8px;
+}
+
+@page {
+  margin: 0;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .print-receipt,
+  .print-receipt * {
+    visibility: visible;
+  }
+  .print-receipt {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    margin: 0;
+    padding: 2mm 3mm;
+    box-sizing: border-box;
+  }
+  .print-receipt,
+  .print-receipt * {
+    background: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    color: #000 !important;
+    border-color: #000 !important;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 11px;
+    line-height: 1.4;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+  .print-receipt table,
+  .print-receipt th,
+  .print-receipt td {
+    border: none !important;
+    padding: 1mm 0 !important;
+  }
+  .print-receipt-title {
+    font-size: 14px !important;
+    margin: 0 0 2mm !important;
+  }
+  .print-receipt-amount {
+    font-size: 14px !important;
+    font-weight: 700 !important;
+  }
+  .print-receipt-issued {
+    font-size: 10px !important;
+    margin-top: 2mm !important;
+  }
+}
