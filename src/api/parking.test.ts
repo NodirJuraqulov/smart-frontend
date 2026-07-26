@@ -13,6 +13,7 @@ vi.mock('./axiosInstance', () => ({
 }))
 
 import {
+  entryManual,
   exitManual,
   forceCloseSession,
   getCapacity,
@@ -30,6 +31,18 @@ describe('getCapacity', () => {
   })
 })
 
+describe('entryManual', () => {
+  it("plate_number ni oddiy JSON payload sifatida yuboradi (regression)", async () => {
+    postMock.mockResolvedValue({ data: { session: { id: 1 } } })
+
+    await entryManual('01A777BA')
+
+    expect(postMock).toHaveBeenCalledWith('/api/parking/entry/manual', {
+      plate_number: '01A777BA',
+    })
+  })
+})
+
 describe('exitManual', () => {
   it('payment_method ni payload ichida yuboradi (regression)', async () => {
     postMock.mockResolvedValue({
@@ -38,11 +51,10 @@ describe('exitManual', () => {
 
     await exitManual('01A777BA', 'online')
 
-    expect(postMock).toHaveBeenCalledWith(
-      '/api/parking/exit/manual',
-      { plate_number: '01A777BA', payment_method: 'online' },
-      { headers: undefined },
-    )
+    expect(postMock).toHaveBeenCalledWith('/api/parking/exit/manual', {
+      plate_number: '01A777BA',
+      payment_method: 'online',
+    })
   })
 })
 

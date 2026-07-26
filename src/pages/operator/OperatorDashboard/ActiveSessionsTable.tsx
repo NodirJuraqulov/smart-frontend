@@ -2,6 +2,7 @@ import { Card, Empty, Table, type TableProps } from 'antd'
 import { useTranslation } from 'react-i18next'
 import { formatDate, formatDuration } from '@/utils/format'
 import PlateBadge from '@/components/PlateBadge'
+import OpenBarrierAction from '@/components/OpenBarrierAction'
 import type { ParkingSession } from '@/types/parking'
 
 interface ActiveSessionsTableProps {
@@ -40,6 +41,11 @@ export default function ActiveSessionsTable({
         )
         return formatDuration(elapsedMinutes)
       },
+    },
+    {
+      title: t('sessions.columnActions'),
+      key: 'actions',
+      render: (_, record) => <OpenBarrierAction sessionId={record.id} />,
     },
   ]
 

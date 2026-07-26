@@ -15,6 +15,19 @@ interface ServerToClientEvents {
     type: DetectionType
     image_url: string
   }) => void
+  exit_awaiting_payment: (payload: {
+    plateNumber: string
+    amount: number
+  }) => void
+  relay_failed: (payload: {
+    direction: 'entry' | 'exit'
+    plateNumber: string
+    message: string
+  }) => void
+  webhook_parse_failed: (payload: {
+    direction: 'entry' | 'exit'
+    message: string
+  }) => void
 }
 
 type ClientToServerEvents = Record<string, never>

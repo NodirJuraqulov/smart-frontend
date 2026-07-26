@@ -1,5 +1,6 @@
 import { axiosInstance } from './axiosInstance'
 import type {
+  AwaitingPaymentSession,
   ParkingCapacity,
   ParkingSession,
   Payment,
@@ -23,48 +24,20 @@ export const getCapacity = () =>
     .get<ParkingCapacity>('/api/parking/capacity')
     .then((res) => res.data)
 
-function buildManualRequest(
-  plateNumber: string,
-  image?: File,
-  extra?: Record<string, string>,
-) {
-  if (!image) {
-    return { data: { plate_number: plateNumber, ...extra }, headers: undefined }
-  }
-  const formData = new FormData()
-  formData.append('plate_number', plateNumber)
-  formData.append('image', image)
-  for (const [key, value] of Object.entries(extra ?? {})) {
-    formData.append(key, value)
-  }
-  return { data: formData, headers: { 'Content-Type': undefined } }
-}
-
-export const entryManual = (plateNumber: string, image?: File) => {
-  const { data, headers } = buildManualRequest(plateNumber, image)
-  return axiosInstance
-    .post<{ session: ParkingSession }>('/api/parking/entry/manual', data, {
-      headers,
+export const entryManual = (plateNumber: string) =>
+  axiosInstance
+    .post<{ session: ParkingSession }>('/api/parking/entry/manual', {
+      plate_number: plateNumber,
     })
     .then((res) => res.data.session)
-}
 
-export const exitManual = (
-  plateNumber: string,
-  paymentMethod: PaymentMethod,
-  image?: File,
-) => {
-  const { data, headers } = buildManualRequest(plateNumber, image, {
-    payment_method: paymentMethod,
-  })
-  return axiosInstance
+export const exitManual = (plateNumber: string, paymentMethod: PaymentMethod) =>
+  axiosInstance
     .post<{ session: ParkingSession; payment: Payment }>(
       '/api/parking/exit/manual',
-      data,
-      { headers },
+      { plate_number: plateNumber, payment_method: paymentMethod },
     )
     .then((res) => res.data)
-}
 
 export interface ForceCloseSessionPayload {
   exited_at?: string
@@ -94,5 +67,39 @@ export const updateSessionPaymentMethod = ({
     .post<{ session: ParkingSession; payment: Payment }>(
       `/api/parking/sessions/${id}/payment-method`,
       { payment_method },
+    )
+    .then((res) => res.data)
+
+export const getAwaitingPayments = () =>
+  axiosInstance
+    .get<{ sessions: AwaitingPaymentSession[] }>(
+      '/api/parking/sessions/awaiting-payment',
+    )
+    .then((res) => res.data.sessions)
+
+export const confirmCashPayment = (id: number) =>
+  axiosInstance
+    .post<{ session: ParkingSession; payment: Payment }>(
+      `/api/parking/sessions/${id}/confirm-cash-payment`,
+    )
+    .then((res) => res.data)
+
+export const openBarrierForSession = ({
+  id,
+  direction,
+}: {
+  id: number
+  direction: 'entry' | 'exit'
+}) =>
+  axiosInstance
+    .post<{ success: boolean }>(`/api/parking/sessions/${id}/open-barrier`, {
+      direction,
+    })
+    .then((res) => res.data.success)
+
+export const printReceiptForSession = (id: number) =>
+  axiosInstance
+    .post<{ success: boolean; reason?: string }>(
+      `/api/parking/sessions/${id}/print-receipt`,
     )
     .then((res) => res.data)

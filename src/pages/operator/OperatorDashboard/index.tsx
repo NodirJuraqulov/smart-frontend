@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { App as AntdApp, Col, Form, Row, Typography } from 'antd'
+import { App as AntdApp, Form, Typography } from 'antd'
 import { getDailyReport } from '@/api/reports'
-import { getSettings } from '@/api/settings'
 import {
   entryManual,
   exitManual,
@@ -17,9 +16,9 @@ import { getErrorMessage } from '@/utils/apiError'
 import { formatDate } from '@/utils/format'
 import ReceiptModal from '@/components/ReceiptModal'
 import type { DetectionType, ParkingSession, Payment } from '@/types/parking'
-import CameraCard from './CameraCard'
 import StatsRow from './StatsRow'
 import DetectionFailedAlert from './DetectionFailedAlert'
+import AwaitingPaymentsSection from './AwaitingPaymentsSection'
 import ActiveSessionsTable from './ActiveSessionsTable'
 import ManualEntryModal, { type ManualFormValues } from './ManualEntryModal'
 
@@ -67,12 +66,6 @@ export default function OperatorDashboard() {
     refetchInterval: 10000,
   })
 
-  const settingsQuery = useQuery({
-    queryKey: ['settings'],
-    queryFn: () => getSettings(),
-    retry: false,
-  })
-
   const invalidateParkingData = () => {
     queryClient.invalidateQueries({ queryKey: ['parking', 'active'] })
     queryClient.invalidateQueries({ queryKey: ['reports', 'daily'] })
@@ -104,6 +97,37 @@ export default function OperatorDashboard() {
     },
     onDetectionFailed: (type, imageUrl) => {
       setDetectionFailed({ type, imageUrl })
+    },
+    onAwaitingPayment: () => {
+      queryClient.invalidateQueries({ queryKey: ['parking', 'awaiting-payment'] })
+    },
+    onRelayFailed: (direction) => {
+      notification.warning({
+        message: t('operatorDashboard.relayFailedTitle'),
+        description: t('operatorDashboard.relayFailedDescription', {
+          direction: t(
+            direction === 'entry'
+              ? 'operatorDashboard.directionEntryLabel'
+              : 'operatorDashboard.directionExitLabel',
+          ),
+        }),
+        placement: 'topRight',
+        duration: 8,
+      })
+    },
+    onWebhookParseFailed: (direction) => {
+      notification.warning({
+        message: t('operatorDashboard.webhookParseFailedTitle'),
+        description: t('operatorDashboard.webhookParseFailedDescription', {
+          direction: t(
+            direction === 'entry'
+              ? 'operatorDashboard.directionEntryLabel'
+              : 'operatorDashboard.directionExitLabel',
+          ),
+        }),
+        placement: 'topRight',
+        duration: 8,
+      })
     },
   })
 
@@ -169,31 +193,6 @@ export default function OperatorDashboard() {
 
       <StatsRow isLoading={dailyReportQuery.isLoading} data={dailyReportQuery.data} />
 
-      <Row gutter={[16, 16]}>
-        <Col xs={24} sm={24} md={12}>
-          <CameraCard
-            title={t('operatorDashboard.entryCameraTitle')}
-            isLoading={settingsQuery.isLoading}
-            isError={settingsQuery.isError}
-            cameraUrl={settingsQuery.data?.camera_entry_url}
-            orgId={settingsQuery.data?.org_id}
-            type="entry"
-            highlighted={detectionFailed?.type === 'entry'}
-          />
-        </Col>
-        <Col xs={24} sm={24} md={12}>
-          <CameraCard
-            title={t('operatorDashboard.exitCameraTitle')}
-            isLoading={settingsQuery.isLoading}
-            isError={settingsQuery.isError}
-            cameraUrl={settingsQuery.data?.camera_exit_url}
-            orgId={settingsQuery.data?.org_id}
-            type="exit"
-            highlighted={detectionFailed?.type === 'exit'}
-          />
-        </Col>
-      </Row>
-
       {detectionFailed && (
         <DetectionFailedAlert
           type={detectionFailed.type}
@@ -219,6 +218,8 @@ export default function OperatorDashboard() {
         }
         isConfirmingPaymentMethod={confirmPaymentMethodMutation.isPending}
       />
+
+      <AwaitingPaymentsSection />
 
       <ActiveSessionsTable
         dataSource={activeSessionsQuery.data ?? []}

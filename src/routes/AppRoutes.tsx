@@ -1,4 +1,4 @@
-import { lazy, type ReactNode } from 'react'
+import { lazy, Suspense, type ReactNode } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -18,6 +18,7 @@ import LoginPage from '@/pages/auth/LoginPage'
 import NotFoundPage from '@/pages/NotFoundPage'
 import ForbiddenPage from '@/pages/ForbiddenPage'
 import AppLayout from '@/layouts/AppLayout'
+import PageLoader from '@/components/PageLoader'
 import ProtectedRoute from '@/components/ProtectedRoute'
 import PermissionRoute from '@/components/PermissionRoute'
 import RoleRedirect from '@/components/RoleRedirect'
@@ -40,6 +41,9 @@ const OrganizationDetailPage = lazy(
   () => import('@/pages/admin/OrganizationDetailPage'),
 )
 const ActivityLogPage = lazy(() => import('@/pages/admin/ActivityLogPage'))
+
+const EntryDisplayPage = lazy(() => import('@/pages/public/EntryDisplayPage'))
+const ExitDisplayPage = lazy(() => import('@/pages/public/ExitDisplayPage'))
 
 interface OperatorMenuConfigItem {
   key: string
@@ -125,6 +129,23 @@ export default function AppRoutes() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/403" element={<ForbiddenPage />} />
+
+      <Route
+        path="/display/entry/:orgId"
+        element={
+          <Suspense fallback={<PageLoader />}>
+            <EntryDisplayPage />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/display/exit/:orgId"
+        element={
+          <Suspense fallback={<PageLoader />}>
+            <ExitDisplayPage />
+          </Suspense>
+        }
+      />
 
       <Route element={<ProtectedRoute allowedRoles={['operator', 'owner']} />}>
         <Route

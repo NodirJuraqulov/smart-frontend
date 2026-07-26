@@ -18,6 +18,10 @@ export const ACTION_LABEL_KEYS: Record<string, string> = {
   'tariff.deleted': 'activityLog.actionTariffDeleted',
   'settings.updated': 'activityLog.actionSettingsUpdated',
   'agent_key.generated': 'activityLog.actionAgentKeyGenerated',
+  'organization.integration_settings_updated':
+    'activityLog.actionIntegrationSettingsUpdated',
+  'organization.webhook_token_regenerated':
+    'activityLog.actionWebhookTokenRegenerated',
   'session.force_closed': 'activityLog.actionSessionForceClosed',
 }
 

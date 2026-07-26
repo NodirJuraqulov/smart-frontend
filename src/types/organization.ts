@@ -46,3 +46,22 @@ export interface OrganizationStats {
   is_online: boolean
   last_heartbeat_at: string | null
 }
+
+export interface IntegrationSettings {
+  relay_entry_ip: string | null
+  relay_exit_ip: string | null
+  printer_ip: string | null
+  camera_brand: string | null
+  webhook_token: string | null
+  webhook_entry_url: string | null
+  webhook_exit_url: string | null
+  last_webhook_entry_at: string | null
+  last_webhook_exit_at: string | null
+}
+
+export interface UpdateIntegrationSettingsPayload {
+  relay_entry_ip?: string | null
+  relay_exit_ip?: string | null
+  printer_ip?: string | null
+  camera_brand?: string | null
+}

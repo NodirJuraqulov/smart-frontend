@@ -15,6 +15,8 @@ interface ReceiptModalProps {
   orgName?: string | null
   onConfirmPaymentMethod?: (method: PaymentMethod) => void
   isConfirmingPaymentMethod?: boolean
+  onPrint?: () => void
+  isPrinting?: boolean
 }
 
 export default function ReceiptModal({
@@ -26,6 +28,8 @@ export default function ReceiptModal({
   orgName,
   onConfirmPaymentMethod,
   isConfirmingPaymentMethod,
+  onPrint,
+  isPrinting,
 }: ReceiptModalProps) {
   const { t } = useTranslation()
   const issuedAt = new Date()
@@ -40,7 +44,11 @@ export default function ReceiptModal({
     if (needsPaymentMethodChoice) {
       onConfirmPaymentMethod!(selectedMethod)
     }
-    window.print()
+    if (onPrint) {
+      onPrint()
+    } else {
+      window.print()
+    }
   }
 
   const paymentMethodLabel = (method: PaymentMethod) =>
@@ -61,7 +69,7 @@ export default function ReceiptModal({
           key="print"
           type="primary"
           icon={<PrinterOutlined />}
-          loading={isConfirmingPaymentMethod}
+          loading={isConfirmingPaymentMethod || isPrinting}
           onClick={handlePrint}
         >
           {t('operatorDashboard.printReceipt')}

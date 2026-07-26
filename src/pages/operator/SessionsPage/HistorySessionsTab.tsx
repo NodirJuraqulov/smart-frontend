@@ -1,11 +1,21 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import type { Dayjs } from 'dayjs'
-import { Card, DatePicker, Empty, Input, Select, Space, Table } from 'antd'
-import { getSessions } from '@/api/parking'
+import {
+  App as AntdApp,
+  Card,
+  DatePicker,
+  Empty,
+  Input,
+  Select,
+  Space,
+  Table,
+} from 'antd'
+import { getSessions, printReceiptForSession } from '@/api/parking'
 import { useTheme } from '@/contexts/ThemeContext'
 import { useAppSelector } from '@/hooks/redux'
+import { getErrorMessage } from '@/utils/apiError'
 import ReceiptModal from '@/components/ReceiptModal'
 import type { ParkingSession, SessionStatus } from '@/types/parking'
 import { useSharedImagePreview } from './useSharedImagePreview'
@@ -16,6 +26,7 @@ type StatusFilter = 'all' | SessionStatus
 export default function HistorySessionsTab() {
   const { t } = useTranslation()
   const { mode } = useTheme()
+  const { message } = AntdApp.useApp()
   const { setPreviewSrc, previewElement } = useSharedImagePreview()
   const orgName = useAppSelector((state) => state.auth.user?.org_name)
 
@@ -42,6 +53,22 @@ export default function HistorySessionsTab() {
         plate_number: plateSearch || undefined,
         date: date ? date.format('YYYY-MM-DD') : undefined,
       }),
+  })
+
+  const printMutation = useMutation({
+    mutationFn: (id: number) => printReceiptForSession(id),
+    onSuccess: (result) => {
+      if (result.success) {
+        message.success(t('sessions.reprintSuccess'))
+      } else if (result.reason === 'printer_not_configured') {
+        message.warning(t('sessions.reprintPrinterNotConfigured'))
+      } else {
+        message.error(t('sessions.reprintError'))
+      }
+    },
+    onError: (error) => {
+      message.error(getErrorMessage(error, t('sessions.reprintError')))
+    },
   })
 
   const columns = buildColumns(t, mode, setPreviewSrc, {
@@ -121,6 +148,8 @@ export default function HistorySessionsTab() {
         amount={receiptSession?.amount ?? null}
         paymentMethod={null}
         orgName={orgName}
+        onPrint={() => receiptSession && printMutation.mutate(receiptSession.id)}
+        isPrinting={printMutation.isPending}
       />
     </>
   )

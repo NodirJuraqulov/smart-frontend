@@ -9,6 +9,9 @@ interface SocketCallbacks {
   onEntry?: (...args: unknown[]) => void
   onExit?: (...args: unknown[]) => void
   onDetectionFailed?: (type: DetectionType, imageUrl: string) => void
+  onAwaitingPayment?: (...args: unknown[]) => void
+  onRelayFailed?: (direction: 'entry' | 'exit', message: string) => void
+  onWebhookParseFailed?: (direction: 'entry' | 'exit', message: string) => void
 }
 
 const {
@@ -17,6 +20,9 @@ const {
   getActiveSessionsMock,
   getCapacityMock,
   updateSessionPaymentMethodMock,
+  getAwaitingPaymentsMock,
+  confirmCashPaymentMock,
+  openBarrierForSessionMock,
   getDailyReportMock,
   getSettingsMock,
   useAppSelectorMock,
@@ -27,6 +33,9 @@ const {
   getActiveSessionsMock: vi.fn(),
   getCapacityMock: vi.fn(),
   updateSessionPaymentMethodMock: vi.fn(),
+  getAwaitingPaymentsMock: vi.fn(),
+  confirmCashPaymentMock: vi.fn(),
+  openBarrierForSessionMock: vi.fn(),
   getDailyReportMock: vi.fn(),
   getSettingsMock: vi.fn(),
   useAppSelectorMock: vi.fn(),
@@ -39,6 +48,9 @@ vi.mock('@/api/parking', () => ({
   getActiveSessions: getActiveSessionsMock,
   getCapacity: getCapacityMock,
   updateSessionPaymentMethod: updateSessionPaymentMethodMock,
+  getAwaitingPayments: getAwaitingPaymentsMock,
+  confirmCashPayment: confirmCashPaymentMock,
+  openBarrierForSession: openBarrierForSessionMock,
 }))
 
 vi.mock('@/api/reports', () => ({
@@ -87,6 +99,9 @@ describe('OperatorDashboard manual entry modal', () => {
     getActiveSessionsMock.mockReset().mockResolvedValue([])
     getCapacityMock.mockReset().mockResolvedValue({ occupied: 0, total: null })
     updateSessionPaymentMethodMock.mockReset()
+    getAwaitingPaymentsMock.mockReset().mockResolvedValue([])
+    confirmCashPaymentMock.mockReset()
+    openBarrierForSessionMock.mockReset()
     getDailyReportMock.mockReset().mockResolvedValue({})
     getSettingsMock.mockReset().mockResolvedValue({})
     useAppSelectorMock.mockReset().mockReturnValue(undefined)
@@ -128,5 +143,54 @@ describe('OperatorDashboard manual entry modal', () => {
     await openManualEntryModal()
 
     expect(screen.queryByDisplayValue('01A777BA')).not.toBeInTheDocument()
+  })
+})
+
+describe('OperatorDashboard qurilma ogohlantirishlari', () => {
+  beforeEach(() => {
+    entryManualMock.mockReset()
+    exitManualMock.mockReset()
+    getActiveSessionsMock.mockReset().mockResolvedValue([])
+    getCapacityMock.mockReset().mockResolvedValue({ occupied: 0, total: null })
+    updateSessionPaymentMethodMock.mockReset()
+    getAwaitingPaymentsMock.mockReset().mockResolvedValue([])
+    confirmCashPaymentMock.mockReset()
+    openBarrierForSessionMock.mockReset()
+    getDailyReportMock.mockReset().mockResolvedValue({})
+    getSettingsMock.mockReset().mockResolvedValue({})
+    useAppSelectorMock.mockReset().mockReturnValue(undefined)
+    socketCallbacksRef.current = null
+  })
+
+  it("relay_failed kelganda togri yonalish bilan ogohlantirish korsatadi (regression)", async () => {
+    renderDashboard()
+    await waitFor(() => expect(socketCallbacksRef.current).not.toBeNull())
+
+    socketCallbacksRef.current!.onRelayFailed?.(
+      'exit',
+      "Shlagbaum avtomatik ochilmadi, qo'lda oching",
+    )
+
+    expect(await screen.findByText('Shlagbaum ochilmadi')).toBeInTheDocument()
+    expect(
+      screen.getByText("Shlagbaum avtomatik ochilmadi (Chiqish), qo'lda oching"),
+    ).toBeInTheDocument()
+  })
+
+  it("webhook_parse_failed kelganda togri yonalish bilan ogohlantirish korsatadi (regression)", async () => {
+    renderDashboard()
+    await waitFor(() => expect(socketCallbacksRef.current).not.toBeNull())
+
+    socketCallbacksRef.current!.onWebhookParseFailed?.(
+      'entry',
+      'Kamera signal yubordi, lekin format tanilmadi',
+    )
+
+    expect(
+      await screen.findByText('Kamera signali tanilmadi'),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText('Kamera signal yubordi, lekin format tanilmadi (Kirish)'),
+    ).toBeInTheDocument()
   })
 })

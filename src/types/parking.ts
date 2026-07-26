@@ -39,6 +39,11 @@ export interface SessionsResponse {
   pagination: PaginationMeta
 }
 
+export interface AwaitingPaymentSession extends Omit<ParkingSession, 'status'> {
+  status: 'awaiting_payment'
+  is_overdue: boolean
+}
+
 export type PaymentMethod = 'cash' | 'online'
 
 export interface Payment {

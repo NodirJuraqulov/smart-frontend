@@ -11,6 +11,9 @@ interface UseParkingSocketCallbacks {
     detected: boolean,
   ) => void
   onDetectionFailed?: (type: DetectionType, imageUrl: string) => void
+  onAwaitingPayment?: (plateNumber: string, amount: number) => void
+  onRelayFailed?: (direction: 'entry' | 'exit', message: string) => void
+  onWebhookParseFailed?: (direction: 'entry' | 'exit', message: string) => void
 }
 
 export function useParkingSocket(callbacks: UseParkingSocketCallbacks) {
@@ -48,14 +51,41 @@ export function useParkingSocket(callbacks: UseParkingSocketCallbacks) {
       callbacksRef.current.onDetectionFailed?.(payload.type, payload.image_url)
     }
 
+    const handleAwaitingPayment = (payload: {
+      plateNumber: string
+      amount: number
+    }) => {
+      callbacksRef.current.onAwaitingPayment?.(payload.plateNumber, payload.amount)
+    }
+
+    const handleRelayFailed = (payload: {
+      direction: 'entry' | 'exit'
+      message: string
+    }) => {
+      callbacksRef.current.onRelayFailed?.(payload.direction, payload.message)
+    }
+
+    const handleWebhookParseFailed = (payload: {
+      direction: 'entry' | 'exit'
+      message: string
+    }) => {
+      callbacksRef.current.onWebhookParseFailed?.(payload.direction, payload.message)
+    }
+
     socket.on('parking:entry', handleEntry)
     socket.on('parking:exit', handleExit)
     socket.on('parking:detection_failed', handleDetectionFailed)
+    socket.on('exit_awaiting_payment', handleAwaitingPayment)
+    socket.on('relay_failed', handleRelayFailed)
+    socket.on('webhook_parse_failed', handleWebhookParseFailed)
 
     return () => {
       socket.off('parking:entry', handleEntry)
       socket.off('parking:exit', handleExit)
       socket.off('parking:detection_failed', handleDetectionFailed)
+      socket.off('exit_awaiting_payment', handleAwaitingPayment)
+      socket.off('relay_failed', handleRelayFailed)
+      socket.off('webhook_parse_failed', handleWebhookParseFailed)
       disconnectSocket()
     }
     // oxlint-disable-next-line react-hooks/exhaustive-deps

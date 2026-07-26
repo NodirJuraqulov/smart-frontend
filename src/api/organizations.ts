@@ -1,7 +1,9 @@
 import { axiosInstance } from './axiosInstance'
 import {
+  mapIntegrationSettings,
   mapOperator,
   mapOrganization,
+  type IntegrationSettingsDto,
   type OperatorDto,
   type OrganizationDto,
 } from './mappers'
@@ -9,6 +11,7 @@ import type {
   CreateOrganizationPayload,
   OrganizationStats,
   PricingMode,
+  UpdateIntegrationSettingsPayload,
   UpdateOrganizationPayload,
 } from '@/types/organization'
 import type {
@@ -62,6 +65,52 @@ export const toggleOrgBlock = ({
 export const getOrgStats = (id: number) =>
   axiosInstance
     .get<OrganizationStats>(`/api/admin/organizations/${id}/stats`)
+    .then((res) => res.data)
+
+export const getIntegrationSettings = (orgId: number) =>
+  axiosInstance
+    .get<IntegrationSettingsDto>(
+      `/api/admin/organizations/${orgId}/integration-settings`,
+    )
+    .then((res) => mapIntegrationSettings(res.data))
+
+export const updateIntegrationSettings = ({
+  orgId,
+  ...payload
+}: UpdateIntegrationSettingsPayload & { orgId: number }) =>
+  axiosInstance
+    .put<IntegrationSettingsDto>(
+      `/api/admin/organizations/${orgId}/integration-settings`,
+      payload,
+    )
+    .then((res) => mapIntegrationSettings(res.data))
+
+export const regenerateWebhookToken = (orgId: number) =>
+  axiosInstance
+    .post<{ webhookToken: string }>(
+      `/api/admin/organizations/${orgId}/integration-settings/regenerate-token`,
+    )
+    .then((res) => res.data.webhookToken)
+
+export const testRelay = ({
+  orgId,
+  direction,
+}: {
+  orgId: number
+  direction: 'entry' | 'exit'
+}) =>
+  axiosInstance
+    .post<{ success: boolean }>(
+      `/api/admin/organizations/${orgId}/relay/test`,
+      { direction },
+    )
+    .then((res) => res.data.success)
+
+export const testPrinter = (orgId: number) =>
+  axiosInstance
+    .post<{ success: boolean; reason?: string }>(
+      `/api/admin/organizations/${orgId}/printer/test`,
+    )
     .then((res) => res.data)
 
 export const createOrganizationOperator = ({

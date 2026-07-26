@@ -112,4 +112,45 @@ describe('ReceiptModal', () => {
 
     expect(onConfirmPaymentMethod).toHaveBeenCalledWith('online')
   })
+
+  it("onPrint prop berilsa window.print o'rniga o'sha chaqiriladi (regression)", () => {
+    const onPrint = vi.fn()
+    const printSpy = vi.spyOn(window, 'print').mockImplementation(() => {})
+
+    render(
+      <ReceiptModal
+        open
+        onClose={() => {}}
+        session={baseSession}
+        amount={15000}
+        paymentMethod="cash"
+        onPrint={onPrint}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /Chek chiqarish/ }))
+
+    expect(onPrint).toHaveBeenCalled()
+    expect(printSpy).not.toHaveBeenCalled()
+    printSpy.mockRestore()
+  })
+
+  it('onPrint berilmasa window.print ishlatiladi', () => {
+    const printSpy = vi.spyOn(window, 'print').mockImplementation(() => {})
+
+    render(
+      <ReceiptModal
+        open
+        onClose={() => {}}
+        session={baseSession}
+        amount={15000}
+        paymentMethod="cash"
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /Chek chiqarish/ }))
+
+    expect(printSpy).toHaveBeenCalled()
+    printSpy.mockRestore()
+  })
 })
