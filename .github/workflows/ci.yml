@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node.js o'rnatish
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Bog'liqliklarni o'rnatish
+        run: npm install
+
+      - name: TypeScript tekshiruvi
+        run: npx tsc -b
+
+      - name: Lint
+        run: npx oxlint src
+
+      - name: Testlar
+        run: npm test
+
+      - name: Build
+        run: npm run build

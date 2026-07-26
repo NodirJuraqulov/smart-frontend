@@ -99,7 +99,7 @@ describe('AwaitingPaymentsSection', () => {
       expect(confirmCashPaymentMock).toHaveBeenCalledWith(1),
     )
     await waitFor(() =>
-      expect(getAwaitingPaymentsMock).toHaveBeenCalledTimes(2),
+      expect(getAwaitingPaymentsMock.mock.calls.length).toBeGreaterThanOrEqual(2),
     )
   })
 

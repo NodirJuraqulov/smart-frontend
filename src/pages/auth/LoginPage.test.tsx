@@ -129,7 +129,9 @@ describe('LoginPage', () => {
 
     submitLoginForm()
 
-    await waitFor(() => expect(screen.getByText('Dashboard')).toBeInTheDocument())
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: 'Dashboard' })).toBeInTheDocument(),
+    )
     expect(screen.getByText('Sessiyalar')).toBeInTheDocument()
     expect(screen.getByText('Hisobotlar')).toBeInTheDocument()
     expect(screen.queryByText('Tariflar')).not.toBeInTheDocument()
@@ -186,6 +188,8 @@ describe('LoginPage', () => {
       },
     })
 
-    await waitFor(() => expect(screen.getByText('Dashboard')).toBeInTheDocument())
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: 'Dashboard' })).toBeInTheDocument(),
+    )
   })
 })
