@@ -212,7 +212,9 @@
     "workHoursRangeInvalid": "Start time must be before end time",
     "settingsSaveSuccess": "Settings saved",
     "settingsSaveError": "Failed to save settings",
-    "notFound": "Parking lot not found"
+    "notFound": "Parking lot not found",
+    "settingsEditButton": "Edit",
+    "workHoursUnrestricted": "Unrestricted"
   },
   "pricingMode": {
     "title": "Pricing mode",
@@ -248,7 +250,9 @@
     "totalHint": "Leave empty for unlimited",
     "totalPlaceholder": "E.g. 50",
     "updateSuccess": "Capacity saved",
-    "updateError": "Failed to save capacity"
+    "updateError": "Failed to save capacity",
+    "editButton": "Edit",
+    "unlimitedValue": "Unlimited"
   },
   "integrationSettings": {
     "title": "Integration settings",

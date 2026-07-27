@@ -260,7 +260,7 @@ export default function IntegrationSettingsCard({
               okText={t('integrationSettings.regenerateTokenConfirmOk')}
               cancelText={t('common.cancel')}
             >
-              <Button danger icon={<KeyOutlined />} loading={regenerateMutation.isPending}>
+              <Button className="mt-4" danger icon={<KeyOutlined />} loading={regenerateMutation.isPending}>
                 {t('integrationSettings.regenerateTokenButton')}
               </Button>
             </Popconfirm>
@@ -268,10 +268,17 @@ export default function IntegrationSettingsCard({
 
           <Divider className="my-0" />
 
-          <div>
-            <Typography.Title level={5}>
-              {t('integrationSettings.relayPrinterSectionTitle')}
-            </Typography.Title>
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <Typography.Title level={5} className="m-0!">
+                {t('integrationSettings.relayPrinterSectionTitle')}
+              </Typography.Title>
+              {!isEditing && (
+                <Button icon={<EditOutlined />} onClick={openEdit}>
+                  {t('integrationSettings.editButton')}
+                </Button>
+              )}
+            </div>
 
             {isEditing ? (
               <Form
@@ -326,48 +333,39 @@ export default function IntegrationSettingsCard({
                 </Form.Item>
               </Form>
             ) : (
-              <div className="flex items-start gap-3">
-                <Descriptions column={1} className="flex-1">
-                  <Descriptions.Item label={t('integrationSettings.relayEntryIpLabel')}>
-                    <RelayIpValue
-                      ip={data.relay_entry_ip}
-                      direction="entry"
-                      onTest={(direction) => testRelayMutation.mutate(direction)}
-                      isTesting={testRelayMutation.isPending}
-                      testingDirection={testRelayMutation.variables}
-                    />
-                  </Descriptions.Item>
-                  <Descriptions.Item label={t('integrationSettings.relayExitIpLabel')}>
-                    <RelayIpValue
-                      ip={data.relay_exit_ip}
-                      direction="exit"
-                      onTest={(direction) => testRelayMutation.mutate(direction)}
-                      isTesting={testRelayMutation.isPending}
-                      testingDirection={testRelayMutation.variables}
-                    />
-                  </Descriptions.Item>
-                  <Descriptions.Item label={t('integrationSettings.printerIpLabel')}>
-                    <Space>
-                      <span>
-                        {data.printer_ip || t('integrationSettings.notConfigured')}
-                      </span>
-                      <Button
-                        size="small"
-                        icon={<PrinterOutlined />}
-                        loading={testPrinterMutation.isPending}
-                        disabled={testPrinterMutation.isPending}
-                        onClick={() => testPrinterMutation.mutate()}
-                      >
-                        {t('integrationSettings.testPrinterButton')}
-                      </Button>
-                    </Space>
-                  </Descriptions.Item>
-                </Descriptions>
-                <Button icon={<EditOutlined />} onClick={openEdit}>
-                  {t('integrationSettings.editButton')}
-                </Button>
-              </div>
+              <Descriptions column={1}>
+                <Descriptions.Item label={t('integrationSettings.relayEntryIpLabel')}>
+                  <RelayIpValue
+                    ip={data.relay_entry_ip}
+                    direction="entry"
+                    onTest={(direction) => testRelayMutation.mutate(direction)}
+                    isTesting={testRelayMutation.isPending}
+                    testingDirection={testRelayMutation.variables}
+                  />
+                </Descriptions.Item>
+                <Descriptions.Item label={t('integrationSettings.relayExitIpLabel')}>
+                  <RelayIpValue
+                    ip={data.relay_exit_ip}
+                    direction="exit"
+                    onTest={(direction) => testRelayMutation.mutate(direction)}
+                    isTesting={testRelayMutation.isPending}
+                    testingDirection={testRelayMutation.variables}
+                  />
+                </Descriptions.Item>
+                <Descriptions.Item label={t('integrationSettings.printerIpLabel')}>
+                  {data.printer_ip || t('integrationSettings.notConfigured')}
+                </Descriptions.Item>
+              </Descriptions>
             )}
+
+            <Button
+              icon={<PrinterOutlined />}
+              loading={testPrinterMutation.isPending}
+              disabled={testPrinterMutation.isPending}
+              onClick={() => testPrinterMutation.mutate()}
+            >
+              {t('integrationSettings.testPrinterButton')}
+            </Button>
           </div>
         </div>
       ) : (

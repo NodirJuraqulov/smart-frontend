@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import dayjs from 'dayjs'
 import {
   App as AntdApp,
   Button,
@@ -19,10 +18,8 @@ import {
 } from '@/api/organizations'
 import { getOperators, resetPassword, toggleBlock } from '@/api/users'
 import { getTariffs } from '@/api/tariffs'
-import { getSettings, updateSettings } from '@/api/settings'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { getErrorMessage } from '@/utils/apiError'
-import type { UpdateSettingsPayload } from '@/types/settings'
 import type { Operator } from '@/types/user'
 import ResetPasswordModal, {
   type ResetPasswordFormValues,
@@ -36,7 +33,7 @@ import AddOperatorModal, {
 import PricingModeCard from './PricingModeCard'
 import CapacityCard from './CapacityCard'
 import PermissionsCard from './PermissionsCard'
-import SettingsCard, { type SettingsFormValues } from './SettingsCard'
+import SettingsCard from './SettingsCard'
 import IntegrationSettingsCard from './IntegrationSettingsCard'
 
 export default function OrganizationDetailPage() {
@@ -51,8 +48,6 @@ export default function OrganizationDetailPage() {
     useState<Operator | null>(null)
   const [addOperatorForm] = Form.useForm<AddOperatorFormValues>()
   const [resetPasswordForm] = Form.useForm<ResetPasswordFormValues>()
-  const [settingsForm] = Form.useForm<SettingsFormValues>()
-  const workHoursEnabled = Form.useWatch('work_hours_enabled', settingsForm)
 
   const organizationsQuery = useQuery({
     queryKey: ['organizations'],
@@ -127,51 +122,6 @@ export default function OrganizationDetailPage() {
     queryFn: () => getTariffs(orgId),
     enabled: !!orgId,
   })
-
-  const settingsQuery = useQuery({
-    queryKey: ['org-settings', orgId],
-    queryFn: () => getSettings(orgId),
-    enabled: !!orgId,
-    retry: false,
-  })
-
-  useEffect(() => {
-    const data = settingsQuery.data
-    if (!data) return
-
-    settingsForm.setFieldsValue({
-      work_hours_enabled: data.work_hours_enabled,
-      work_time_range:
-        data.work_start && data.work_end
-          ? [dayjs(data.work_start, 'HH:mm'), dayjs(data.work_end, 'HH:mm')]
-          : undefined,
-    })
-  }, [settingsQuery.data, settingsForm])
-
-  const updateSettingsMutation = useMutation({
-    mutationFn: (payload: UpdateSettingsPayload) =>
-      updateSettings(orgId, payload),
-    onSuccess: () => {
-      message.success(t('orgDetail.settingsSaveSuccess'))
-      queryClient.invalidateQueries({ queryKey: ['org-settings', orgId] })
-    },
-    onError: (error) => {
-      message.error(getErrorMessage(error, t('orgDetail.settingsSaveError')))
-    },
-  })
-
-  const handleSettingsSubmit = (values: SettingsFormValues) => {
-    const payload: UpdateSettingsPayload = {
-      work_hours_enabled: values.work_hours_enabled,
-    }
-
-    if (values.work_hours_enabled && values.work_time_range) {
-      payload.work_start = values.work_time_range[0].format('HH:mm')
-      payload.work_end = values.work_time_range[1].format('HH:mm')
-    }
-
-    updateSettingsMutation.mutate(payload)
-  }
 
   if (organizationsQuery.isLoading) {
     return (
@@ -255,14 +205,7 @@ export default function OrganizationDetailPage() {
 
       <PermissionsCard orgId={orgId} />
 
-      <SettingsCard
-        isLoading={settingsQuery.isLoading}
-        data={settingsQuery.data}
-        form={settingsForm}
-        workHoursEnabled={workHoursEnabled}
-        onSubmit={handleSettingsSubmit}
-        isSaving={updateSettingsMutation.isPending}
-      />
+      <SettingsCard orgId={orgId} />
 
       <IntegrationSettingsCard orgId={orgId} />
 

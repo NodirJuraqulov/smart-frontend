@@ -212,7 +212,9 @@
     "workHoursRangeInvalid": "Boshlanish vaqti tugash vaqtidan oldin bo'lishi kerak",
     "settingsSaveSuccess": "Sozlamalar saqlandi",
     "settingsSaveError": "Sozlamalarni saqlashda xatolik yuz berdi",
-    "notFound": "Stoyanka topilmadi"
+    "notFound": "Stoyanka topilmadi",
+    "settingsEditButton": "Tahrirlash",
+    "workHoursUnrestricted": "Cheklanmagan"
   },
   "pricingMode": {
     "title": "Narxlash rejimi",
@@ -248,7 +250,9 @@
     "totalHint": "Bo'sh qoldirsangiz — cheksiz",
     "totalPlaceholder": "Masalan: 50",
     "updateSuccess": "Sig'im saqlandi",
-    "updateError": "Sig'imni saqlashda xatolik yuz berdi"
+    "updateError": "Sig'imni saqlashda xatolik yuz berdi",
+    "editButton": "Tahrirlash",
+    "unlimitedValue": "Cheksiz"
   },
   "integrationSettings": {
     "title": "Integratsiya sozlamalari",

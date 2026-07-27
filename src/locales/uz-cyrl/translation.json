@@ -212,7 +212,9 @@
     "workHoursRangeInvalid": "Бошланиш вақти тугаш вақтидан олдин бўлиши керак",
     "settingsSaveSuccess": "Созламалар сақланди",
     "settingsSaveError": "Созламаларни сақлашда хатолик юз берди",
-    "notFound": "Стоянка топилмади"
+    "notFound": "Стоянка топилмади",
+    "settingsEditButton": "Таҳрирлаш",
+    "workHoursUnrestricted": "Чекланмаган"
   },
   "pricingMode": {
     "title": "Нархлаш режими",
@@ -248,7 +250,9 @@
     "totalHint": "Бўш қолдирсангиз — чексиз",
     "totalPlaceholder": "Масалан: 50",
     "updateSuccess": "Сиғим сақланди",
-    "updateError": "Сиғимни сақлашда хатолик юз берди"
+    "updateError": "Сиғимни сақлашда хатолик юз берди",
+    "editButton": "Таҳрирлаш",
+    "unlimitedValue": "Чексиз"
   },
   "integrationSettings": {
     "title": "Интеграция созламалари",

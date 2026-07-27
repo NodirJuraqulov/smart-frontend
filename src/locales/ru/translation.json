@@ -212,7 +212,9 @@
     "workHoursRangeInvalid": "Время начала должно быть раньше времени окончания",
     "settingsSaveSuccess": "Настройки сохранены",
     "settingsSaveError": "Не удалось сохранить настройки",
-    "notFound": "Стоянка не найдена"
+    "notFound": "Стоянка не найдена",
+    "settingsEditButton": "Изменить",
+    "workHoursUnrestricted": "Без ограничений"
   },
   "pricingMode": {
     "title": "Режим ценообразования",
@@ -248,7 +250,9 @@
     "totalHint": "Оставьте пустым — без ограничения",
     "totalPlaceholder": "Например: 50",
     "updateSuccess": "Вместимость сохранена",
-    "updateError": "Ошибка при сохранении вместимости"
+    "updateError": "Ошибка при сохранении вместимости",
+    "editButton": "Изменить",
+    "unlimitedValue": "Без ограничений"
   },
   "integrationSettings": {
     "title": "Настройки интеграции",

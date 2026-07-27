@@ -1,7 +1,16 @@
-import { useEffect } from 'react'
+import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { App as AntdApp, Button, Card, Form, InputNumber } from 'antd'
+import {
+  App as AntdApp,
+  Button,
+  Card,
+  Descriptions,
+  Form,
+  InputNumber,
+  Space,
+} from 'antd'
+import { EditOutlined } from '@ant-design/icons'
 import { updateCapacity } from '@/api/organizations'
 import { getErrorMessage } from '@/utils/apiError'
 
@@ -21,11 +30,8 @@ export default function CapacityCard({
   const { t } = useTranslation()
   const { message } = AntdApp.useApp()
   const queryClient = useQueryClient()
+  const [isEditing, setIsEditing] = useState(false)
   const [form] = Form.useForm<CapacityFormValues>()
-
-  useEffect(() => {
-    form.setFieldsValue({ capacity_total: capacityTotal ?? undefined })
-  }, [capacityTotal, form])
 
   const mutation = useMutation({
     mutationFn: (values: CapacityFormValues) =>
@@ -33,42 +39,74 @@ export default function CapacityCard({
     onSuccess: () => {
       message.success(t('capacity.updateSuccess'))
       queryClient.invalidateQueries({ queryKey: ['organizations'] })
+      setIsEditing(false)
     },
     onError: (error) => {
       message.error(getErrorMessage(error, t('capacity.updateError')))
     },
   })
 
+  const openEdit = () => {
+    form.setFieldsValue({ capacity_total: capacityTotal ?? undefined })
+    setIsEditing(true)
+  }
+
   return (
-    <Card variant="borderless" title={t('capacity.title')}>
-      <Form
-        form={form}
-        layout="vertical"
-        onFinish={(values) => mutation.mutate(values)}
-      >
-        <Form.Item
-          label={t('capacity.totalLabel')}
-          name="capacity_total"
-          extra={t('capacity.totalHint')}
-        >
-          <InputNumber
-            className="w-full"
-            min={0}
-            precision={0}
-            placeholder={t('capacity.totalPlaceholder')}
-          />
-        </Form.Item>
-        <Form.Item className="mb-0">
-          <Button
-            type="primary"
-            htmlType="submit"
-            loading={mutation.isPending}
-            disabled={mutation.isPending}
-          >
-            {t('common.save')}
+    <Card
+      variant="borderless"
+      title={t('capacity.title')}
+      extra={
+        !isEditing && (
+          <Button icon={<EditOutlined />} onClick={openEdit}>
+            {t('capacity.editButton')}
           </Button>
-        </Form.Item>
-      </Form>
+        )
+      }
+    >
+      {isEditing ? (
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={(values) => mutation.mutate(values)}
+        >
+          <Form.Item
+            label={t('capacity.totalLabel')}
+            name="capacity_total"
+            extra={t('capacity.totalHint')}
+          >
+            <InputNumber
+              className="w-full"
+              min={0}
+              precision={0}
+              placeholder={t('capacity.totalPlaceholder')}
+            />
+          </Form.Item>
+          <Form.Item className="mb-0">
+            <Space>
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={mutation.isPending}
+                disabled={mutation.isPending}
+              >
+                {t('common.save')}
+              </Button>
+              <Button
+                onClick={() => setIsEditing(false)}
+                disabled={mutation.isPending}
+              >
+                {t('common.cancel')}
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      ) : (
+        <Descriptions column={1}>
+          <Descriptions.Item label={t('capacity.totalLabel')}>
+            {capacityTotal ?? t('capacity.unlimitedValue')}
+          </Descriptions.Item>
+        </Descriptions>
+      )}
     </Card>
   )
 }
