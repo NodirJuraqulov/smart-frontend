@@ -25,13 +25,14 @@ export interface OrganizationDto {
   is_active: number
   is_online: boolean
   pricing_mode: Organization['pricing_mode']
-  capacity_total: number | null
+  total_capacity: number | null
   created_at: string
 }
 
 export const mapOrganization = (dto: OrganizationDto): Organization => ({
   ...dto,
   is_active: dto.is_active === 1,
+  capacity_total: dto.total_capacity,
 })
 
 export const mapAuthPermissions = (

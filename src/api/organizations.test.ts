@@ -27,6 +27,7 @@ import {
   createTariffIntervalAdmin,
   deleteTariffInterval,
   deleteTariffIntervalAdmin,
+  getOrganizations,
   getPermissions,
   getTariffIntervals,
   getTariffIntervalsAdmin,
@@ -44,7 +45,7 @@ const organizationDto = {
   is_active: 1,
   is_online: true,
   pricing_mode: 'interval',
-  capacity_total: 50,
+  total_capacity: 50,
   created_at: '2026-07-01T00:00:00.000Z',
 }
 
@@ -92,6 +93,28 @@ describe('createOrganization', () => {
   })
 })
 
+describe('getOrganizations', () => {
+  it("backend javobidagi 'total_capacity' maydonini 'capacity_total' ga togri map qiladi (regression)", async () => {
+    getMock.mockResolvedValue({
+      data: { organizations: [organizationDto] },
+    })
+
+    const organizations = await getOrganizations()
+
+    expect(organizations[0].capacity_total).toBe(50)
+  })
+
+  it("'total_capacity' null bolsa capacity_total ham null boladi (regression)", async () => {
+    getMock.mockResolvedValue({
+      data: { organizations: [{ ...organizationDto, total_capacity: null }] },
+    })
+
+    const organizations = await getOrganizations()
+
+    expect(organizations[0].capacity_total).toBeNull()
+  })
+})
+
 describe('updatePricingMode', () => {
   it("PUT metodi bilan to'g'ri endpoint va payload'ga yuboradi (regression)", async () => {
     putMock.mockResolvedValue({ data: { organization: organizationDto } })
@@ -110,15 +133,16 @@ describe('updatePricingMode', () => {
 describe('updateCapacity', () => {
   it("PUT sorovi 'total_capacity' kaliti bilan yuboriladi, capacity_total EMAS (regression)", async () => {
     putMock.mockResolvedValue({
-      data: { organization: { ...organizationDto, capacity_total: 40 } },
+      data: { organization: { ...organizationDto, total_capacity: 40 } },
     })
 
-    await updateCapacity({ id: 1, capacity_total: 40 })
+    const org = await updateCapacity({ id: 1, capacity_total: 40 })
 
     expect(putMock).toHaveBeenCalledWith(
       '/api/admin/organizations/1/capacity',
       { total_capacity: 40 },
     )
+    expect(org.capacity_total).toBe(40)
     expect(putMock.mock.calls.at(-1)?.[1]).not.toHaveProperty(
       'capacity_total',
     )
@@ -126,7 +150,7 @@ describe('updateCapacity', () => {
 
   it("'total_capacity' null bo'lsa ham to'g'ri yuboradi (regression)", async () => {
     putMock.mockResolvedValue({
-      data: { organization: { ...organizationDto, capacity_total: null } },
+      data: { organization: { ...organizationDto, total_capacity: null } },
     })
 
     const org = await updateCapacity({ id: 1, capacity_total: null })
