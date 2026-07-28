@@ -7,7 +7,6 @@ import { useTheme } from '@/contexts/ThemeContext'
 import { useAppSelector } from '@/hooks/redux'
 import ReceiptModal from '@/components/ReceiptModal'
 import type { ParkingSession, Payment } from '@/types/parking'
-import { useSharedImagePreview } from './useSharedImagePreview'
 import { buildColumns } from './columns'
 import ForceCloseModal from './ForceCloseModal'
 
@@ -19,7 +18,6 @@ interface ReceiptState {
 export default function ActiveSessionsTab() {
   const { t } = useTranslation()
   const { mode } = useTheme()
-  const { setPreviewSrc, previewElement } = useSharedImagePreview()
   const orgName = useAppSelector((state) => state.auth.user?.org_name)
   const [forceCloseTarget, setForceCloseTarget] = useState<ParkingSession | null>(
     null,
@@ -32,14 +30,13 @@ export default function ActiveSessionsTab() {
     refetchInterval: 10000,
   })
 
-  const columns = buildColumns(t, mode, setPreviewSrc, {
+  const columns = buildColumns(t, mode, {
     onForceClose: setForceCloseTarget,
   })
 
   return (
     <>
       <Card variant="borderless" styles={{ body: { padding: 0 } }}>
-        {previewElement}
         <Table<ParkingSession>
           rowKey="id"
           columns={columns}

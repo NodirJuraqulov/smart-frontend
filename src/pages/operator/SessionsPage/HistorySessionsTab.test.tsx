@@ -105,4 +105,33 @@ describe('HistorySessionsTab reprint', () => {
       await screen.findByText("Chekni chop etib bo'lmadi"),
     ).toBeInTheDocument()
   })
+
+  it("rasmsiz sessiyada 'Rasm mavjud emas' ko‘rsatadi", async () => {
+    renderTab()
+
+    expect(await screen.findByText('Rasm mavjud emas')).toBeInTheDocument()
+  })
+
+  it('exitVehicleImageUrl mavjud bo‘lsa rasmlar actionini ko‘rsatadi va chek actioni ishlashda davom etadi', async () => {
+    getSessionsMock.mockResolvedValue({
+      ...response,
+      sessions: [
+        {
+          ...completedSession,
+          exitVehicleImageUrl: '/api/sessions/1/exit-vehicle',
+        },
+      ],
+    })
+    printReceiptForSessionMock.mockResolvedValue({ success: true })
+    renderTab()
+
+    expect(
+      await screen.findByRole('button', { name: "Rasmlarni ko'rish" }),
+    ).toBeInTheDocument()
+
+    await openReceiptAndPrint()
+    await waitFor(() =>
+      expect(printReceiptForSessionMock).toHaveBeenCalledWith(1),
+    )
+  })
 })

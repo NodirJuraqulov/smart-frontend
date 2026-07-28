@@ -126,4 +126,21 @@ describe('AwaitingPaymentsSection', () => {
       await screen.findByRole('button', { name: /Shlagbaumni ochish/ }),
     ).toBeInTheDocument()
   })
+
+  it("rasm URL mavjud bo‘lsa tekshirish uchun rasmlar actionini ko‘rsatadi", async () => {
+    getAwaitingPaymentsMock.mockResolvedValue([
+      {
+        ...overdueSession,
+        exitVehicleImageUrl: '/api/sessions/1/exit-vehicle',
+      },
+    ])
+    renderSection()
+
+    expect(
+      await screen.findByRole('button', { name: "Rasmlarni ko'rish" }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Naqd qabul qilindi' }),
+    ).toBeInTheDocument()
+  })
 })

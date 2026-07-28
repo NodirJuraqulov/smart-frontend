@@ -18,7 +18,6 @@ import { useAppSelector } from '@/hooks/redux'
 import { getErrorMessage } from '@/utils/apiError'
 import ReceiptModal from '@/components/ReceiptModal'
 import type { ParkingSession, SessionStatus } from '@/types/parking'
-import { useSharedImagePreview } from './useSharedImagePreview'
 import { buildColumns } from './columns'
 
 type StatusFilter = 'all' | SessionStatus
@@ -27,7 +26,6 @@ export default function HistorySessionsTab() {
   const { t } = useTranslation()
   const { mode } = useTheme()
   const { message } = AntdApp.useApp()
-  const { setPreviewSrc, previewElement } = useSharedImagePreview()
   const orgName = useAppSelector((state) => state.auth.user?.org_name)
 
   const [page, setPage] = useState(1)
@@ -71,7 +69,7 @@ export default function HistorySessionsTab() {
     },
   })
 
-  const columns = buildColumns(t, mode, setPreviewSrc, {
+  const columns = buildColumns(t, mode, {
     onReceipt: setReceiptSession,
   })
 
@@ -114,7 +112,6 @@ export default function HistorySessionsTab() {
       </Space>
 
       <Card variant="borderless" styles={{ body: { padding: 0 } }}>
-        {previewElement}
         <Table<ParkingSession>
           rowKey="id"
           columns={columns}

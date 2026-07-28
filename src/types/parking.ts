@@ -13,8 +13,12 @@ export interface ParkingSession {
   status: SessionStatus
   entry_method: EntryExitMethod
   exit_method: ExitMethod | null
-  image_entry: string | null
-  image_exit: string | null
+  image_entry?: string | null
+  image_exit?: string | null
+  entryVehicleImageUrl?: string | null
+  entryPlateImageUrl?: string | null
+  exitVehicleImageUrl?: string | null
+  exitPlateImageUrl?: string | null
   operator_id: number | null
   created_at: string
 }

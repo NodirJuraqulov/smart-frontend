@@ -1,6 +1,5 @@
 import { Button, Space, Tag, type TableProps } from 'antd'
 import {
-  EyeOutlined,
   FileTextOutlined,
   FormOutlined,
   ThunderboltOutlined,
@@ -9,8 +8,8 @@ import {
 import { useTranslation } from 'react-i18next'
 import { getSessionStatusTagStyle, getWarningTagStyle } from '@/theme/statusColors'
 import { formatDate, formatDuration, formatMoney } from '@/utils/format'
-import { buildMediaUrl } from '@/utils/media'
 import PlateBadge from '@/components/PlateBadge'
+import { SessionImagesAction } from '@/components/SessionImagesModal'
 import type { ParkingSession } from '@/types/parking'
 
 function MethodTag({ method }: { method: ParkingSession['entry_method'] }) {
@@ -22,30 +21,9 @@ function MethodTag({ method }: { method: ParkingSession['entry_method'] }) {
   )
 }
 
-function ImagePreviewButton({
-  path,
-  label,
-  onPreview,
-}: {
-  path: string
-  label: string
-  onPreview: (url: string) => void
-}) {
-  return (
-    <Button
-      size="small"
-      icon={<EyeOutlined />}
-      onClick={() => onPreview(buildMediaUrl(path))}
-    >
-      {label}
-    </Button>
-  )
-}
-
 export function buildColumns(
   t: (key: string, opts?: Record<string, unknown>) => string,
   mode: 'light' | 'dark',
-  onPreview: (url: string) => void,
   actions?: {
     onReceipt?: (record: ParkingSession) => void
     onForceClose?: (record: ParkingSession) => void
@@ -111,24 +89,7 @@ export function buildColumns(
     {
       title: t('sessions.columnImages'),
       key: 'images',
-      render: (_, record) => (
-        <Space>
-          {record.image_entry && (
-            <ImagePreviewButton
-              path={record.image_entry}
-              label={t('sessions.viewEntryImage')}
-              onPreview={onPreview}
-            />
-          )}
-          {record.image_exit && (
-            <ImagePreviewButton
-              path={record.image_exit}
-              label={t('sessions.viewExitImage')}
-              onPreview={onPreview}
-            />
-          )}
-        </Space>
-      ),
+      render: (_, record) => <SessionImagesAction session={record} />,
     },
   ]
 

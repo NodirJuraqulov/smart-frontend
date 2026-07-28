@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { formatDate, formatDuration } from '@/utils/format'
 import PlateBadge from '@/components/PlateBadge'
 import OpenBarrierAction from '@/components/OpenBarrierAction'
+import { SessionImagesAction } from '@/components/SessionImagesModal'
 import type { ParkingSession } from '@/types/parking'
 
 interface ActiveSessionsTableProps {
@@ -41,6 +42,13 @@ export default function ActiveSessionsTable({
         )
         return formatDuration(elapsedMinutes)
       },
+    },
+    {
+      title: t('sessions.columnImages'),
+      key: 'images',
+      render: (_, record) => (
+        <SessionImagesAction session={record} showEmpty={false} />
+      ),
     },
     {
       title: t('sessions.columnActions'),

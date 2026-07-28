@@ -16,6 +16,7 @@ import { getErrorMessage } from '@/utils/apiError'
 import { formatDate, formatDuration, formatMoney } from '@/utils/format'
 import PlateBadge from '@/components/PlateBadge'
 import OpenBarrierAction from '@/components/OpenBarrierAction'
+import { SessionImagesAction } from '@/components/SessionImagesModal'
 import type { AwaitingPaymentSession } from '@/types/parking'
 
 const OVERDUE_ROW_CLASS = 'awaiting-payment-row-overdue'
@@ -85,6 +86,7 @@ export default function AwaitingPaymentsSection() {
       key: 'actions',
       render: (_, record) => (
         <Space wrap>
+          <SessionImagesAction session={record} showEmpty={false} />
           <Popconfirm
             title={t('operatorDashboard.confirmCashPaymentConfirmTitle')}
             onConfirm={() => confirmMutation.mutate(record.id)}
