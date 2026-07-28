@@ -69,6 +69,8 @@ export interface IntegrationSettingsDto {
   webhookToken: string | null
   webhookEntryUrl: string | null
   webhookExitUrl: string | null
+  webhookDebugEntryUrl: string | null
+  webhookDebugExitUrl: string | null
   lastWebhookEntryAt?: string | null
   lastWebhookExitAt?: string | null
 }
@@ -83,6 +85,8 @@ export const mapIntegrationSettings = (
   webhook_token: dto.webhookToken,
   webhook_entry_url: dto.webhookEntryUrl,
   webhook_exit_url: dto.webhookExitUrl,
+  webhook_debug_entry_url: dto.webhookDebugEntryUrl,
+  webhook_debug_exit_url: dto.webhookDebugExitUrl,
   last_webhook_entry_at: dto.lastWebhookEntryAt ?? null,
   last_webhook_exit_at: dto.lastWebhookExitAt ?? null,
 })

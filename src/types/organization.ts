@@ -55,6 +55,8 @@ export interface IntegrationSettings {
   webhook_token: string | null
   webhook_entry_url: string | null
   webhook_exit_url: string | null
+  webhook_debug_entry_url: string | null
+  webhook_debug_exit_url: string | null
   last_webhook_entry_at: string | null
   last_webhook_exit_at: string | null
 }

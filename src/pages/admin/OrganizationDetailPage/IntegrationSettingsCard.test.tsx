@@ -41,6 +41,8 @@ const settings: IntegrationSettings = {
   webhook_token: 'token-123',
   webhook_entry_url: 'https://example.com/api/webhook/hikvision/token-123/entry',
   webhook_exit_url: 'https://example.com/api/webhook/hikvision/token-123/exit',
+  webhook_debug_entry_url: 'https://example.com/api/webhook/debug/token-123/entry',
+  webhook_debug_exit_url: 'https://example.com/api/webhook/debug/token-123/exit',
   last_webhook_entry_at: null,
   last_webhook_exit_at: null,
 }
@@ -90,6 +92,32 @@ describe('IntegrationSettingsCard', () => {
     await waitFor(() =>
       expect(copyToClipboardMock).toHaveBeenCalledWith(
         settings.webhook_entry_url,
+      ),
+    )
+  })
+
+  it('debug webhook manzillarini korsatadi', async () => {
+    renderCard()
+
+    expect(
+      await screen.findByText(settings.webhook_debug_entry_url!),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(settings.webhook_debug_exit_url!),
+    ).toBeInTheDocument()
+  })
+
+  it('debug URL nusxalash tugmasi togri manzil bilan chaqiriladi (regression)', async () => {
+    copyToClipboardMock.mockResolvedValue(true)
+    renderCard()
+
+    await screen.findByText(settings.webhook_debug_entry_url!)
+    const copyButtons = screen.getAllByRole('button', { name: /Nusxalash/ })
+    fireEvent.click(copyButtons[2])
+
+    await waitFor(() =>
+      expect(copyToClipboardMock).toHaveBeenCalledWith(
+        settings.webhook_debug_entry_url,
       ),
     )
   })

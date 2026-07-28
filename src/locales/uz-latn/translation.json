@@ -288,7 +288,10 @@
     "testPrinterButton": "Sinov chek chiqarish",
     "testPrinterSuccess": "Sinov cheki chiqarildi, printerni tekshiring",
     "testPrinterNotConfigured": "Avval Printer IP manzilini kiriting va saqlang",
-    "testPrinterError": "Printerga ulanib bo'lmadi, IP manzilni tekshiring"
+    "testPrinterError": "Printerga ulanib bo'lmadi, IP manzilni tekshiring",
+    "webhookDebugEntryUrlLabel": "Debug Kirish URL",
+    "webhookDebugExitUrlLabel": "Debug Chiqish URL",
+    "webhookDebugHint": "Debug URL — yangi kamera brendini tekshirish uchun, xom ma'lumotni saqlaydi"
   },
   "permissions": {
     "title": "Ruxsatlar",

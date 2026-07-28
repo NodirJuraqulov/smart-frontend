@@ -288,7 +288,10 @@
     "testPrinterButton": "Синов чек чиқариш",
     "testPrinterSuccess": "Синов чеки чиқарилди, принтерни текширинг",
     "testPrinterNotConfigured": "Аввал Принтер IP манзилини киритинг ва сақланг",
-    "testPrinterError": "Принтерга уланиб бўлмади, IP манзилни текширинг"
+    "testPrinterError": "Принтерга уланиб бўлмади, IP манзилни текширинг",
+    "webhookDebugEntryUrlLabel": "Debug Кириш URL",
+    "webhookDebugExitUrlLabel": "Debug Чиқиш URL",
+    "webhookDebugHint": "Debug URL — янги камера брендини текшириш учун, хом маълумотни сақлайди"
   },
   "permissions": {
     "title": "Рухсатлар",

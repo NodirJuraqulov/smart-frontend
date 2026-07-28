@@ -288,7 +288,10 @@
     "testPrinterButton": "Напечатать тестовый чек",
     "testPrinterSuccess": "Тестовый чек напечатан, проверьте принтер",
     "testPrinterNotConfigured": "Сначала введите и сохраните IP принтера",
-    "testPrinterError": "Не удалось подключиться к принтеру, проверьте IP адрес"
+    "testPrinterError": "Не удалось подключиться к принтеру, проверьте IP адрес",
+    "webhookDebugEntryUrlLabel": "Debug URL въезда",
+    "webhookDebugExitUrlLabel": "Debug URL выезда",
+    "webhookDebugHint": "Debug URL — для проверки нового бренда камеры, сохраняет необработанные данные"
   },
   "permissions": {
     "title": "Права доступа",

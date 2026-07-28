@@ -242,6 +242,18 @@ export default function IntegrationSettingsCard({
               </Descriptions.Item>
             </Descriptions>
 
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              {t('integrationSettings.webhookDebugHint')}
+            </Typography.Text>
+            <Descriptions column={1}>
+              <Descriptions.Item label={t('integrationSettings.webhookDebugEntryUrlLabel')}>
+                <WebhookUrlValue url={data.webhook_debug_entry_url} onCopy={handleCopy} />
+              </Descriptions.Item>
+              <Descriptions.Item label={t('integrationSettings.webhookDebugExitUrlLabel')}>
+                <WebhookUrlValue url={data.webhook_debug_exit_url} onCopy={handleCopy} />
+              </Descriptions.Item>
+            </Descriptions>
+
             <Typography.Title level={5}>
               {t('integrationSettings.lastSignalSectionTitle')}
             </Typography.Title>

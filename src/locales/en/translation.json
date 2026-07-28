@@ -288,7 +288,10 @@
     "testPrinterButton": "Print test receipt",
     "testPrinterSuccess": "Test receipt printed, please check the printer",
     "testPrinterNotConfigured": "Enter and save the printer IP first",
-    "testPrinterError": "Couldn't connect to the printer, check the IP address"
+    "testPrinterError": "Couldn't connect to the printer, check the IP address",
+    "webhookDebugEntryUrlLabel": "Debug entry URL",
+    "webhookDebugExitUrlLabel": "Debug exit URL",
+    "webhookDebugHint": "Debug URL — for testing a new camera brand, stores the raw payload"
   },
   "permissions": {
     "title": "Permissions",
