@@ -1,12 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import dayjs, { type Dayjs } from 'dayjs'
 import {
   Card,
   Col,
-  DatePicker,
   Empty,
+  App as AntdApp,
   Row,
   Segmented,
   Skeleton,
@@ -18,19 +18,46 @@ import { getYearlyReport } from '@/api/reports'
 import { formatMoney } from '@/utils/format'
 import SingleSeriesBarChart from '@/components/SingleSeriesBarChart'
 import type { MonthlyBreakdownItem } from '@/types/reports'
+import type { ReportRangeResponse } from '@/types/reports'
+import { getErrorMessage } from '@/utils/apiError'
+import ReportFilter from './ReportFilter'
+import RangeReportView from './RangeReportView'
+import { type DateRange, type FilterMode, validateRange } from './reportRange'
 
 export default function YearlyReportTab() {
   const { t } = useTranslation()
+  const { message } = AntdApp.useApp()
   const [year, setYear] = useState<Dayjs>(dayjs())
+  const [mode, setMode] = useState<FilterMode>('single')
+  const [range, setRange] = useState<DateRange>(null)
+  const [appliedRange, setAppliedRange] = useState<DateRange>(null)
   const [measure, setMeasure] = useState<'entries' | 'exits' | 'revenue'>(
     'entries',
   )
 
-  const reportQuery = useQuery({
-    queryKey: ['reports', 'yearly', year.year()],
+  const singleQuery = useQuery({
+    queryKey: ['reports', 'yearly', 'single', year.year()],
     queryFn: () => getYearlyReport(year.year()),
     placeholderData: keepPreviousData,
+    enabled: mode === 'single',
   })
+  const rangeQuery = useQuery({
+    queryKey: ['reports', 'yearly', 'range', appliedRange?.[0].year(), appliedRange?.[1].year()],
+    queryFn: () => getYearlyReport({
+      from_year: appliedRange![0].year(),
+      to_year: appliedRange![1].year(),
+    }),
+    placeholderData: keepPreviousData,
+    enabled: mode === 'range' && Boolean(appliedRange),
+  })
+  const reportQuery = mode === 'single' ? singleQuery : rangeQuery
+  useEffect(() => {
+    if (reportQuery.error) message.error(getErrorMessage(reportQuery.error, t('reports.loadError')))
+  }, [message, reportQuery.error, t])
+  const reset = () => { setMode('single'); setYear(dayjs()); setRange(null); setAppliedRange(null) }
+  const applyRange = () => {
+    if (!validateRange('yearly', range) && range) setAppliedRange(range)
+  }
 
   const columns: TableProps<MonthlyBreakdownItem>['columns'] = [
     { title: t('reports.monthColumn'), dataIndex: 'month', key: 'month' },
@@ -44,23 +71,21 @@ export default function YearlyReportTab() {
     },
   ]
 
-  if (reportQuery.isLoading) {
+  if (reportQuery.isLoading && (mode === 'single' || appliedRange)) {
     return <Skeleton active paragraph={{ rows: 8 }} />
   }
 
-  const report = reportQuery.data
+  const report = mode === 'single' ? singleQuery.data : undefined
 
   return (
     <div className="flex flex-col gap-4">
-      <DatePicker
-        size="large"
-        picker="year"
-        value={year}
-        onChange={(value) => value && setYear(value)}
-        allowClear={false}
-        placeholder={t('reports.yearPlaceholder')}
-      />
+      <ReportFilter type="yearly" mode={mode} single={year} range={range} appliedRange={appliedRange} error={null}
+        onModeChange={setMode} onSingleChange={setYear} onRangeChange={setRange} onApply={applyRange} onReset={reset} />
 
+      {mode === 'range' ? (
+        appliedRange && <RangeReportView type="yearly" report={rangeQuery.data as ReportRangeResponse | undefined} />
+      ) : (
+      <>
       <Row gutter={[16, 16]}>
         <Col xs={24} sm={8}>
           <Card variant="borderless">
@@ -155,6 +180,8 @@ export default function YearlyReportTab() {
           }}
         />
       </Card>
+      </>
+      )}
     </div>
   )
 }

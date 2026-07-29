@@ -1,23 +1,79 @@
 import { axiosInstance } from './axiosInstance'
-import type { DailyReport, MonthlyReport, YearlyReport } from '@/types/reports'
+import type {
+  DailyReport,
+  DailyReportParams,
+  MonthlyReport,
+  MonthlyReportParams,
+  ReportRangeResponse,
+  YearlyReport,
+  YearlyReportParams,
+} from '@/types/reports'
 
-export const getDailyReport = (date?: string) =>
-  axiosInstance
-    .get<DailyReport>('/api/reports/daily', {
-      params: date ? { date } : undefined,
-    })
-    .then((res) => res.data)
+export function getDailyReport(date?: string): Promise<DailyReport>
+export function getDailyReport(
+  params: DailyReportParams,
+): Promise<DailyReport | ReportRangeResponse>
+export function getDailyReport(dateOrParams?: string | DailyReportParams) {
+  const params =
+    typeof dateOrParams === 'string' ? { date: dateOrParams } : dateOrParams
+  const isRange = Boolean(params?.from_date && params?.to_date)
+  return axiosInstance
+    .get<DailyReport | ReportRangeResponse>('/api/reports/daily', { params })
+    .then((res) =>
+      isRange
+        ? (res.data as ReportRangeResponse)
+        : (res.data as DailyReport),
+    )
+}
 
-export const getMonthlyReport = (year?: number, month?: number) =>
-  axiosInstance
-    .get<MonthlyReport>('/api/reports/monthly', {
-      params: year && month ? { year, month } : undefined,
+export function getMonthlyReport(
+  year?: number,
+  month?: number,
+): Promise<MonthlyReport>
+export function getMonthlyReport(
+  params: MonthlyReportParams,
+): Promise<MonthlyReport | ReportRangeResponse>
+export function getMonthlyReport(
+  yearOrParams?: number | MonthlyReportParams,
+  month?: number,
+) {
+  const params =
+    typeof yearOrParams === 'object'
+      ? yearOrParams
+      : yearOrParams && month
+        ? { year: yearOrParams, month }
+        : undefined
+  const isRange = Boolean(params?.from_month && params?.to_month)
+  return axiosInstance
+    .get<MonthlyReport | ReportRangeResponse>('/api/reports/monthly', {
+      params,
     })
-    .then((res) => res.data)
+    .then((res) =>
+      isRange
+        ? (res.data as ReportRangeResponse)
+        : (res.data as MonthlyReport),
+    )
+}
 
-export const getYearlyReport = (year?: number) =>
-  axiosInstance
-    .get<YearlyReport>('/api/reports/yearly', {
-      params: year ? { year } : undefined,
+export function getYearlyReport(year?: number): Promise<YearlyReport>
+export function getYearlyReport(
+  params: YearlyReportParams,
+): Promise<YearlyReport | ReportRangeResponse>
+export function getYearlyReport(yearOrParams?: number | YearlyReportParams) {
+  const params =
+    typeof yearOrParams === 'object'
+      ? yearOrParams
+      : yearOrParams
+        ? { year: yearOrParams }
+        : undefined
+  const isRange = Boolean(params?.from_year && params?.to_year)
+  return axiosInstance
+    .get<YearlyReport | ReportRangeResponse>('/api/reports/yearly', {
+      params,
     })
-    .then((res) => res.data)
+    .then((res) =>
+      isRange
+        ? (res.data as ReportRangeResponse)
+        : (res.data as YearlyReport),
+    )
+}

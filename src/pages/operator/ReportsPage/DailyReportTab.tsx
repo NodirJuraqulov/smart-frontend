@@ -1,12 +1,12 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import dayjs, { type Dayjs } from 'dayjs'
 import {
   Card,
   Col,
-  DatePicker,
   Empty,
+  App as AntdApp,
   Row,
   Segmented,
   Skeleton,
@@ -18,19 +18,61 @@ import { getDailyReport } from '@/api/reports'
 import { formatMoney } from '@/utils/format'
 import SingleSeriesBarChart from '@/components/SingleSeriesBarChart'
 import type { HourlyBreakdownItem } from '@/types/reports'
+import type { ReportRangeResponse } from '@/types/reports'
+import { getErrorMessage } from '@/utils/apiError'
+import ReportFilter from './ReportFilter'
+import RangeReportView from './RangeReportView'
+import { type DateRange, type FilterMode, validateRange } from './reportRange'
 
 const formatHour = (hour: number) => `${String(hour).padStart(2, '0')}:00`
 
 export default function DailyReportTab() {
   const { t } = useTranslation()
+  const { message } = AntdApp.useApp()
   const [date, setDate] = useState<Dayjs>(dayjs())
+  const [mode, setMode] = useState<FilterMode>('single')
+  const [range, setRange] = useState<DateRange>(null)
+  const [appliedRange, setAppliedRange] = useState<DateRange>(null)
+  const [filterError, setFilterError] = useState<string | null>(null)
   const [measure, setMeasure] = useState<'entries' | 'revenue'>('entries')
 
-  const reportQuery = useQuery({
-    queryKey: ['reports', 'daily', date.format('YYYY-MM-DD')],
+  const singleQuery = useQuery({
+    queryKey: ['reports', 'daily', 'single', date.format('YYYY-MM-DD')],
     queryFn: () => getDailyReport(date.format('YYYY-MM-DD')),
     placeholderData: keepPreviousData,
+    enabled: mode === 'single',
   })
+  const rangeQuery = useQuery({
+    queryKey: ['reports', 'daily', 'range', appliedRange?.[0].format('YYYY-MM-DD'), appliedRange?.[1].format('YYYY-MM-DD')],
+    queryFn: () => getDailyReport({
+      from_date: appliedRange![0].format('YYYY-MM-DD'),
+      to_date: appliedRange![1].format('YYYY-MM-DD'),
+    }),
+    placeholderData: keepPreviousData,
+    enabled: mode === 'range' && Boolean(appliedRange),
+  })
+  const reportQuery = mode === 'single' ? singleQuery : rangeQuery
+
+  useEffect(() => {
+    if (reportQuery.error) {
+      message.error(getErrorMessage(reportQuery.error, t('reports.loadError')))
+    }
+  }, [message, reportQuery.error, t])
+
+  const reset = () => {
+    setMode('single')
+    setDate(dayjs())
+    setRange(null)
+    setAppliedRange(null)
+    setFilterError(null)
+  }
+
+  const applyRange = () => {
+    const validation = validateRange('daily', range)
+    if (validation || !range) return
+    setFilterError(null)
+    setAppliedRange(range)
+  }
 
   const columns: TableProps<HourlyBreakdownItem>['columns'] = [
     {
@@ -48,22 +90,32 @@ export default function DailyReportTab() {
     },
   ]
 
-  if (reportQuery.isLoading) {
+  if (reportQuery.isLoading && (mode === 'single' || appliedRange)) {
     return <Skeleton active paragraph={{ rows: 8 }} />
   }
 
-  const report = reportQuery.data
+  const report = mode === 'single' ? singleQuery.data : undefined
 
   return (
     <div className="flex flex-col gap-4">
-      <DatePicker
-        size="large"
-        value={date}
-        onChange={(value) => value && setDate(value)}
-        allowClear={false}
-        placeholder={t('reports.datePlaceholder')}
+      <ReportFilter
+        type="daily"
+        mode={mode}
+        single={date}
+        range={range}
+        appliedRange={appliedRange}
+        error={filterError}
+        onModeChange={(value) => { setMode(value); setFilterError(null) }}
+        onSingleChange={setDate}
+        onRangeChange={(value) => { setRange(value); setFilterError(null) }}
+        onApply={applyRange}
+        onReset={reset}
       />
 
+      {mode === 'range' ? (
+        appliedRange && <RangeReportView type="daily" report={rangeQuery.data as ReportRangeResponse | undefined} />
+      ) : (
+      <>
       <Row gutter={[16, 16]}>
         <Col xs={12} md={8} lg={4}>
           <Card variant="borderless">
@@ -176,6 +228,8 @@ export default function DailyReportTab() {
           }}
         />
       </Card>
+      </>
+      )}
     </div>
   )
 }
