@@ -29,22 +29,37 @@ const settings: IntegrationSettings = {
   cross_camera_guard_seconds: 90,
 }
 
-function renderSettings(
-  value: IntegrationSettings = settings,
-): QueryClient {
-  const queryClient = new QueryClient()
-  render(
+function content(value: IntegrationSettings, orgId = 7) {
+  return (
     <QueryClientProvider client={queryClient}>
       <AntdApp>
         <LaneProtectionSettings
-          orgId={7}
+          orgId={orgId}
           settings={value}
-          queryKey={['organizations', 7, 'integration-settings']}
+          queryKey={['organizations', orgId, 'integration-settings']}
         />
       </AntdApp>
-    </QueryClientProvider>,
+    </QueryClientProvider>
   )
-  return queryClient
+}
+
+let queryClient: QueryClient
+
+function renderSettings(value: IntegrationSettings = settings, orgId = 7) {
+  queryClient = new QueryClient()
+  return render(content(value, orgId))
+}
+
+function editButton() {
+  return screen.getByRole('button', { name: /Tahrirlash/ })
+}
+
+function saveButton() {
+  return screen.getByRole('button', { name: 'Saqlash' })
+}
+
+function cancelButton() {
+  return screen.getByRole('button', { name: 'Bekor qilish' })
 }
 
 function secondsInput(): HTMLInputElement {
@@ -53,8 +68,16 @@ function secondsInput(): HTMLInputElement {
   })
 }
 
-function save() {
-  fireEvent.click(screen.getByRole('button', { name: 'Saqlash' }))
+async function enterEditMode() {
+  fireEvent.click(editButton())
+  await screen.findByRole('radio', {
+    name: 'Kirish va chiqish bitta umumiy yo‘lakda',
+  })
+}
+
+async function changeSeconds(value: string) {
+  fireEvent.change(secondsInput(), { target: { value } })
+  await waitFor(() => expect(secondsInput()).toHaveValue(value))
 }
 
 describe('LaneProtectionSettings', () => {
@@ -62,8 +85,39 @@ describe('LaneProtectionSettings', () => {
     updateIntegrationSettingsMock.mockReset()
   })
 
-  it('GETdan kelgan shared va 90 qiymatlarini ko‘rsatadi', () => {
+  it('view mode’da boshlanadi va saved shared layout hamda guard vaqtini ko‘rsatadi', () => {
     renderSettings()
+
+    expect(
+      screen.getByText('Kirish va chiqish bitta umumiy yo‘lakda'),
+    ).toBeInTheDocument()
+    expect(screen.getByText('90 soniya')).toBeInTheDocument()
+    expect(editButton()).toBeInTheDocument()
+    expect(screen.queryByRole('radio')).not.toBeInTheDocument()
+    expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Saqlash' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Bekor qilish' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('separate view mode himoya o‘chirilganini ko‘rsatadi', () => {
+    renderSettings({ ...settings, gate_layout: 'separate' })
+
+    expect(
+      screen.getByText('Kirish va chiqish alohida yo‘lakda'),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText('Qarama-qarshi kamera himoyasi o‘chirilgan'),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('90 soniya')).not.toBeInTheDocument()
+  })
+
+  it('Edit current saved qiymatlarni formaga yuklaydi', async () => {
+    renderSettings()
+    await enterEditMode()
 
     expect(
       screen.getByRole('radio', {
@@ -71,35 +125,73 @@ describe('LaneProtectionSettings', () => {
       }),
     ).toBeChecked()
     expect(secondsInput()).toHaveValue('90')
-    expect(secondsInput()).toBeEnabled()
+    expect(cancelButton()).toBeInTheDocument()
+    expect(saveButton()).toBeDisabled()
   })
 
-  it('GETdan kelgan separate qiymatini ko‘rsatib inputni o‘chiradi', () => {
-    renderSettings({ ...settings, gate_layout: 'separate' })
+  it('layout o‘zgarsa Save yoqiladi, originalga qaytsa yana o‘chadi', async () => {
+    renderSettings()
+    await enterEditMode()
 
-    expect(
+    fireEvent.click(
       screen.getByRole('radio', {
         name: 'Kirish va chiqish alohida yo‘lakda',
       }),
-    ).toBeChecked()
-    expect(secondsInput()).toBeDisabled()
-    expect(secondsInput()).toHaveValue('90')
-  })
-
-  it('shared tanlanganda seconds inputni yoqadi', async () => {
-    renderSettings({ ...settings, gate_layout: 'separate' })
+    )
+    await waitFor(() => expect(saveButton()).toBeEnabled())
 
     fireEvent.click(
       screen.getByRole('radio', {
         name: 'Kirish va chiqish bitta umumiy yo‘lakda',
       }),
     )
-
-    await waitFor(() => expect(secondsInput()).toBeEnabled())
+    await waitFor(() => expect(saveButton()).toBeDisabled())
   })
 
-  it('separate tanlanganda seconds inputni o‘chiradi va qiymatni saqlaydi', async () => {
+  it('guard vaqti o‘zgarsa Save yoqiladi, originalga qaytsa o‘chadi', async () => {
     renderSettings()
+    await enterEditMode()
+
+    await changeSeconds('120')
+    expect(saveButton()).toBeEnabled()
+
+    await changeSeconds('90')
+    expect(saveButton()).toBeDisabled()
+  })
+
+  it('Cancel layout va guard o‘zgarishlarini tashlab view mode’ga qaytadi', async () => {
+    renderSettings()
+    await enterEditMode()
+
+    fireEvent.click(
+      screen.getByRole('radio', {
+        name: 'Kirish va chiqish alohida yo‘lakda',
+      }),
+    )
+    fireEvent.click(cancelButton())
+
+    expect(
+      screen.getByText('Kirish va chiqish bitta umumiy yo‘lakda'),
+    ).toBeInTheDocument()
+    expect(screen.getByText('90 soniya')).toBeInTheDocument()
+    expect(updateIntegrationSettingsMock).not.toHaveBeenCalled()
+  })
+
+  it('Cancel qilingan guard qiymati qayta Edit ochilganda saqlanib qolmaydi', async () => {
+    renderSettings()
+    await enterEditMode()
+    await changeSeconds('120')
+    fireEvent.click(cancelButton())
+
+    await enterEditMode()
+
+    expect(secondsInput()).toHaveValue('90')
+    expect(saveButton()).toBeDisabled()
+  })
+
+  it('separate layout guard inputni disable qiladi va valid qiymatni saqlaydi', async () => {
+    renderSettings()
+    await enterEditMode()
 
     fireEvent.click(
       screen.getByRole('radio', {
@@ -109,28 +201,32 @@ describe('LaneProtectionSettings', () => {
 
     await waitFor(() => expect(secondsInput()).toBeDisabled())
     expect(secondsInput()).toHaveValue('90')
+    expect(saveButton()).toBeEnabled()
   })
 
   it.each([
     ['4', 'Himoya vaqti kamida 5 soniya bo‘lishi kerak'],
     ['301', 'Himoya vaqti 300 soniyadan oshmasligi kerak'],
     ['90.5', 'Himoya vaqti butun son bo‘lishi kerak'],
-  ])('%s qiymatini tegishli validatsiya bilan rad etadi', async (value, error) => {
+  ])('%s invalid bo‘lsa localized xato chiqadi va Save o‘chadi', async (value, error) => {
     renderSettings()
+    await enterEditMode()
 
-    fireEvent.change(secondsInput(), { target: { value } })
-    await waitFor(() => expect(secondsInput()).toHaveValue(value))
-    save()
+    await changeSeconds(value)
 
     expect(await screen.findByText(error)).toBeInTheDocument()
+    expect(saveButton()).toBeDisabled()
     expect(updateIntegrationSettingsMock).not.toHaveBeenCalled()
   })
 
-  it('valid shared qiymatlarni va mavjud integration maydonlarini PUTga yuboradi', async () => {
-    updateIntegrationSettingsMock.mockResolvedValue(settings)
+  it('successful Save snake_case va mavjud integration maydonlarini yuborib view mode’ni yangilaydi', async () => {
+    const saved = { ...settings, cross_camera_guard_seconds: 120 }
+    updateIntegrationSettingsMock.mockResolvedValue(saved)
     renderSettings()
+    await enterEditMode()
+    await changeSeconds('120')
 
-    save()
+    fireEvent.click(saveButton())
 
     await waitFor(() =>
       expect(updateIntegrationSettingsMock).toHaveBeenCalledWith({
@@ -140,34 +236,11 @@ describe('LaneProtectionSettings', () => {
         printer_ip: '192.168.1.20',
         camera_brand: 'hikvision',
         gate_layout: 'shared',
-        cross_camera_guard_seconds: 90,
+        cross_camera_guard_seconds: 120,
       }),
     )
-  })
-
-  it('separate layout bilan saqlangan valid guard qiymatini ham yuboradi', async () => {
-    const separateSettings = { ...settings, gate_layout: 'separate' as const }
-    updateIntegrationSettingsMock.mockResolvedValue(separateSettings)
-    renderSettings(separateSettings)
-
-    save()
-
-    await waitFor(() =>
-      expect(updateIntegrationSettingsMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          gate_layout: 'separate',
-          cross_camera_guard_seconds: 90,
-        }),
-      ),
-    )
-  })
-
-  it('muvaffaqiyatli saqlanganda xabar ko‘rsatadi', async () => {
-    updateIntegrationSettingsMock.mockResolvedValue(settings)
-    renderSettings()
-
-    save()
-
+    expect(await screen.findByText('120 soniya')).toBeInTheDocument()
+    expect(screen.queryByRole('radio')).not.toBeInTheDocument()
     expect(
       await screen.findByText(
         'Yo‘lak va kamera himoyasi sozlamalari saqlandi',
@@ -175,17 +248,89 @@ describe('LaneProtectionSettings', () => {
     ).toBeInTheDocument()
   })
 
-  it('backend xatosini mavjud xavfsiz error handling orqali ko‘rsatadi', async () => {
+  it('failed Save edit mode va unsaved qiymatni saqlab, retryga ruxsat beradi', async () => {
     updateIntegrationSettingsMock.mockRejectedValue(new Error('secret error'))
     renderSettings()
+    await enterEditMode()
+    await changeSeconds('120')
 
-    save()
+    fireEvent.click(saveButton())
 
     expect(
       await screen.findByText(
         'Yo‘lak va kamera himoyasi sozlamalarini saqlab bo‘lmadi',
       ),
     ).toBeInTheDocument()
+    expect(secondsInput()).toHaveValue('120')
+    expect(saveButton()).toBeEnabled()
     expect(screen.queryByText('secret error')).not.toBeInTheDocument()
+  })
+
+  it('view mode’dagi refetch yangi backend qiymatlarini darhol ko‘rsatadi', () => {
+    const { rerender } = renderSettings()
+
+    rerender(
+      content(
+        {
+          ...settings,
+          gate_layout: 'separate',
+          cross_camera_guard_seconds: 120,
+        },
+        7,
+      ),
+    )
+
+    expect(
+      screen.getByText('Kirish va chiqish alohida yo‘lakda'),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText('Qarama-qarshi kamera himoyasi o‘chirilgan'),
+    ).toBeInTheDocument()
+  })
+
+  it('edit paytidagi refetch unsaved qiymatni o‘chirmaydi, Cancel esa latest backendga qaytaradi', async () => {
+    const { rerender } = renderSettings()
+    await enterEditMode()
+    await changeSeconds('120')
+
+    rerender(
+      content(
+        {
+          ...settings,
+          gate_layout: 'separate',
+          cross_camera_guard_seconds: 60,
+        },
+        7,
+      ),
+    )
+
+    expect(secondsInput()).toHaveValue('120')
+    fireEvent.click(cancelButton())
+    expect(
+      screen.getByText('Kirish va chiqish alohida yo‘lakda'),
+    ).toBeInTheDocument()
+  })
+
+  it('organization ID o‘zgarsa edit mode’dan chiqib yangi org qiymatlarini ko‘rsatadi', async () => {
+    const { rerender } = renderSettings()
+    await enterEditMode()
+    await changeSeconds('120')
+
+    rerender(
+      content(
+        {
+          ...settings,
+          gate_layout: 'separate',
+          cross_camera_guard_seconds: 60,
+        },
+        8,
+      ),
+    )
+
+    expect(
+      await screen.findByText('Kirish va chiqish alohida yo‘lakda'),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument()
+    expect(updateIntegrationSettingsMock).not.toHaveBeenCalled()
   })
 })

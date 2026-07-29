@@ -165,7 +165,9 @@ describe('IntegrationSettingsCard', () => {
     })
     renderCard()
 
-    fireEvent.click(await screen.findByRole('button', { name: /Tahrirlash/ }))
+    fireEvent.click(
+      (await screen.findAllByRole('button', { name: /Tahrirlash/ })).at(-1)!,
+    )
 
     expect(screen.getByDisplayValue('192.168.1.10')).toBeInTheDocument()
     expect(screen.getByDisplayValue('192.168.1.20')).toBeInTheDocument()
@@ -186,7 +188,9 @@ describe('IntegrationSettingsCard', () => {
   it("Bekor qilish saqlashsiz korish rejimiga qaytaradi", async () => {
     renderCard()
 
-    fireEvent.click(await screen.findByRole('button', { name: /Tahrirlash/ }))
+    fireEvent.click(
+      (await screen.findAllByRole('button', { name: /Tahrirlash/ })).at(-1)!,
+    )
     fireEvent.click(screen.getByRole('button', { name: 'Bekor qilish' }))
 
     expect(updateIntegrationSettingsMock).not.toHaveBeenCalled()

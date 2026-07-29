@@ -306,6 +306,7 @@
     "guardSecondsMax": "Himoya vaqti 300 soniyadan oshmasligi kerak",
     "sharedLaneAlert": "Bu rejim faqat kirish va chiqish kamerasi bitta yo‘lakdagi bir avtomobilni ketma-ket ko‘radigan stoyankalar uchun ishlatiladi.",
     "separateLaneAlert": "Himoya o‘chirilgan. Har bir kamera hodisasi o‘z yo‘nalishi bo‘yicha qayta ishlanadi.",
+    "protectionDisabledValue": "Qarama-qarshi kamera himoyasi o‘chirilgan",
     "laneProtectionSaveSuccess": "Yo‘lak va kamera himoyasi sozlamalari saqlandi",
     "laneProtectionSaveError": "Yo‘lak va kamera himoyasi sozlamalarini saqlab bo‘lmadi"
   },

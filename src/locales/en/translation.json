@@ -306,6 +306,7 @@
     "guardSecondsMax": "Guard time must not exceed 300 seconds",
     "sharedLaneAlert": "Use this mode only when entry and exit cameras can see the same vehicle sequentially on one shared lane.",
     "separateLaneAlert": "Protection is disabled. Each camera event is processed for its own direction.",
+    "protectionDisabledValue": "Opposite-camera protection is disabled",
     "laneProtectionSaveSuccess": "Lane and camera protection settings saved",
     "laneProtectionSaveError": "Failed to save lane and camera protection settings"
   },
