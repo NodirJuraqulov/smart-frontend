@@ -1,8 +1,9 @@
 import axios from 'axios'
 import type { DisplayStatus } from '@/types/publicDisplay'
+import { API_BASE_URL } from '@/utils/runtimeBaseUrl'
 
 const publicDisplayClient = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: API_BASE_URL,
 })
 
 export const getDisplayStatus = (orgId: number) =>

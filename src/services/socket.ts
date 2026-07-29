@@ -1,5 +1,6 @@
 import { io, type Socket } from 'socket.io-client'
 import type { DetectionType, ParkingSession, Payment } from '@/types/parking'
+import { API_BASE_URL } from '@/utils/runtimeBaseUrl'
 
 interface ServerToClientEvents {
   'parking:entry': (payload: {
@@ -39,7 +40,7 @@ let socket: ParkingSocket | null = null
 export function connectSocket(): ParkingSocket {
   if (socket) return socket
 
-  socket = io(import.meta.env.VITE_API_URL, {
+  socket = io(API_BASE_URL, {
     auth: (cb) => cb({ token: localStorage.getItem('accessToken') }),
   })
 

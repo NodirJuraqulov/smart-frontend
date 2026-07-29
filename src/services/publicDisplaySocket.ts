@@ -1,4 +1,5 @@
 import { io, type Socket } from 'socket.io-client'
+import { API_BASE_URL } from '@/utils/runtimeBaseUrl'
 
 interface PublicDisplayServerToClientEvents {
   entry_detected: (payload: { plateNumber: string; enteredAt: string }) => void
@@ -29,7 +30,7 @@ export type PublicDisplaySocket = Socket<
 >
 
 export function connectPublicDisplaySocket(orgId: number): PublicDisplaySocket {
-  return io(import.meta.env.VITE_API_URL, {
+  return io(API_BASE_URL, {
     auth: { orgId },
     reconnection: true,
     reconnectionDelay: 1000,

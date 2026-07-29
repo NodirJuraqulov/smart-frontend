@@ -8,6 +8,7 @@ const {
   dispatchMock,
   getStateMock,
   warningMock,
+  axiosCreateMock,
 } = vi.hoisted(() => {
   const responseErrorHandlerRef: {
     current: ((error: unknown) => unknown) | null
@@ -16,6 +17,7 @@ const {
   const dispatchMock = vi.fn()
   const getStateMock = vi.fn()
   const warningMock = vi.fn()
+  const axiosCreateMock = vi.fn()
 
   const mockInstance = vi.fn((config: unknown) =>
     Promise.resolve({ data: 'retried', config }),
@@ -55,12 +57,13 @@ const {
     dispatchMock,
     getStateMock,
     warningMock,
+    axiosCreateMock,
   }
 })
 
 vi.mock('axios', () => ({
   default: {
-    create: vi.fn(() => mockInstance),
+    create: axiosCreateMock.mockImplementation(() => mockInstance),
     post: axiosPostMock,
   },
 }))
@@ -77,6 +80,7 @@ vi.mock('@/utils/notifier', () => ({
 }))
 
 import '@/api/axiosInstance'
+import { API_BASE_URL } from '@/utils/runtimeBaseUrl'
 
 function makeError(status: number, url = '/api/sessions') {
   return {
@@ -94,6 +98,12 @@ describe('axiosInstance response interceptor', () => {
     getStateMock.mockReset()
   })
 
+  it('authenticated Axios resolved runtime bazadan foydalanadi', () => {
+    expect(axiosCreateMock).toHaveBeenCalledWith(
+      expect.objectContaining({ baseURL: API_BASE_URL }),
+    )
+  })
+
   it('401 kelganda refresh sorovi yuboriladi', async () => {
     getStateMock.mockReturnValue({ auth: { refreshToken: 'old-refresh' } })
     axiosPostMock.mockResolvedValue({
@@ -105,7 +115,7 @@ describe('axiosInstance response interceptor', () => {
 
     expect(axiosPostMock).toHaveBeenCalledTimes(1)
     expect(axiosPostMock).toHaveBeenCalledWith(
-      expect.stringContaining('/api/auth/refresh'),
+      `${API_BASE_URL}/api/auth/refresh`,
       { refreshToken: 'old-refresh' },
     )
     expect(dispatchMock).toHaveBeenCalledWith(

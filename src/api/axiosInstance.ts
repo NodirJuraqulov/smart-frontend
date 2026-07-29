@@ -4,9 +4,10 @@ import { logout, tokensRefreshed } from '@/store/authSlice'
 import i18n from '@/i18n'
 import { getMessageApi } from '@/utils/notifier'
 import type { RefreshResponse } from '@/types/auth'
+import { API_BASE_URL, joinRuntimeUrl } from '@/utils/runtimeBaseUrl'
 
 export const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -34,7 +35,7 @@ function forceLogout() {
 function performRefresh(refreshToken: string) {
   return axios
     .post<RefreshResponse>(
-      `${import.meta.env.VITE_API_URL}/api/auth/refresh`,
+      joinRuntimeUrl('/api/auth/refresh'),
       { refreshToken },
     )
     .then((res) => res.data)
