@@ -1,4 +1,5 @@
 export type PricingMode = 'hourly' | 'interval'
+export type GateLayout = 'shared' | 'separate'
 
 export interface Organization {
   id: number
@@ -59,6 +60,8 @@ export interface IntegrationSettings {
   webhook_debug_exit_url: string | null
   last_webhook_entry_at: string | null
   last_webhook_exit_at: string | null
+  gate_layout: GateLayout
+  cross_camera_guard_seconds: number
 }
 
 export interface UpdateIntegrationSettingsPayload {
@@ -66,4 +69,6 @@ export interface UpdateIntegrationSettingsPayload {
   relay_exit_ip?: string | null
   printer_ip?: string | null
   camera_brand?: string | null
+  gate_layout?: GateLayout
+  cross_camera_guard_seconds?: number
 }

@@ -1,5 +1,63 @@
 import { describe, expect, it } from 'vitest'
-import { mapAuthPermissions, mapAuthUser } from '@/api/mappers'
+import {
+  mapAuthPermissions,
+  mapAuthUser,
+  mapIntegrationSettings,
+} from '@/api/mappers'
+
+const integrationSettingsDto = {
+  relayEntryIp: null,
+  relayExitIp: null,
+  printerIp: null,
+  cameraBrand: 'hikvision',
+  webhookToken: null,
+  webhookEntryUrl: null,
+  webhookExitUrl: null,
+  webhookDebugEntryUrl: null,
+  webhookDebugExitUrl: null,
+}
+
+describe('mapIntegrationSettings', () => {
+  it('GET camelCase shared va guard qiymatlarini frontend modeliga map qiladi', () => {
+    const result = mapIntegrationSettings({
+      ...integrationSettingsDto,
+      gateLayout: 'shared',
+      crossCameraGuardSeconds: 90,
+    })
+
+    expect(result.gate_layout).toBe('shared')
+    expect(result.cross_camera_guard_seconds).toBe(90)
+  })
+
+  it('GET separate qiymatini frontend modeliga map qiladi', () => {
+    const result = mapIntegrationSettings({
+      ...integrationSettingsDto,
+      gateLayout: 'separate',
+      crossCameraGuardSeconds: 60,
+    })
+
+    expect(result.gate_layout).toBe('separate')
+    expect(result.cross_camera_guard_seconds).toBe(60)
+  })
+
+  it('eski GET payload yangi maydonlarsiz kelsa separate va 90 fallback qiladi', () => {
+    const result = mapIntegrationSettings(integrationSettingsDto)
+
+    expect(result.gate_layout).toBe('separate')
+    expect(result.cross_camera_guard_seconds).toBe(90)
+  })
+
+  it('yaroqsiz GET qiymatlarini xavfsiz defaultlarga almashtiradi', () => {
+    const result = mapIntegrationSettings({
+      ...integrationSettingsDto,
+      gateLayout: 'broken' as 'shared',
+      crossCameraGuardSeconds: 301,
+    })
+
+    expect(result.gate_layout).toBe('separate')
+    expect(result.cross_camera_guard_seconds).toBe(90)
+  })
+})
 
 describe('mapAuthPermissions', () => {
   it("prefikssiz kalitlarni (dashboard, tariffs, activity_log) can_view_ prefiksli OperatorPermissions formatiga aylantiradi (regression)", () => {

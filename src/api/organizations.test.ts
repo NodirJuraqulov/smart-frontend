@@ -27,11 +27,13 @@ import {
   createTariffIntervalAdmin,
   deleteTariffInterval,
   deleteTariffIntervalAdmin,
+  getIntegrationSettings,
   getOrganizations,
   getPermissions,
   getTariffIntervals,
   getTariffIntervalsAdmin,
   updateCapacity,
+  updateIntegrationSettings,
   updatePermissions,
   updatePricingMode,
   updateTariffInterval,
@@ -48,6 +50,58 @@ const organizationDto = {
   total_capacity: 50,
   created_at: '2026-07-01T00:00:00.000Z',
 }
+
+const integrationSettingsDto = {
+  relayEntryIp: '192.168.1.10',
+  relayExitIp: '192.168.1.11',
+  printerIp: '192.168.1.20',
+  cameraBrand: 'hikvision',
+  webhookToken: 'token',
+  webhookEntryUrl: '/entry',
+  webhookExitUrl: '/exit',
+  webhookDebugEntryUrl: '/debug-entry',
+  webhookDebugExitUrl: '/debug-exit',
+  gateLayout: 'shared' as const,
+  crossCameraGuardSeconds: 90,
+}
+
+describe('integration settings lane protection', () => {
+  it('GET camelCase qiymatlarini frontend modeliga map qiladi', async () => {
+    getMock.mockResolvedValue({ data: integrationSettingsDto })
+
+    const result = await getIntegrationSettings(7)
+
+    expect(getMock).toHaveBeenCalledWith(
+      '/api/admin/organizations/7/integration-settings',
+    )
+    expect(result).toMatchObject({
+      gate_layout: 'shared',
+      cross_camera_guard_seconds: 90,
+    })
+  })
+
+  it('PUTga backend kutgan snake_case maydonlarni o‘zgartirmasdan yuboradi', async () => {
+    putMock.mockResolvedValue({ data: integrationSettingsDto })
+
+    await updateIntegrationSettings({
+      orgId: 7,
+      relay_entry_ip: '192.168.1.10',
+      camera_brand: 'hikvision',
+      gate_layout: 'shared',
+      cross_camera_guard_seconds: 90,
+    })
+
+    expect(putMock).toHaveBeenCalledWith(
+      '/api/admin/organizations/7/integration-settings',
+      {
+        relay_entry_ip: '192.168.1.10',
+        camera_brand: 'hikvision',
+        gate_layout: 'shared',
+        cross_camera_guard_seconds: 90,
+      },
+    )
+  })
+})
 
 describe('createOrganization', () => {
   it("javobda 'operator' bo'lmasa xatolik tashlamaydi (regression)", async () => {

@@ -45,6 +45,8 @@ const settings: IntegrationSettings = {
   webhook_debug_exit_url: 'https://example.com/api/webhook/debug/token-123/exit',
   last_webhook_entry_at: null,
   last_webhook_exit_at: null,
+  gate_layout: 'separate',
+  cross_camera_guard_seconds: 90,
 }
 
 function renderCard() {
@@ -170,7 +172,7 @@ describe('IntegrationSettingsCard', () => {
 
     const inputs = screen.getAllByRole('textbox')
     fireEvent.change(inputs[1], { target: { value: '192.168.1.30' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Saqlash' }))
+    fireEvent.click(screen.getAllByRole('button', { name: 'Saqlash' }).at(-1)!)
 
     await waitFor(() => expect(updateIntegrationSettingsMock).toHaveBeenCalled())
     expect(updateIntegrationSettingsMock).toHaveBeenCalledWith({

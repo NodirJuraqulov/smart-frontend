@@ -1,5 +1,9 @@
 import type { Operator } from '@/types/user'
-import type { IntegrationSettings, Organization } from '@/types/organization'
+import type {
+  GateLayout,
+  IntegrationSettings,
+  Organization,
+} from '@/types/organization'
 import type { AuthPermissionsDto, AuthUser, AuthUserDto } from '@/types/auth'
 import type { OperatorPermissions } from '@/types/permissions'
 
@@ -73,7 +77,12 @@ export interface IntegrationSettingsDto {
   webhookDebugExitUrl: string | null
   lastWebhookEntryAt?: string | null
   lastWebhookExitAt?: string | null
+  gateLayout?: GateLayout
+  crossCameraGuardSeconds?: number
 }
+
+const DEFAULT_GATE_LAYOUT: GateLayout = 'separate'
+const DEFAULT_CROSS_CAMERA_GUARD_SECONDS = 90
 
 export const mapIntegrationSettings = (
   dto: IntegrationSettingsDto,
@@ -89,6 +98,16 @@ export const mapIntegrationSettings = (
   webhook_debug_exit_url: dto.webhookDebugExitUrl,
   last_webhook_entry_at: dto.lastWebhookEntryAt ?? null,
   last_webhook_exit_at: dto.lastWebhookExitAt ?? null,
+  gate_layout:
+    dto.gateLayout === 'shared' || dto.gateLayout === 'separate'
+      ? dto.gateLayout
+      : DEFAULT_GATE_LAYOUT,
+  cross_camera_guard_seconds:
+    Number.isInteger(dto.crossCameraGuardSeconds) &&
+    dto.crossCameraGuardSeconds! >= 5 &&
+    dto.crossCameraGuardSeconds! <= 300
+      ? dto.crossCameraGuardSeconds!
+      : DEFAULT_CROSS_CAMERA_GUARD_SECONDS,
 })
 
 export const mapAuthUser = (

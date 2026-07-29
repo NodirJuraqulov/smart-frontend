@@ -32,6 +32,7 @@ import {
 import { getErrorMessage } from '@/utils/apiError'
 import { copyToClipboard } from '@/utils/clipboard'
 import { formatRelativeTime } from '@/utils/format'
+import LaneProtectionSettings from './LaneProtectionSettings'
 
 const IP_PATTERN = /^(\d{1,3}\.){3}\d{1,3}$/
 const STALE_SIGNAL_MINUTES = 10
@@ -277,6 +278,14 @@ export default function IntegrationSettingsCard({
               </Button>
             </Popconfirm>
           </div>
+
+          <Divider className="my-0" />
+
+          <LaneProtectionSettings
+            orgId={orgId}
+            settings={data}
+            queryKey={queryKey}
+          />
 
           <Divider className="my-0" />
 

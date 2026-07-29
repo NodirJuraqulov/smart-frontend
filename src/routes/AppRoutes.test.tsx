@@ -72,4 +72,13 @@ describe('AppRoutes sidebar permission filtering', () => {
 
     expect(await screen.findByText("Ruxsat yo'q")).toBeInTheDocument()
   })
+
+  it('operator Super Admin organization route orqali lane controlsga kira olmaydi', async () => {
+    renderAtPath('/admin/organizations/1')
+
+    expect(await screen.findByText('Sessiyalar')).toBeInTheDocument()
+    expect(
+      screen.queryByText('Yo‘lak va kamera himoyasi'),
+    ).not.toBeInTheDocument()
+  })
 })
