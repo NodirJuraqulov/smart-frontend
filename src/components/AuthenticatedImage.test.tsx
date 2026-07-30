@@ -92,4 +92,18 @@ describe('AuthenticatedImage', () => {
     expect(signal.aborted).toBe(true)
     expect(revokeObjectURLMock).toHaveBeenCalledWith('blob:protected-image')
   })
+
+  it('bir xil URL bilan rerender qilinganda rasmni qayta yuklamaydi', async () => {
+    axiosGetMock.mockResolvedValue({
+      data: new Blob(['image'], { type: 'image/jpeg' }),
+    })
+    const { rerender } = render(
+      <AuthenticatedImage url="/api/protected/image.jpg" alt="ANPR" />,
+    )
+
+    await screen.findByRole('img', { name: 'ANPR' })
+    rerender(<AuthenticatedImage url="/api/protected/image.jpg" alt="ANPR" />)
+
+    expect(axiosGetMock).toHaveBeenCalledTimes(1)
+  })
 })

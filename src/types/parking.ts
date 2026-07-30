@@ -15,6 +15,8 @@ export interface ParkingSession {
   exit_method: ExitMethod | null
   image_entry?: string | null
   image_exit?: string | null
+  entryOverviewImageUrl?: string | null
+  exitOverviewImageUrl?: string | null
   entryVehicleImageUrl?: string | null
   entryPlateImageUrl?: string | null
   exitVehicleImageUrl?: string | null

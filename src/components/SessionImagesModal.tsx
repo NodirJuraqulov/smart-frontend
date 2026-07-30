@@ -8,12 +8,10 @@ import type { ParkingSession } from '@/types/parking'
 type SessionImageSource = Pick<
   ParkingSession,
   | 'plate_number'
-  | 'image_entry'
-  | 'image_exit'
+  | 'entryOverviewImageUrl'
+  | 'exitOverviewImageUrl'
   | 'entryVehicleImageUrl'
-  | 'entryPlateImageUrl'
   | 'exitVehicleImageUrl'
-  | 'exitPlateImageUrl'
 >
 
 interface SessionImage {
@@ -23,36 +21,22 @@ interface SessionImage {
 }
 
 function getSessionImages(session: SessionImageSource): SessionImage[] {
-  const candidates = [
+  return [
     {
       key: 'entry-vehicle',
-      url: session.entryVehicleImageUrl ?? session.image_entry,
+      url: session.entryOverviewImageUrl ?? session.entryVehicleImageUrl,
       labelKey: 'sessions.entryVehicleImage',
     },
     {
-      key: 'entry-plate',
-      url: session.entryPlateImageUrl,
-      labelKey: 'sessions.entryPlateImage',
-    },
-    {
       key: 'exit-vehicle',
-      url: session.exitVehicleImageUrl ?? session.image_exit,
+      url: session.exitOverviewImageUrl ?? session.exitVehicleImageUrl,
       labelKey: 'sessions.exitVehicleImage',
     },
-    {
-      key: 'exit-plate',
-      url: session.exitPlateImageUrl,
-      labelKey: 'sessions.exitPlateImage',
-    },
-  ]
-
-  return candidates.filter(
-    (item): item is SessionImage => typeof item.url === 'string' && !!item.url,
-  )
+  ].map((item) => ({ ...item, url: item.url ?? '' }))
 }
 
 function hasSessionImages(session: SessionImageSource): boolean {
-  return getSessionImages(session).length > 0
+  return getSessionImages(session).some((image) => Boolean(image.url))
 }
 
 interface SessionImagesModalProps {
@@ -80,24 +64,27 @@ export function SessionImagesModal({
       width={900}
       destroyOnHidden
     >
-      {images.length ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {images.map((image) => {
-            const label = t(image.labelKey)
-            return (
-              <section key={image.key} className="min-w-0">
-                <Typography.Title level={5}>{label}</Typography.Title>
+      <div
+        className="grid grid-cols-1 gap-4 lg:grid-cols-2"
+        data-testid="session-vehicle-images-grid"
+      >
+        {images.map((image) => {
+          const label = t(image.labelKey)
+          return (
+            <section key={image.key} className="min-w-0">
+              <Typography.Title level={5}>{label}</Typography.Title>
+              {image.url ? (
                 <AuthenticatedImage url={image.url} alt={label} />
-              </section>
-            )
-          })}
-        </div>
-      ) : (
-        <Empty
-          image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description={t('sessions.noImages')}
-        />
-      )}
+              ) : (
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description={t('sessions.noImages')}
+                />
+              )}
+            </section>
+          )
+        })}
+      </div>
     </Modal>
   )
 }

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
 import {
   SessionImagesAction,
@@ -6,10 +6,16 @@ import {
 } from './SessionImagesModal'
 import type { ParkingSession } from '@/types/parking'
 
-vi.mock('./AuthenticatedImage', () => ({
-  default: ({ url, alt }: { url: string; alt: string }) => (
-    <img src={url} alt={alt} />
+const { authenticatedImageMock } = vi.hoisted(() => ({
+  authenticatedImageMock: vi.fn(
+    ({ url, alt }: { url: string; alt: string }) => (
+      <img src={url} alt={alt} data-authenticated-image="true" />
+    ),
   ),
+}))
+
+vi.mock('./AuthenticatedImage', () => ({
+  default: authenticatedImageMock,
 }))
 
 const baseSession: ParkingSession = {
@@ -27,44 +33,117 @@ const baseSession: ParkingSession = {
   created_at: '2026-07-18T08:00:00.000Z',
 }
 
-describe('SessionImagesModal', () => {
-  it("eski image maydonlarisiz payload xato bermaydi va 'Rasm mavjud emas' ko‘rsatadi", () => {
-    render(
-      <SessionImagesModal session={baseSession} open onClose={() => {}} />,
-    )
+function renderModal(session: ParkingSession = baseSession) {
+  return render(
+    <SessionImagesModal session={session} open onClose={() => {}} />,
+  )
+}
 
-    expect(screen.getByText('Rasm mavjud emas')).toBeInTheDocument()
+describe('SessionImagesModal', () => {
+  beforeEach(() => {
+    authenticatedImageMock.mockClear()
   })
 
-  it('faqat mavjud exitVehicleImageUrl rasmini ko‘rsatadi', () => {
-    render(
-      <SessionImagesModal
-        session={{
-          ...baseSession,
-          exitVehicleImageUrl: '/api/sessions/90/exit-vehicle',
-        }}
-        open
-        onClose={() => {}}
-      />,
-    )
+  it('faqat kirish va chiqish avtomobil bloklarini ko‘rsatadi', () => {
+    renderModal()
 
+    expect(screen.getByText('Kirish — avtomobil')).toBeInTheDocument()
+    expect(screen.getByText('Chiqish — avtomobil')).toBeInTheDocument()
+    expect(screen.queryByText('Kirish — raqam')).not.toBeInTheDocument()
+    expect(screen.queryByText('Chiqish — raqam')).not.toBeInTheDocument()
+  })
+
+  it('overview URLlarni vehicle URLlardan ustun qo‘yadi', () => {
+    renderModal({
+      ...baseSession,
+      entryOverviewImageUrl: '/api/sessions/90/entry-overview',
+      entryVehicleImageUrl: '/api/sessions/90/entry-vehicle',
+      exitOverviewImageUrl: '/api/sessions/90/exit-overview',
+      exitVehicleImageUrl: '/api/sessions/90/exit-vehicle',
+    })
+
+    expect(
+      screen.getByRole('img', { name: 'Kirish — avtomobil' }),
+    ).toHaveAttribute('src', '/api/sessions/90/entry-overview')
+    expect(
+      screen.getByRole('img', { name: 'Chiqish — avtomobil' }),
+    ).toHaveAttribute('src', '/api/sessions/90/exit-overview')
+  })
+
+  it('eski sessiya uchun faqat vehicle URLlarni fallback sifatida ishlatadi', () => {
+    renderModal({
+      ...baseSession,
+      entryVehicleImageUrl: '/api/sessions/90/entry-vehicle',
+      exitVehicleImageUrl: '/api/sessions/90/exit-vehicle',
+    })
+
+    expect(
+      screen.getByRole('img', { name: 'Kirish — avtomobil' }),
+    ).toHaveAttribute('src', '/api/sessions/90/entry-vehicle')
     expect(
       screen.getByRole('img', { name: 'Chiqish — avtomobil' }),
     ).toHaveAttribute('src', '/api/sessions/90/exit-vehicle')
-    expect(
-      screen.queryByRole('img', { name: 'Kirish — avtomobil' }),
-    ).not.toBeInTheDocument()
-    expect(
-      screen.queryByRole('img', { name: 'Chiqish — raqam' }),
-    ).not.toBeInTheDocument()
   })
 
-  it('rasmli sessiyada action ko‘rsatadi va modalni ochadi', () => {
+  it('plate URLlarni hech qachon render yoki fallback qilmaydi', () => {
+    renderModal({
+      ...baseSession,
+      entryPlateImageUrl: '/api/sessions/90/entry-plate',
+      exitPlateImageUrl: '/api/sessions/90/exit-plate',
+    })
+
+    expect(
+      document.querySelector('[data-authenticated-image="true"]'),
+    ).not.toBeInTheDocument()
+    expect(authenticatedImageMock).not.toHaveBeenCalled()
+    expect(screen.getAllByText('Rasm mavjud emas')).toHaveLength(2)
+  })
+
+  it('bitta rasm yo‘q bo‘lsa uning empty stateini va ikkinchi rasmni saqlaydi', () => {
+    renderModal({
+      ...baseSession,
+      exitOverviewImageUrl: '/api/sessions/90/exit-overview',
+    })
+
+    expect(screen.getByText('Rasm mavjud emas')).toBeInTheDocument()
+    expect(
+      screen.getByRole('img', { name: 'Chiqish — avtomobil' }),
+    ).toHaveAttribute('src', '/api/sessions/90/exit-overview')
+  })
+
+  it('rasmlarni authenticated image loader orqali beradi', () => {
+    renderModal({
+      ...baseSession,
+      entryOverviewImageUrl: '/api/sessions/90/entry-overview',
+    })
+
+    expect(authenticatedImageMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: '/api/sessions/90/entry-overview',
+        alt: 'Kirish — avtomobil',
+      }),
+      undefined,
+    )
+    expect(
+      screen.getByRole('img', { name: 'Kirish — avtomobil' }),
+    ).toHaveAttribute('data-authenticated-image', 'true')
+  })
+
+  it('mobile/tabletda stack va desktopda ikki teng ustun layoutini saqlaydi', () => {
+    renderModal()
+
+    expect(screen.getByTestId('session-vehicle-images-grid')).toHaveClass(
+      'grid-cols-1',
+      'lg:grid-cols-2',
+    )
+  })
+
+  it('overview yoki legacy vehicle rasmi bo‘lsa action modalni ochadi', () => {
     render(
       <SessionImagesAction
         session={{
           ...baseSession,
-          exitVehicleImageUrl: '/api/sessions/90/exit-vehicle',
+          entryOverviewImageUrl: '/api/sessions/90/entry-overview',
         }}
       />,
     )
@@ -72,14 +151,20 @@ describe('SessionImagesModal', () => {
     fireEvent.click(
       screen.getByRole('button', { name: "Rasmlarni ko'rish" }),
     )
-
     expect(
       screen.getByRole('dialog', { name: '01A090AA — rasmlar' }),
     ).toBeInTheDocument()
   })
 
-  it("rasmsiz sessiyada action o‘rniga 'Rasm mavjud emas' ko‘rsatadi", () => {
-    render(<SessionImagesAction session={baseSession} />)
+  it('faqat plate rasmi mavjud sessiyada action ko‘rsatmaydi', () => {
+    render(
+      <SessionImagesAction
+        session={{
+          ...baseSession,
+          entryPlateImageUrl: '/api/sessions/90/entry-plate',
+        }}
+      />,
+    )
 
     expect(screen.getByText('Rasm mavjud emas')).toBeInTheDocument()
     expect(
