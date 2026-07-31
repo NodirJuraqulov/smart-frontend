@@ -39,7 +39,7 @@ vi.mock('@/hooks/usePublicDisplaySocket', () => ({
 const status: DisplayStatus = {
   orgName: 'Chorsu Stoyanka',
   pricingMode: 'hourly',
-  capacity: { occupied: 3, total: 10 },
+  capacity: { occupied: 3, total: 10, available: 7 },
   hourlyTariff: { price: 5000, gracePeriodMinutes: 15 },
 }
 

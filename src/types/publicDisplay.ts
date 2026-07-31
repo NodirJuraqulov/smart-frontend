@@ -12,6 +12,7 @@ export interface IntervalTariffDisplay {
 export interface DisplayCapacity {
   occupied: number
   total: number | null
+  available: number | null
 }
 
 export interface DisplayStatus {

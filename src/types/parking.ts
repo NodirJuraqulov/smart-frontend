@@ -64,6 +64,7 @@ export interface Payment {
 export interface ParkingCapacity {
   occupied: number
   total: number | null
+  available: number | null
 }
 
 export type DetectionType = 'entry' | 'exit'

@@ -97,7 +97,11 @@ describe('OperatorDashboard manual entry modal', () => {
     entryManualMock.mockReset()
     exitManualMock.mockReset()
     getActiveSessionsMock.mockReset().mockResolvedValue([])
-    getCapacityMock.mockReset().mockResolvedValue({ occupied: 0, total: null })
+    getCapacityMock.mockReset().mockResolvedValue({
+      occupied: 0,
+      total: null,
+      available: null,
+    })
     updateSessionPaymentMethodMock.mockReset()
     getAwaitingPaymentsMock.mockReset().mockResolvedValue([])
     confirmCashPaymentMock.mockReset()
@@ -151,7 +155,11 @@ describe('OperatorDashboard qurilma ogohlantirishlari', () => {
     entryManualMock.mockReset()
     exitManualMock.mockReset()
     getActiveSessionsMock.mockReset().mockResolvedValue([])
-    getCapacityMock.mockReset().mockResolvedValue({ occupied: 0, total: null })
+    getCapacityMock.mockReset().mockResolvedValue({
+      occupied: 0,
+      total: null,
+      available: null,
+    })
     updateSessionPaymentMethodMock.mockReset()
     getAwaitingPaymentsMock.mockReset().mockResolvedValue([])
     confirmCashPaymentMock.mockReset()

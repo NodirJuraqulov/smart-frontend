@@ -191,7 +191,11 @@ export default function OperatorDashboard() {
         </Typography.Title>
       </div>
 
-      <StatsRow isLoading={dailyReportQuery.isLoading} data={dailyReportQuery.data} />
+      <StatsRow
+        isLoading={dailyReportQuery.isLoading}
+        isError={dailyReportQuery.isError}
+        data={dailyReportQuery.data}
+      />
 
       {detectionFailed && (
         <DetectionFailedAlert

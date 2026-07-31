@@ -1,4 +1,4 @@
-import { Card, Col, Row, Skeleton, Statistic, Typography } from 'antd'
+import { Alert, Card, Col, Row, Skeleton, Statistic, Typography } from 'antd'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { getCapacity } from '@/api/parking'
@@ -8,10 +8,11 @@ import type { DailyReport } from '@/types/reports'
 
 interface StatsRowProps {
   isLoading: boolean
+  isError: boolean
   data: DailyReport | undefined
 }
 
-export default function StatsRow({ isLoading, data }: StatsRowProps) {
+export default function StatsRow({ isLoading, isError, data }: StatsRowProps) {
   const { t } = useTranslation()
 
   const capacityQuery = useQuery({
@@ -20,37 +21,59 @@ export default function StatsRow({ isLoading, data }: StatsRowProps) {
     refetchInterval: 10000,
   })
 
-  if (isLoading) {
+  if (isLoading || capacityQuery.isLoading) {
     return <Skeleton active paragraph={{ rows: 2 }} />
   }
 
-  const occupied = data?.currently_parked ?? 0
+  if (isError || !data) {
+    return (
+      <Alert
+        type="error"
+        showIcon
+        title={t('operatorDashboard.statsLoadError')}
+      />
+    )
+  }
+
+  const occupied = capacityQuery.data?.occupied ?? data?.currently_parked ?? 0
   const total = capacityQuery.data?.total ?? null
-  const isFull = total != null && occupied >= total
+  const available = capacityQuery.data?.available ?? null
+  const isFull = available != null && available <= 0
 
   return (
     <Row gutter={[16, 16]}>
       <Col xs={24} sm={12} md={6}>
-        <Card variant="borderless">
-          <Statistic
-            title={t('operatorDashboard.todayEntries')}
-            value={data?.total_entries ?? 0}
-          />
+        <Card
+          variant="borderless"
+          title={t('operatorDashboard.todayActivity')}
+          data-testid="dashboard-stat-card"
+          className="h-full"
+        >
+          <Row gutter={16}>
+            <Col span={12}>
+              <Statistic
+                title={t('operatorDashboard.todayEntries')}
+                value={data.total_entries}
+              />
+            </Col>
+            <Col span={12}>
+              <Statistic
+                title={t('operatorDashboard.todayExits')}
+                value={data.total_exits}
+              />
+            </Col>
+          </Row>
         </Card>
       </Col>
       <Col xs={24} sm={12} md={6}>
-        <Card variant="borderless">
+        <Card
+          variant="borderless"
+          data-testid="dashboard-stat-card"
+          className="h-full"
+        >
           <Statistic
-            title={t('operatorDashboard.todayExits')}
-            value={data?.total_exits ?? 0}
-          />
-        </Card>
-      </Col>
-      <Col xs={24} sm={12} md={6}>
-        <Card variant="borderless">
-          <Statistic
-            title={t('operatorDashboard.todayRevenue')}
-            value={data?.total_revenue ?? 0}
+            title={t('operatorDashboard.cashPayment')}
+            value={data.cash_revenue}
             formatter={(value) => formatMoney(Number(value))}
           />
         </Card>
@@ -58,6 +81,21 @@ export default function StatsRow({ isLoading, data }: StatsRowProps) {
       <Col xs={24} sm={12} md={6}>
         <Card
           variant="borderless"
+          data-testid="dashboard-stat-card"
+          className="h-full"
+        >
+          <Statistic
+            title={t('operatorDashboard.onlinePayment')}
+            value={data.online_revenue}
+            formatter={(value) => formatMoney(Number(value))}
+          />
+        </Card>
+      </Col>
+      <Col xs={24} sm={12} md={6}>
+        <Card
+          variant="borderless"
+          data-testid="dashboard-stat-card"
+          className="h-full"
           style={isFull ? { border: `1px solid ${palette.warning}` } : undefined}
         >
           <Statistic

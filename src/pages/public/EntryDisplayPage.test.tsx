@@ -34,14 +34,14 @@ vi.mock('@/hooks/usePublicDisplaySocket', () => ({
 const hourlyStatus: DisplayStatus = {
   orgName: 'Chorsu Stoyanka',
   pricingMode: 'hourly',
-  capacity: { occupied: 3, total: 10 },
+  capacity: { occupied: 3, total: 10, available: 7 },
   hourlyTariff: { price: 5000, gracePeriodMinutes: 15 },
 }
 
 const intervalStatus: DisplayStatus = {
   orgName: 'Chorsu Stoyanka',
   pricingMode: 'interval',
-  capacity: { occupied: 5, total: 10 },
+  capacity: { occupied: 5, total: 10, available: 5 },
   intervalTariffs: [
     { fromMinutes: 0, toMinutes: 60, price: 3000 },
     { fromMinutes: 60, toMinutes: null, price: 5000 },
@@ -82,6 +82,7 @@ describe('EntryDisplayPage', () => {
       screen.getByText('Birinchi 15 daqiqa bepul'),
     ).toBeInTheDocument()
     expect(screen.getByText(/3 \/ 10/)).toBeInTheDocument()
+    expect(screen.getByText('Bo‘sh joylar: 7')).toBeInTheDocument()
   })
 
   it("interval tariflarni korsatadi", async () => {
@@ -95,7 +96,7 @@ describe('EntryDisplayPage', () => {
   it("stoyanka toliq bolganda ogohlantirish korsatadi", async () => {
     getDisplayStatusMock.mockResolvedValue({
       ...hourlyStatus,
-      capacity: { occupied: 10, total: 10 },
+      capacity: { occupied: 9, total: 10, available: 0 },
     })
     renderPage()
 

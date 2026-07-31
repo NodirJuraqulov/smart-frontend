@@ -78,7 +78,7 @@ export default function EntryDisplayPage() {
 
   const data = statusQuery.data
   const isFull =
-    data.capacity.total != null && data.capacity.occupied >= data.capacity.total
+    data.capacity.available != null && data.capacity.available <= 0
 
   return (
     <DisplayLayout orgName={data.orgName} isConnected={isConnected}>
@@ -142,13 +142,22 @@ export default function EntryDisplayPage() {
           ) : null}
 
           {data.capacity.total != null && (
-            <Typography.Text style={{ fontSize: 24, opacity: 0.6 }}>
-              {t('publicDisplay.capacityLabel')}:{' '}
-              {t('publicDisplay.capacityValue', {
-                occupied: data.capacity.occupied,
-                total: data.capacity.total,
-              })}
-            </Typography.Text>
+            <div className="flex flex-col items-center gap-1">
+              <Typography.Text style={{ fontSize: 24, opacity: 0.6 }}>
+                {t('publicDisplay.capacityLabel')}:{' '}
+                {t('publicDisplay.capacityValue', {
+                  occupied: data.capacity.occupied,
+                  total: data.capacity.total,
+                })}
+              </Typography.Text>
+              {data.capacity.available != null && (
+                <Typography.Text style={{ fontSize: 24, opacity: 0.6 }}>
+                  {t('publicDisplay.availableCapacity', {
+                    available: data.capacity.available,
+                  })}
+                </Typography.Text>
+              )}
+            </div>
           )}
         </div>
       )}

@@ -22,12 +22,14 @@ import {
 
 describe('getCapacity', () => {
   it("to'g'ri endpoint chaqiradi va javobni qaytaradi", async () => {
-    getMock.mockResolvedValue({ data: { occupied: 5, total: 20 } })
+    getMock.mockResolvedValue({
+      data: { occupied: 5, total: 20, available: 15 },
+    })
 
     const capacity = await getCapacity()
 
     expect(getMock).toHaveBeenCalledWith('/api/parking/capacity')
-    expect(capacity).toEqual({ occupied: 5, total: 20 })
+    expect(capacity).toEqual({ occupied: 5, total: 20, available: 15 })
   })
 })
 
