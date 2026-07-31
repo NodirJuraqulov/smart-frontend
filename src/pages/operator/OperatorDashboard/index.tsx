@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { App as AntdApp, Form, Typography } from 'antd'
@@ -16,11 +16,17 @@ import { getErrorMessage } from '@/utils/apiError'
 import { formatDate } from '@/utils/format'
 import ReceiptModal from '@/components/ReceiptModal'
 import type { DetectionType, ParkingSession, Payment } from '@/types/parking'
+import type {
+  ExitCandidate,
+  ExitCandidatesResponse,
+} from '@/types/exitCandidate'
 import StatsRow from './StatsRow'
 import DetectionFailedAlert from './DetectionFailedAlert'
 import AwaitingPaymentsSection from './AwaitingPaymentsSection'
 import ActiveSessionsTable from './ActiveSessionsTable'
 import ManualEntryModal, { type ManualFormValues } from './ManualEntryModal'
+import ExitCandidatesSection from './ExitCandidatesSection'
+import { EXIT_CANDIDATES_QUERY_KEY } from './exitCandidateQueryKeys'
 
 interface DetectionFailedState {
   type: DetectionType
@@ -39,13 +45,21 @@ export default function OperatorDashboard() {
   useDocumentTitle(t('operatorDashboard.title'))
   const { message, notification } = AntdApp.useApp()
   const queryClient = useQueryClient()
-  const orgName = useAppSelector((state) => state.auth.user?.org_name)
+  const user = useAppSelector((state) => state.auth.user)
+  const orgName = user?.org_name
+  const canViewExitCandidates =
+    user?.role === 'owner' || Boolean(user?.permissions?.can_view_sessions)
 
   const [detectionFailed, setDetectionFailed] =
     useState<DetectionFailedState | null>(null)
   const [manualModalOpen, setManualModalOpen] = useState(false)
   const [receipt, setReceipt] = useState<ReceiptState | null>(null)
   const [now, setNow] = useState(() => Date.now())
+  const [selectedCandidateId, setSelectedCandidateId] = useState<number | null>(
+    null,
+  )
+  const notifiedCandidateIdsRef = useRef(new Set<number>())
+  const resolvedCandidateIdsRef = useRef(new Set<number>())
 
   const [manualForm] = Form.useForm<ManualFormValues>()
 
@@ -68,6 +82,13 @@ export default function OperatorDashboard() {
 
   const invalidateParkingData = () => {
     queryClient.invalidateQueries({ queryKey: ['parking', 'active'] })
+    queryClient.invalidateQueries({ queryKey: ['reports', 'daily'] })
+  }
+
+  const invalidateResolvedExitData = () => {
+    queryClient.invalidateQueries({ queryKey: ['parking', 'active'] })
+    queryClient.invalidateQueries({ queryKey: ['parking', 'awaiting-payment'] })
+    queryClient.invalidateQueries({ queryKey: ['parking', 'capacity'] })
     queryClient.invalidateQueries({ queryKey: ['reports', 'daily'] })
   }
 
@@ -99,7 +120,73 @@ export default function OperatorDashboard() {
       setDetectionFailed({ type, imageUrl })
     },
     onAwaitingPayment: () => {
-      queryClient.invalidateQueries({ queryKey: ['parking', 'awaiting-payment'] })
+      invalidateResolvedExitData()
+    },
+    onExitCompleted: () => {
+      invalidateResolvedExitData()
+    },
+    onExitCandidateCreated: (candidate: ExitCandidate) => {
+      if (!canViewExitCandidates) return
+      resolvedCandidateIdsRef.current.delete(candidate.id)
+      queryClient.setQueryData<ExitCandidatesResponse>(
+        EXIT_CANDIDATES_QUERY_KEY,
+        (current) => {
+          if (!current) return current
+          const exists = current.candidates.some((item) => item.id === candidate.id)
+          return {
+            ...current,
+            candidates: [
+              candidate,
+              ...current.candidates.filter((item) => item.id !== candidate.id),
+            ],
+            pagination: {
+              ...current.pagination,
+              total: exists
+                ? current.pagination.total
+                : current.pagination.total + 1,
+            },
+          }
+        },
+      )
+      queryClient.invalidateQueries({ queryKey: EXIT_CANDIDATES_QUERY_KEY })
+      setSelectedCandidateId((current) => current ?? candidate.id)
+      if (!notifiedCandidateIdsRef.current.has(candidate.id)) {
+        notifiedCandidateIdsRef.current.add(candidate.id)
+        notification.warning({
+          title: t('exitCandidates.newCandidateNotificationTitle'),
+          description: t('exitCandidates.newCandidateNotificationDescription', {
+            plate: candidate.detected_plate ?? t('exitCandidates.plateNotDetected'),
+          }),
+          placement: 'topRight',
+          duration: 8,
+        })
+      }
+    },
+    onExitCandidateResolved: (payload) => {
+      if (!canViewExitCandidates) return
+      if (resolvedCandidateIdsRef.current.has(payload.candidateId)) return
+      resolvedCandidateIdsRef.current.add(payload.candidateId)
+      queryClient.setQueryData<ExitCandidatesResponse>(
+        EXIT_CANDIDATES_QUERY_KEY,
+        (current) =>
+          current
+            ? {
+                ...current,
+                candidates: current.candidates.filter(
+                  (candidate) => candidate.id !== payload.candidateId,
+                ),
+                pagination: {
+                  ...current.pagination,
+                  total: Math.max(0, current.pagination.total - 1),
+                },
+              }
+            : current,
+      )
+      queryClient.invalidateQueries({ queryKey: EXIT_CANDIDATES_QUERY_KEY })
+      invalidateResolvedExitData()
+      setSelectedCandidateId((current) =>
+        current === payload.candidateId ? null : current,
+      )
     },
     onRelayFailed: (direction) => {
       notification.warning({
@@ -203,6 +290,14 @@ export default function OperatorDashboard() {
           imageUrl={detectionFailed.imageUrl}
           onManualEntry={() => setManualModalOpen(true)}
           onClose={() => setDetectionFailed(null)}
+        />
+      )}
+
+      {canViewExitCandidates && (
+        <ExitCandidatesSection
+          activeSessions={activeSessionsQuery.data ?? []}
+          selectedCandidateId={selectedCandidateId}
+          onSelectCandidate={setSelectedCandidateId}
         />
       )}
 

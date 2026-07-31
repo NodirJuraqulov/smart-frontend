@@ -1,6 +1,7 @@
 export type SessionStatus = 'active' | 'completed'
 export type EntryExitMethod = 'auto' | 'manual'
 export type ExitMethod = EntryExitMethod | 'forced'
+export type SessionSource = 'regular' | 'subscription' | 'vip'
 
 export interface ParkingSession {
   id: number
@@ -13,6 +14,7 @@ export interface ParkingSession {
   status: SessionStatus
   entry_method: EntryExitMethod
   exit_method: ExitMethod | null
+  session_source?: SessionSource
   image_entry?: string | null
   image_exit?: string | null
   entryOverviewImageUrl?: string | null

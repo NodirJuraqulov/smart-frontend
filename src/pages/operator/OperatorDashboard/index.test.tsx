@@ -1,15 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { App as AntdApp } from 'antd'
 import OperatorDashboard from './index'
 import type { DetectionType } from '@/types/parking'
+import type {
+  ExitCandidate,
+  ExitCandidateResolvedEvent,
+} from '@/types/exitCandidate'
 
 interface SocketCallbacks {
   onEntry?: (...args: unknown[]) => void
   onExit?: (...args: unknown[]) => void
   onDetectionFailed?: (type: DetectionType, imageUrl: string) => void
   onAwaitingPayment?: (...args: unknown[]) => void
+  onExitCompleted?: (...args: unknown[]) => void
+  onExitCandidateCreated?: (candidate: ExitCandidate) => void
+  onExitCandidateResolved?: (payload: ExitCandidateResolvedEvent) => void
   onRelayFailed?: (direction: 'entry' | 'exit', message: string) => void
   onWebhookParseFailed?: (direction: 'entry' | 'exit', message: string) => void
 }
@@ -71,6 +78,19 @@ vi.mock('@/hooks/useParkingSocket', () => ({
   },
 }))
 
+vi.mock('./ExitCandidatesSection', () => ({
+  default: ({
+    selectedCandidateId,
+  }: {
+    selectedCandidateId: number | null
+  }) => (
+    <div
+      data-testid="exit-candidates-section"
+      data-selected-candidate={selectedCandidateId ?? ''}
+    />
+  ),
+}))
+
 function renderDashboard() {
   const queryClient = new QueryClient()
   render(
@@ -80,6 +100,29 @@ function renderDashboard() {
       </AntdApp>
     </QueryClientProvider>,
   )
+  return queryClient
+}
+
+const pendingCandidate: ExitCandidate = {
+  id: 7,
+  org_id: 2,
+  webhook_event_id: 101,
+  detected_plate: '01A777BA',
+  matched_session_id: null,
+  resolved_session_id: null,
+  confidence: 94,
+  camera_event_at: '2026-08-01T08:00:00.000Z',
+  status: 'pending',
+  resolution_type: null,
+  resolved_by: null,
+  resolved_at: null,
+  resolution_note: null,
+  created_at: '2026-08-01T08:00:01.000Z',
+  updated_at: '2026-08-01T08:00:01.000Z',
+  overviewImageUrl: null,
+  vehicleImageUrl: null,
+  plateImageUrl: null,
+  matched_session: null,
 }
 
 function triggerDetectionFailed(imageUrl: string) {
@@ -200,5 +243,127 @@ describe('OperatorDashboard qurilma ogohlantirishlari', () => {
     expect(
       screen.getByText('Kamera signal yubordi, lekin format tanilmadi (Kirish)'),
     ).toBeInTheDocument()
+  })
+})
+
+describe('OperatorDashboard exit candidate WebSocket va ruxsat oqimi', () => {
+  beforeEach(() => {
+    entryManualMock.mockReset()
+    exitManualMock.mockReset()
+    getActiveSessionsMock.mockReset().mockResolvedValue([])
+    getCapacityMock.mockReset().mockResolvedValue({
+      occupied: 0,
+      total: null,
+      available: null,
+    })
+    updateSessionPaymentMethodMock.mockReset()
+    getAwaitingPaymentsMock.mockReset().mockResolvedValue([])
+    confirmCashPaymentMock.mockReset()
+    openBarrierForSessionMock.mockReset()
+    getDailyReportMock.mockReset().mockResolvedValue({})
+    getSettingsMock.mockReset().mockResolvedValue({})
+    socketCallbacksRef.current = null
+  })
+
+  it('sessions ruxsati yo‘q operatorga candidate bo‘limini ko‘rsatmaydi', async () => {
+    useAppSelectorMock.mockReset().mockReturnValue({
+      role: 'operator',
+      org_name: 'Test parking',
+      permissions: { can_view_sessions: false },
+    })
+
+    renderDashboard()
+    await waitFor(() => expect(socketCallbacksRef.current).not.toBeNull())
+
+    expect(
+      screen.queryByTestId('exit-candidates-section'),
+    ).not.toBeInTheDocument()
+  })
+
+  it('sessions ruxsati bor operatorga candidate bo‘limini ko‘rsatadi', async () => {
+    useAppSelectorMock.mockReset().mockReturnValue({
+      role: 'operator',
+      org_name: 'Test parking',
+      permissions: { can_view_sessions: true },
+    })
+
+    renderDashboard()
+
+    expect(
+      await screen.findByTestId('exit-candidates-section'),
+    ).toBeInTheDocument()
+  })
+
+  it('created hodisasida cachega qo‘shadi, panelni ochadi va takroriy notification chiqarmaydi', async () => {
+    useAppSelectorMock.mockReset().mockReturnValue({
+      role: 'operator',
+      org_name: 'Test parking',
+      permissions: { can_view_sessions: true },
+    })
+    const queryClient = renderDashboard()
+    queryClient.setQueryData(['exit-candidates', 'pending'], {
+      candidates: [],
+      pagination: { page: 1, limit: 100, total: 0, total_pages: 0 },
+    })
+    await waitFor(() => expect(socketCallbacksRef.current).not.toBeNull())
+
+    act(() => {
+      socketCallbacksRef.current!.onExitCandidateCreated?.(pendingCandidate)
+      socketCallbacksRef.current!.onExitCandidateCreated?.(pendingCandidate)
+    })
+
+    expect(
+      screen.getByTestId('exit-candidates-section'),
+    ).toHaveAttribute('data-selected-candidate', '7')
+    expect(
+      await screen.findAllByText('Yangi chiqish tekshiruvi'),
+    ).toHaveLength(1)
+    expect(
+      queryClient.getQueryData<{
+        candidates: ExitCandidate[]
+        pagination: { total: number }
+      }>(['exit-candidates', 'pending']),
+    ).toMatchObject({ candidates: [{ id: 7 }], pagination: { total: 1 } })
+  })
+
+  it('resolved hodisasida candidate ni cachedan olib tashlaydi va ochiq panelni yopadi', async () => {
+    useAppSelectorMock.mockReset().mockReturnValue({
+      role: 'operator',
+      org_name: 'Test parking',
+      permissions: { can_view_sessions: true },
+    })
+    const queryClient = renderDashboard()
+    queryClient.setQueryData(['exit-candidates', 'pending'], {
+      candidates: [pendingCandidate],
+      pagination: { page: 1, limit: 100, total: 1, total_pages: 1 },
+    })
+    await waitFor(() => expect(socketCallbacksRef.current).not.toBeNull())
+    act(() => {
+      socketCallbacksRef.current!.onExitCandidateCreated?.(pendingCandidate)
+    })
+    expect(screen.getByTestId('exit-candidates-section')).toHaveAttribute(
+      'data-selected-candidate',
+      '7',
+    )
+
+    act(() => {
+      socketCallbacksRef.current!.onExitCandidateResolved?.({
+        candidateId: 7,
+        status: 'accepted',
+        resolutionType: 'exact',
+        sessionId: 44,
+      })
+    })
+
+    expect(screen.getByTestId('exit-candidates-section')).toHaveAttribute(
+      'data-selected-candidate',
+      '',
+    )
+    expect(
+      queryClient.getQueryData<{
+        candidates: ExitCandidate[]
+        pagination: { total: number }
+      }>(['exit-candidates', 'pending']),
+    ).toMatchObject({ candidates: [], pagination: { total: 0 } })
   })
 })
