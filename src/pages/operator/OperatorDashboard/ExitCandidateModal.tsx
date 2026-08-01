@@ -141,7 +141,9 @@ export default function ExitCandidateModal({
     useState<ExitCandidateSearchResult | null>(null)
   const [selectedAt, setSelectedAt] = useState<number | null>(null)
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null)
-  const [searchPlate, setSearchPlate] = useState(candidate.detected_plate)
+  const [searchPlate, setSearchPlate] = useState<string>(
+    candidate.detected_plate ?? '',
+  )
   const [searchResults, setSearchResults] = useState<
     ExitCandidateSearchResult[]
   >([])
@@ -159,7 +161,7 @@ export default function ExitCandidateModal({
     setSelectedSession(null)
     setSelectedAt(null)
     setPaymentMethod(null)
-    setSearchPlate(candidate.detected_plate)
+    setSearchPlate(candidate.detected_plate ?? '')
     setSearchResults([])
     setForceReason(null)
     setForceNote('')
@@ -178,7 +180,7 @@ export default function ExitCandidateModal({
   const isReassigned = selectedSession !== null
   const isRegular = session?.session_source === 'regular'
   const entryImages = session?.entry_images
-  const displayPlate = session?.plate_number ?? candidate.detected_plate
+  const displayPlate = session?.plate_number ?? candidate.detected_plate ?? ''
   const amount = session?.tariff_snapshot_amount ?? null
 
   const durationText = useMemo(() => {
@@ -366,7 +368,11 @@ export default function ExitCandidateModal({
           <Card size="small" title={t('exitCandidates.vehicleDetails')}>
             <Descriptions column={1} size="small">
               <Descriptions.Item label={t('exitCandidates.plateNumber')}>
-                {displayPlate ? <PlateBadge value={displayPlate} /> : '—'}
+                {displayPlate ? (
+                  <PlateBadge value={displayPlate} />
+                ) : (
+                  t('exitCandidates.plateNotDetected')
+                )}
               </Descriptions.Item>
               <Descriptions.Item label={t('exitCandidates.vehicleType')}>
                 {session ? t(sourceKey[session.session_source]) : '—'}
@@ -437,7 +443,7 @@ export default function ExitCandidateModal({
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-2 sm:flex-row">
                 <Input
-                  value={searchPlate}
+                  value={searchPlate ?? ''}
                   onChange={(event) => setSearchPlate(event.target.value)}
                   placeholder={t('exitCandidates.searchInputPlaceholder')}
                   onPressEnter={() =>
@@ -493,7 +499,13 @@ export default function ExitCandidateModal({
                           )}
                         </div>
                         <Space orientation="vertical" size={1}>
-                          <PlateBadge value={result.plate_number} />
+                          {result.plate_number ? (
+                            <PlateBadge value={result.plate_number} />
+                          ) : (
+                            <Typography.Text type="secondary">
+                              {t('exitCandidates.plateNotDetected')}
+                            </Typography.Text>
+                          )}
                           <Typography.Text>
                             {t(sourceKey[result.session_source])}
                           </Typography.Text>
@@ -535,7 +547,7 @@ export default function ExitCandidateModal({
                 title={t('exitCandidates.forceWarning')}
               />
               <Select
-                value={forceReason}
+                value={forceReason ?? undefined}
                 onChange={setForceReason}
                 placeholder={t('exitCandidates.forceReasonPlaceholder')}
                 options={forceReasons.map((reason) => ({
@@ -544,7 +556,7 @@ export default function ExitCandidateModal({
                 }))}
               />
               <Input.TextArea
-                value={forceNote}
+                value={forceNote ?? ''}
                 onChange={(event) => setForceNote(event.target.value)}
                 placeholder={t('exitCandidates.forceNotePlaceholder')}
                 maxLength={500}

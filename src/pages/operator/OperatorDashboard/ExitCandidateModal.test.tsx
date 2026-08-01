@@ -281,6 +281,34 @@ describe('ExitCandidateModal', () => {
     ).toBeDisabled()
   })
 
+  it('detected_plate null bo‘lsa matched sessiya bilan xatosiz ochiladi', () => {
+    expect(() =>
+      renderModal({ ...candidate, detected_plate: null }),
+    ).not.toThrow()
+    expect(screen.getByText('01A777BA')).toBeInTheDocument()
+  })
+
+  it('detected_plate va matched_session null bo‘lsa search va force qiymatlari bo‘sh satr bo‘ladi', () => {
+    expect(() =>
+      renderModal({
+        ...candidate,
+        detected_plate: null,
+        matched_session: null,
+      }),
+    ).not.toThrow()
+
+    const searchInput = screen.getByPlaceholderText(
+      'Chiqayotgan mashina raqamini kiriting',
+    )
+    expect(searchInput).toHaveValue('')
+    expect(screen.getByText('Raqam aniqlanmadi')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Qidirish' })).toBeDisabled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Majburiy ochish' }))
+    expect(screen.getByRole('combobox')).toHaveValue('')
+    expect(screen.getByPlaceholderText('Izoh (ixtiyoriy)')).toHaveValue('')
+  })
+
   it('force-open uchun other izohini validatsiya qiladi va payload yuboradi', async () => {
     renderModal()
     fireEvent.click(screen.getByRole('button', { name: 'Majburiy ochish' }))

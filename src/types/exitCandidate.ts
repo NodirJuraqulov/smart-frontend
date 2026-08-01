@@ -8,7 +8,7 @@ export interface ExitCandidateImages {
 
 export interface ExitCandidateMatchedSession {
   session_id: string
-  plate_number: string
+  plate_number: string | null
   session_source: SessionSource
   entered_at: string
   entry_images: ExitCandidateImages
@@ -20,7 +20,7 @@ export interface ExitCandidateNext {
   candidate_id: string
   status: 'pending'
   webhook_event_id: string
-  detected_plate: string
+  detected_plate: string | null
   camera_event_at: string
   exit_images: ExitCandidateImages
   matched_session: ExitCandidateMatchedSession | null
@@ -29,7 +29,7 @@ export interface ExitCandidateNext {
 
 export interface ExitCandidateSearchResult {
   session_id: string
-  plate_number: string
+  plate_number: string | null
   entered_at: string
   session_source: SessionSource
   similarity_score: number
