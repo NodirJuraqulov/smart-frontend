@@ -25,6 +25,11 @@ describe('getErrorMessage', () => {
     expect(getErrorMessage(error, 'fallback')).toBe('Ruxsat etilmagan')
   })
 
+  it('serverning error maydonidagi xabarni qaytaradi', () => {
+    const error = makeAxiosError(400, { error: 'Shlagbaum sozlanmagan' })
+    expect(getErrorMessage(error, 'fallback')).toBe('Shlagbaum sozlanmagan')
+  })
+
   it('409 xatosida server message bolmasa conflictFallback qaytaradi', () => {
     const error = makeAxiosError(409, {})
     expect(getErrorMessage(error, 'fallback', 'conflict fallback')).toBe(

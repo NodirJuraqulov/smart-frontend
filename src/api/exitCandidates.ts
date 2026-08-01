@@ -1,39 +1,50 @@
 import { axiosInstance } from './axiosInstance'
 import type {
-  ExitCandidate,
-  ExitCandidateDetailResponse,
-  ExitCandidatesResponse,
+  ExitCandidateBarrierResponse,
+  ExitCandidateConfirmPayload,
+  ExitCandidateConfirmResponse,
+  ExitCandidateForceOpenPayload,
+  ExitCandidateNext,
+  ExitCandidateSearchResponse,
 } from '@/types/exitCandidate'
 
-export const getExitCandidates = () =>
+const candidatePath = (id: string) =>
+  `/api/exit-candidates/${encodeURIComponent(id)}`
+
+export async function getNextExitCandidate(): Promise<ExitCandidateNext | null> {
+  const response = await axiosInstance.get<ExitCandidateNext>(
+    '/api/exit-candidates/next',
+  )
+  return response.status === 204 ? null : response.data
+}
+
+export const searchExitCandidate = (id: string, plate: string) =>
   axiosInstance
-    .get<ExitCandidatesResponse>('/api/exit-candidates', {
-      params: { page: 1, limit: 100 },
+    .post<ExitCandidateSearchResponse>(`${candidatePath(id)}/search`, {
+      plate: plate.trim(),
     })
-    .then((res) => res.data)
+    .then((response) => response.data)
 
-export const getExitCandidate = (id: number) =>
+export const confirmExitCandidate = (
+  id: string,
+  payload: ExitCandidateConfirmPayload,
+) =>
   axiosInstance
-    .get<ExitCandidateDetailResponse>(`/api/exit-candidates/${id}`)
-    .then((res) => res.data)
+    .post<ExitCandidateConfirmResponse>(`${candidatePath(id)}/confirm`, payload)
+    .then((response) => response.data)
 
-export const acceptExitCandidate = (id: number) =>
+export const forceOpenExitCandidate = (
+  id: string,
+  payload: ExitCandidateForceOpenPayload,
+) =>
   axiosInstance
-    .post<{ candidate: ExitCandidate }>(`/api/exit-candidates/${id}/accept`)
-    .then((res) => res.data.candidate)
-
-export const reassignExitCandidate = (id: number, sessionId: number) =>
-  axiosInstance
-    .post<{ candidate: ExitCandidate }>(
-      `/api/exit-candidates/${id}/reassign`,
-      { session_id: sessionId },
+    .post<ExitCandidateBarrierResponse>(
+      `${candidatePath(id)}/force-open`,
+      payload,
     )
-    .then((res) => res.data.candidate)
+    .then((response) => response.data)
 
-export const dismissExitCandidate = (id: number, note?: string) =>
+export const retryExitCandidateBarrier = (id: string) =>
   axiosInstance
-    .post<{ candidate: ExitCandidate }>(
-      `/api/exit-candidates/${id}/dismiss`,
-      note?.trim() ? { note: note.trim() } : {},
-    )
-    .then((res) => res.data.candidate)
+    .post<ExitCandidateBarrierResponse>(`${candidatePath(id)}/retry-barrier`)
+    .then((response) => response.data)

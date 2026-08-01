@@ -1,4 +1,4 @@
-export const EXIT_CANDIDATES_QUERY_KEY = [
+export const EXIT_CANDIDATE_NEXT_QUERY_KEY = [
   'exit-candidates',
-  'pending',
+  'next',
 ] as const

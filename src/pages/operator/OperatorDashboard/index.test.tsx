@@ -5,7 +5,8 @@ import { App as AntdApp } from 'antd'
 import OperatorDashboard from './index'
 import type { DetectionType } from '@/types/parking'
 import type {
-  ExitCandidate,
+  ExitCompletedEvent,
+  ExitCandidateCreatedEvent,
   ExitCandidateResolvedEvent,
 } from '@/types/exitCandidate'
 
@@ -13,9 +14,8 @@ interface SocketCallbacks {
   onEntry?: (...args: unknown[]) => void
   onExit?: (...args: unknown[]) => void
   onDetectionFailed?: (type: DetectionType, imageUrl: string) => void
-  onAwaitingPayment?: (...args: unknown[]) => void
-  onExitCompleted?: (...args: unknown[]) => void
-  onExitCandidateCreated?: (candidate: ExitCandidate) => void
+  onExitCompleted?: (payload: ExitCompletedEvent) => void
+  onExitCandidateCreated?: (candidate: ExitCandidateCreatedEvent) => void
   onExitCandidateResolved?: (payload: ExitCandidateResolvedEvent) => void
   onRelayFailed?: (direction: 'entry' | 'exit', message: string) => void
   onWebhookParseFailed?: (direction: 'entry' | 'exit', message: string) => void
@@ -27,8 +27,6 @@ const {
   getActiveSessionsMock,
   getCapacityMock,
   updateSessionPaymentMethodMock,
-  getAwaitingPaymentsMock,
-  confirmCashPaymentMock,
   openBarrierForSessionMock,
   getDailyReportMock,
   getSettingsMock,
@@ -40,8 +38,6 @@ const {
   getActiveSessionsMock: vi.fn(),
   getCapacityMock: vi.fn(),
   updateSessionPaymentMethodMock: vi.fn(),
-  getAwaitingPaymentsMock: vi.fn(),
-  confirmCashPaymentMock: vi.fn(),
   openBarrierForSessionMock: vi.fn(),
   getDailyReportMock: vi.fn(),
   getSettingsMock: vi.fn(),
@@ -55,8 +51,6 @@ vi.mock('@/api/parking', () => ({
   getActiveSessions: getActiveSessionsMock,
   getCapacity: getCapacityMock,
   updateSessionPaymentMethod: updateSessionPaymentMethodMock,
-  getAwaitingPayments: getAwaitingPaymentsMock,
-  confirmCashPayment: confirmCashPaymentMock,
   openBarrierForSession: openBarrierForSessionMock,
 }))
 
@@ -78,15 +72,21 @@ vi.mock('@/hooks/useParkingSocket', () => ({
   },
 }))
 
-vi.mock('./ExitCandidatesSection', () => ({
+vi.mock('./ExitCandidateWorkflow', () => ({
   default: ({
-    selectedCandidateId,
+    newCandidateSignal,
+    statusRefreshSignal,
+    resolvedCandidateId,
   }: {
-    selectedCandidateId: number | null
+    newCandidateSignal: number
+    statusRefreshSignal: number
+    resolvedCandidateId: string | null
   }) => (
     <div
-      data-testid="exit-candidates-section"
-      data-selected-candidate={selectedCandidateId ?? ''}
+      data-testid="exit-candidate-workflow"
+      data-new-candidate-signal={newCandidateSignal}
+      data-status-refresh-signal={statusRefreshSignal}
+      data-resolved-candidate={resolvedCandidateId ?? ''}
     />
   ),
 }))
@@ -103,26 +103,20 @@ function renderDashboard() {
   return queryClient
 }
 
-const pendingCandidate: ExitCandidate = {
-  id: 7,
-  org_id: 2,
-  webhook_event_id: 101,
-  detected_plate: '01A777BA',
-  matched_session_id: null,
-  resolved_session_id: null,
-  confidence: 94,
-  camera_event_at: '2026-08-01T08:00:00.000Z',
+const pendingCandidate: ExitCandidateCreatedEvent = {
+  candidateId: 7,
+  orgId: 3,
+  webhookEventId: 91,
+  detectedPlate: '01A777BA',
+  matchedSessionId: 44,
+  confidence: 98.2,
+  cameraEventAt: '2026-08-01T08:00:00.000Z',
   status: 'pending',
-  resolution_type: null,
-  resolved_by: null,
-  resolved_at: null,
-  resolution_note: null,
-  created_at: '2026-08-01T08:00:01.000Z',
-  updated_at: '2026-08-01T08:00:01.000Z',
-  overviewImageUrl: null,
-  vehicleImageUrl: null,
-  plateImageUrl: null,
-  matched_session: null,
+  exitImages: {
+    overviewUrl: '/api/exit-overview',
+    vehicleUrl: '/api/exit-vehicle',
+    plateUrl: '/api/exit-plate',
+  },
 }
 
 function triggerDetectionFailed(imageUrl: string) {
@@ -146,8 +140,6 @@ describe('OperatorDashboard manual entry modal', () => {
       available: null,
     })
     updateSessionPaymentMethodMock.mockReset()
-    getAwaitingPaymentsMock.mockReset().mockResolvedValue([])
-    confirmCashPaymentMock.mockReset()
     openBarrierForSessionMock.mockReset()
     getDailyReportMock.mockReset().mockResolvedValue({})
     getSettingsMock.mockReset().mockResolvedValue({})
@@ -204,8 +196,6 @@ describe('OperatorDashboard qurilma ogohlantirishlari', () => {
       available: null,
     })
     updateSessionPaymentMethodMock.mockReset()
-    getAwaitingPaymentsMock.mockReset().mockResolvedValue([])
-    confirmCashPaymentMock.mockReset()
     openBarrierForSessionMock.mockReset()
     getDailyReportMock.mockReset().mockResolvedValue({})
     getSettingsMock.mockReset().mockResolvedValue({})
@@ -257,8 +247,6 @@ describe('OperatorDashboard exit candidate WebSocket va ruxsat oqimi', () => {
       available: null,
     })
     updateSessionPaymentMethodMock.mockReset()
-    getAwaitingPaymentsMock.mockReset().mockResolvedValue([])
-    confirmCashPaymentMock.mockReset()
     openBarrierForSessionMock.mockReset()
     getDailyReportMock.mockReset().mockResolvedValue({})
     getSettingsMock.mockReset().mockResolvedValue({})
@@ -276,7 +264,7 @@ describe('OperatorDashboard exit candidate WebSocket va ruxsat oqimi', () => {
     await waitFor(() => expect(socketCallbacksRef.current).not.toBeNull())
 
     expect(
-      screen.queryByTestId('exit-candidates-section'),
+      screen.queryByTestId('exit-candidate-workflow'),
     ).not.toBeInTheDocument()
   })
 
@@ -290,21 +278,17 @@ describe('OperatorDashboard exit candidate WebSocket va ruxsat oqimi', () => {
     renderDashboard()
 
     expect(
-      await screen.findByTestId('exit-candidates-section'),
+      await screen.findByTestId('exit-candidate-workflow'),
     ).toBeInTheDocument()
   })
 
-  it('created hodisasida cachega qo‘shadi, panelni ochadi va takroriy notification chiqarmaydi', async () => {
+  it('created hodisasida workflow signalini yangilaydi va notificationni takrorlamaydi', async () => {
     useAppSelectorMock.mockReset().mockReturnValue({
       role: 'operator',
       org_name: 'Test parking',
       permissions: { can_view_sessions: true },
     })
-    const queryClient = renderDashboard()
-    queryClient.setQueryData(['exit-candidates', 'pending'], {
-      candidates: [],
-      pagination: { page: 1, limit: 100, total: 0, total_pages: 0 },
-    })
+    renderDashboard()
     await waitFor(() => expect(socketCallbacksRef.current).not.toBeNull())
 
     act(() => {
@@ -313,57 +297,64 @@ describe('OperatorDashboard exit candidate WebSocket va ruxsat oqimi', () => {
     })
 
     expect(
-      screen.getByTestId('exit-candidates-section'),
-    ).toHaveAttribute('data-selected-candidate', '7')
+      screen.getByTestId('exit-candidate-workflow'),
+    ).toHaveAttribute('data-new-candidate-signal', '2')
     expect(
       await screen.findAllByText('Yangi chiqish tekshiruvi'),
     ).toHaveLength(1)
-    expect(
-      queryClient.getQueryData<{
-        candidates: ExitCandidate[]
-        pagination: { total: number }
-      }>(['exit-candidates', 'pending']),
-    ).toMatchObject({ candidates: [{ id: 7 }], pagination: { total: 1 } })
   })
 
-  it('resolved hodisasida candidate ni cachedan olib tashlaydi va ochiq panelni yopadi', async () => {
+  it('resolved hodisasida badge refresh va resolved candidate signalini yangilaydi', async () => {
     useAppSelectorMock.mockReset().mockReturnValue({
       role: 'operator',
       org_name: 'Test parking',
       permissions: { can_view_sessions: true },
     })
-    const queryClient = renderDashboard()
-    queryClient.setQueryData(['exit-candidates', 'pending'], {
-      candidates: [pendingCandidate],
-      pagination: { page: 1, limit: 100, total: 1, total_pages: 1 },
-    })
+    renderDashboard()
     await waitFor(() => expect(socketCallbacksRef.current).not.toBeNull())
-    act(() => {
-      socketCallbacksRef.current!.onExitCandidateCreated?.(pendingCandidate)
-    })
-    expect(screen.getByTestId('exit-candidates-section')).toHaveAttribute(
-      'data-selected-candidate',
-      '7',
-    )
 
     act(() => {
       socketCallbacksRef.current!.onExitCandidateResolved?.({
         candidateId: 7,
+        orgId: 3,
         status: 'accepted',
         resolutionType: 'exact',
         sessionId: 44,
+        barrierStatus: 'opened',
       })
     })
 
-    expect(screen.getByTestId('exit-candidates-section')).toHaveAttribute(
-      'data-selected-candidate',
-      '',
+    const workflow = screen.getByTestId('exit-candidate-workflow')
+    expect(workflow).toHaveAttribute(
+      'data-resolved-candidate',
+      '7',
     )
-    expect(
-      queryClient.getQueryData<{
-        candidates: ExitCandidate[]
-        pagination: { total: number }
-      }>(['exit-candidates', 'pending']),
-    ).toMatchObject({ candidates: [], pagination: { total: 0 } })
+    expect(workflow).toHaveAttribute('data-status-refresh-signal', '1')
+  })
+
+  it('exit_completed hodisasida badge refresh signalini yangilaydi', async () => {
+    useAppSelectorMock.mockReset().mockReturnValue({
+      role: 'operator',
+      org_name: 'Test parking',
+      permissions: { can_view_sessions: true },
+    })
+    renderDashboard()
+    await waitFor(() => expect(socketCallbacksRef.current).not.toBeNull())
+
+    act(() => {
+      socketCallbacksRef.current!.onExitCompleted?.({
+        orgId: 3,
+        sessionId: 44,
+        plateNumber: '01A777BA',
+        amount: 0,
+        paymentMethod: null,
+        barrierStatus: 'opened',
+      })
+    })
+
+    expect(screen.getByTestId('exit-candidate-workflow')).toHaveAttribute(
+      'data-status-refresh-signal',
+      '1',
+    )
   })
 })

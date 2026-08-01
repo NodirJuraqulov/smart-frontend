@@ -3,8 +3,14 @@ import { connectSocket, disconnectSocket } from '@/services/socket'
 import { useAppSelector } from './redux'
 import type { DetectionType, ParkingSession, Payment } from '@/types/parking'
 import type {
-  ExitCandidate,
+  ExitCompletedEvent,
+  ExitCandidateCreatedEvent,
   ExitCandidateResolvedEvent,
+} from '@/types/exitCandidate'
+import {
+  isExitCandidateCreatedEvent,
+  isExitCandidateResolvedEvent,
+  isExitCompletedEvent,
 } from '@/types/exitCandidate'
 
 interface UseParkingSocketCallbacks {
@@ -15,9 +21,8 @@ interface UseParkingSocketCallbacks {
     detected: boolean,
   ) => void
   onDetectionFailed?: (type: DetectionType, imageUrl: string) => void
-  onAwaitingPayment?: (plateNumber: string, amount: number) => void
-  onExitCompleted?: (plateNumber: string, amount: number) => void
-  onExitCandidateCreated?: (candidate: ExitCandidate) => void
+  onExitCompleted?: (payload: ExitCompletedEvent) => void
+  onExitCandidateCreated?: (candidate: ExitCandidateCreatedEvent) => void
   onExitCandidateResolved?: (payload: ExitCandidateResolvedEvent) => void
   onRelayFailed?: (direction: 'entry' | 'exit', message: string) => void
   onWebhookParseFailed?: (direction: 'entry' | 'exit', message: string) => void
@@ -58,27 +63,18 @@ export function useParkingSocket(callbacks: UseParkingSocketCallbacks) {
       callbacksRef.current.onDetectionFailed?.(payload.type, payload.image_url)
     }
 
-    const handleAwaitingPayment = (payload: {
-      plateNumber: string
-      amount: number
-    }) => {
-      callbacksRef.current.onAwaitingPayment?.(payload.plateNumber, payload.amount)
+    const handleExitCompleted = (payload: unknown) => {
+      if (!isExitCompletedEvent(payload)) return
+      callbacksRef.current.onExitCompleted?.(payload)
     }
 
-    const handleExitCompleted = (payload: {
-      plateNumber: string
-      amount: number
-    }) => {
-      callbacksRef.current.onExitCompleted?.(payload.plateNumber, payload.amount)
+    const handleExitCandidateCreated = (payload: unknown) => {
+      if (!isExitCandidateCreatedEvent(payload)) return
+      callbacksRef.current.onExitCandidateCreated?.(payload)
     }
 
-    const handleExitCandidateCreated = (candidate: ExitCandidate) => {
-      callbacksRef.current.onExitCandidateCreated?.(candidate)
-    }
-
-    const handleExitCandidateResolved = (
-      payload: ExitCandidateResolvedEvent,
-    ) => {
+    const handleExitCandidateResolved = (payload: unknown) => {
+      if (!isExitCandidateResolvedEvent(payload)) return
       callbacksRef.current.onExitCandidateResolved?.(payload)
     }
 
@@ -99,7 +95,6 @@ export function useParkingSocket(callbacks: UseParkingSocketCallbacks) {
     socket.on('parking:entry', handleEntry)
     socket.on('parking:exit', handleExit)
     socket.on('parking:detection_failed', handleDetectionFailed)
-    socket.on('exit_awaiting_payment', handleAwaitingPayment)
     socket.on('exit_completed', handleExitCompleted)
     socket.on('exit_candidate_created', handleExitCandidateCreated)
     socket.on('exit_candidate_resolved', handleExitCandidateResolved)
@@ -110,7 +105,6 @@ export function useParkingSocket(callbacks: UseParkingSocketCallbacks) {
       socket.off('parking:entry', handleEntry)
       socket.off('parking:exit', handleExit)
       socket.off('parking:detection_failed', handleDetectionFailed)
-      socket.off('exit_awaiting_payment', handleAwaitingPayment)
       socket.off('exit_completed', handleExitCompleted)
       socket.off('exit_candidate_created', handleExitCandidateCreated)
       socket.off('exit_candidate_resolved', handleExitCandidateResolved)
@@ -118,6 +112,5 @@ export function useParkingSocket(callbacks: UseParkingSocketCallbacks) {
       socket.off('webhook_parse_failed', handleWebhookParseFailed)
       disconnectSocket()
     }
-    // oxlint-disable-next-line react-hooks/exhaustive-deps
-  }, [role])
+  }, [accessToken, role])
 }

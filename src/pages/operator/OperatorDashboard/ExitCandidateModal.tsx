@@ -1,44 +1,52 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
 import { isAxiosError } from 'axios'
 import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import {
   Alert,
   App as AntdApp,
   Button,
+  Card,
   Descriptions,
   Empty,
   Input,
   Modal,
+  Radio,
   Select,
-  Skeleton,
   Space,
-  Tag,
   Typography,
 } from 'antd'
 import {
-  acceptExitCandidate,
-  dismissExitCandidate,
-  getExitCandidate,
-  reassignExitCandidate,
+  confirmExitCandidate,
+  forceOpenExitCandidate,
+  retryExitCandidateBarrier,
+  searchExitCandidate,
 } from '@/api/exitCandidates'
 import AuthenticatedImage from '@/components/AuthenticatedImage'
 import PlateBadge from '@/components/PlateBadge'
 import { getErrorMessage } from '@/utils/apiError'
-import { formatDate } from '@/utils/format'
-import type { ExitCandidate } from '@/types/exitCandidate'
-import type { ParkingSession, SessionSource } from '@/types/parking'
+import { formatDate, formatMoney } from '@/utils/format'
+import type {
+  ExitCandidateForceReason,
+  ExitCandidateImages,
+  ExitCandidateMatchedSession,
+  ExitCandidateNext,
+  ExitCandidateSearchResult,
+  ExitCandidateBarrierStatus,
+} from '@/types/exitCandidate'
+import type { PaymentMethod, SessionSource } from '@/types/parking'
 
 interface Props {
-  candidate: ExitCandidate | null
-  activeSessions: ParkingSession[]
+  candidate: ExitCandidateNext
   onClose: () => void
+  onResolved: () => void
+  onPendingRefresh: () => void
+  onDataChanged: () => void
 }
 
-type ResolutionAction =
-  | { type: 'accept'; candidateId: number }
-  | { type: 'reassign'; candidateId: number; sessionId: number }
-  | { type: 'dismiss'; candidateId: number; note?: string }
+type SelectedSession = ExitCandidateMatchedSession | ExitCandidateSearchResult
+type ModalMode = 'view' | 'search' | 'force'
 
 const sourceKey: Record<SessionSource, string> = {
   regular: 'exitCandidates.sourceRegular',
@@ -46,390 +54,568 @@ const sourceKey: Record<SessionSource, string> = {
   vip: 'exitCandidates.sourceVip',
 }
 
+const forceReasonKey: Record<ExitCandidateForceReason, string> = {
+  plate_not_found: 'exitCandidates.forceReasonPlateNotFound',
+  camera_misread: 'exitCandidates.forceReasonCameraMisread',
+  no_session: 'exitCandidates.forceReasonNoSession',
+  technical_issue: 'exitCandidates.forceReasonTechnicalIssue',
+  emergency: 'exitCandidates.forceReasonEmergency',
+  other: 'exitCandidates.forceReasonOther',
+}
+
+const forceReasons = Object.keys(
+  forceReasonKey,
+) as ExitCandidateForceReason[]
+
+function imageUrl(images: ExitCandidateImages | null | undefined) {
+  if (!images?.image_available) return null
+  return images.overview_url ?? images.vehicle_url
+}
+
+function formatDuration(minutesValue: number, t: TFunction) {
+  const minutes = Number.isFinite(minutesValue)
+    ? Math.max(0, Math.floor(minutesValue))
+    : 0
+  const days = Math.floor(minutes / 1440)
+  const hours = Math.floor((minutes % 1440) / 60)
+  const remainingMinutes = minutes % 60
+  if (days > 0) {
+    return hours > 0
+      ? t('exitCandidates.durationDaysHours', { days, hours })
+      : t('exitCandidates.durationDays', { days })
+  }
+  if (hours > 0) {
+    return remainingMinutes > 0
+      ? t('exitCandidates.durationHoursMinutes', {
+          hours,
+          minutes: remainingMinutes,
+        })
+      : t('exitCandidates.durationHours', { hours })
+  }
+  return t('exitCandidates.durationMinutes', { minutes })
+}
+
+function VehicleImageBlock({
+  title,
+  images,
+  emptyText,
+}: {
+  title: string
+  images: ExitCandidateImages | null | undefined
+  emptyText: string
+}) {
+  const url = imageUrl(images)
+  return (
+    <section className="min-w-0">
+      <Typography.Title level={5} className="m-0! mb-2!">
+        {title}
+      </Typography.Title>
+      <div className="flex h-64 items-center justify-center overflow-hidden rounded-lg border bg-black/2 p-2">
+        {url ? (
+          <AuthenticatedImage
+            url={url}
+            alt={title}
+            style={{ width: '100%', height: 240, objectFit: 'contain' }}
+          />
+        ) : (
+          <Typography.Text type="secondary">{emptyText}</Typography.Text>
+        )}
+      </div>
+    </section>
+  )
+}
+
 export default function ExitCandidateModal({
-  candidate: initialCandidate,
-  activeSessions,
+  candidate,
   onClose,
+  onResolved,
+  onPendingRefresh,
+  onDataChanged,
 }: Props) {
   const { t } = useTranslation()
   const { message } = AntdApp.useApp()
-  const queryClient = useQueryClient()
-  const [mode, setMode] = useState<'view' | 'reassign' | 'dismiss'>('view')
-  const [selectedSessionId, setSelectedSessionId] = useState<number | null>(null)
-  const [dismissNote, setDismissNote] = useState('')
+  const [mode, setMode] = useState<ModalMode>(
+    candidate.matched_session ? 'view' : 'search',
+  )
+  const [selectedSession, setSelectedSession] =
+    useState<ExitCandidateSearchResult | null>(null)
+  const [selectedAt, setSelectedAt] = useState<number | null>(null)
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null)
+  const [searchPlate, setSearchPlate] = useState(candidate.detected_plate)
+  const [searchResults, setSearchResults] = useState<
+    ExitCandidateSearchResult[]
+  >([])
+  const [forceReason, setForceReason] =
+    useState<ExitCandidateForceReason | null>(null)
+  const [forceNote, setForceNote] = useState('')
+  const [barrierStatus, setBarrierStatus] =
+    useState<Exclude<ExitCandidateBarrierStatus, 'opened'> | null>(null)
+  const [retryUnavailable, setRetryUnavailable] = useState(false)
+  const [now, setNow] = useState(() => Date.now())
   const submittingRef = useRef(false)
 
-  const detailQuery = useQuery({
-    queryKey: ['exit-candidates', 'detail', initialCandidate?.id],
-    queryFn: () => getExitCandidate(initialCandidate!.id),
-    enabled: Boolean(initialCandidate?.id),
-    retry: false,
-  })
-
   useEffect(() => {
-    setMode('view')
-    setSelectedSessionId(null)
-    setDismissNote('')
+    setMode(candidate.matched_session ? 'view' : 'search')
+    setSelectedSession(null)
+    setSelectedAt(null)
+    setPaymentMethod(null)
+    setSearchPlate(candidate.detected_plate)
+    setSearchResults([])
+    setForceReason(null)
+    setForceNote('')
+    setBarrierStatus(null)
+    setRetryUnavailable(false)
     submittingRef.current = false
-  }, [initialCandidate?.id])
+  }, [candidate])
 
   useEffect(() => {
-    if (!detailQuery.error) return
-    const status = isAxiosError(detailQuery.error)
-      ? detailQuery.error.response?.status
-      : undefined
-    if (status !== 404 && status !== 409) return
+    const interval = window.setInterval(() => setNow(Date.now()), 60000)
+    return () => window.clearInterval(interval)
+  }, [])
 
-    queryClient.invalidateQueries({ queryKey: ['exit-candidates'] })
-    message.warning(
-      getErrorMessage(
-        detailQuery.error,
-        t('exitCandidates.staleCandidateError'),
+  const session: SelectedSession | null =
+    selectedSession ?? candidate.matched_session
+  const isReassigned = selectedSession !== null
+  const isRegular = session?.session_source === 'regular'
+  const entryImages = session?.entry_images
+  const displayPlate = session?.plate_number ?? candidate.detected_plate
+  const amount = session?.tariff_snapshot_amount ?? null
+
+  const durationText = useMemo(() => {
+    if (!session) return '—'
+    let minutes = session.duration_minutes
+    if (!isReassigned && candidate.matched_session) {
+      const eventTime = new Date(candidate.camera_event_at).getTime()
+      const elapsed = Number.isNaN(eventTime)
+        ? 0
+        : Math.max(0, Math.floor((now - eventTime) / 60000))
+      minutes = Math.max(0, candidate.matched_session.duration_minutes + elapsed)
+    } else if (isReassigned && selectedAt !== null) {
+      minutes += Math.max(0, Math.floor((now - selectedAt) / 60000))
+    }
+    return formatDuration(minutes, t)
+  }, [candidate.camera_event_at, candidate.matched_session, isReassigned, now, selectedAt, session, t])
+
+  const handleBarrierProblem = (status: ExitCandidateBarrierStatus) => {
+    if (status === 'opened') return false
+    setBarrierStatus(status)
+    setRetryUnavailable(status !== 'failed')
+    onPendingRefresh()
+    message.error(
+      t(
+        status === 'failed'
+          ? 'exitCandidates.paymentSavedBarrierFailed'
+          : 'exitCandidates.barrierUnavailableAfterPayment',
       ),
     )
-    onClose()
-  }, [detailQuery.error, message, onClose, queryClient, t])
-
-  useEffect(() => {
-    const latestCandidate = detailQuery.data?.candidate
-    if (!latestCandidate || latestCandidate.status === 'pending') return
-
-    queryClient.invalidateQueries({ queryKey: ['exit-candidates'] })
-    message.warning(t('exitCandidates.staleCandidateError'))
-    onClose()
-  }, [detailQuery.data?.candidate, message, onClose, queryClient, t])
-
-  const candidate = detailQuery.data?.candidate ?? initialCandidate
-  const suggestions = detailQuery.data?.suggestions
-  const activeById = useMemo(
-    () => new Map(activeSessions.map((session) => [session.id, session])),
-    [activeSessions],
-  )
-  const reassignmentSessions = useMemo(() => {
-    const sessionsById = new Map<
-      number,
-      ParkingSession | NonNullable<typeof suggestions>[number]
-    >()
-    activeSessions.forEach((session) => sessionsById.set(session.id, session))
-    suggestions?.forEach((session) => {
-      if (!sessionsById.has(session.id)) sessionsById.set(session.id, session)
-    })
-    return [...sessionsById.values()]
-  }, [activeSessions, suggestions])
-  const matchedActiveSession = candidate?.matched_session_id
-    ? activeById.get(candidate.matched_session_id)
-    : undefined
-  const matchedSession = candidate?.matched_session ?? null
-  const canResolve = candidate?.status === 'pending'
-  const canAccept =
-    canResolve && matchedSession?.status === 'active'
-  const selectedSession = selectedSessionId
-    ? activeById.get(selectedSessionId)
-    : undefined
-
-  const refreshAfterResolution = () => {
-    queryClient.invalidateQueries({ queryKey: ['exit-candidates'] })
-    queryClient.invalidateQueries({ queryKey: ['parking', 'active'] })
-    queryClient.invalidateQueries({ queryKey: ['parking', 'awaiting-payment'] })
-    queryClient.invalidateQueries({ queryKey: ['parking', 'capacity'] })
-    queryClient.invalidateQueries({ queryKey: ['reports', 'daily'] })
+    return true
   }
 
-  const resolutionMutation = useMutation({
-    mutationFn: (action: ResolutionAction) => {
-      if (action.type === 'accept') return acceptExitCandidate(action.candidateId)
-      if (action.type === 'reassign') {
-        return reassignExitCandidate(action.candidateId, action.sessionId)
-      }
-      return dismissExitCandidate(action.candidateId, action.note)
-    },
-    onSuccess: (_, action) => {
-      refreshAfterResolution()
-      message.success(
-        t(
-          action.type === 'dismiss'
-            ? 'exitCandidates.dismissSuccess'
-            : 'exitCandidates.resolveSuccess',
-        ),
-      )
-      onClose()
+  const handleConflict = (error: unknown) => {
+    if (!isAxiosError(error) || error.response?.status !== 409) return false
+    message.warning(t('exitCandidates.alreadyResolved'))
+    onResolved()
+    return true
+  }
+
+  const searchMutation = useMutation({
+    mutationFn: () => searchExitCandidate(candidate.candidate_id, searchPlate),
+    onSuccess: (data) => setSearchResults(data.results),
+    onError: (error) =>
+      message.error(getErrorMessage(error, t('exitCandidates.searchError'))),
+  })
+
+  const confirmMutation = useMutation({
+    mutationFn: () =>
+      confirmExitCandidate(candidate.candidate_id, {
+        ...(isReassigned && session
+          ? { session_id: session.session_id }
+          : {}),
+        ...(isRegular && paymentMethod
+          ? { payment_method: paymentMethod }
+          : {}),
+      }),
+    onSuccess: (data) => {
+      onDataChanged()
+      if (handleBarrierProblem(data.barrier_status)) return
+      message.success(t('exitCandidates.confirmSuccess'))
+      onResolved()
     },
     onError: (error) => {
-      const status = isAxiosError(error) ? error.response?.status : undefined
-      if (status === 404 || status === 409) {
-        refreshAfterResolution()
-        message.warning(
-          getErrorMessage(error, t('exitCandidates.staleCandidateError')),
-        )
-        onClose()
-        return
-      }
-      message.error(getErrorMessage(error, t('exitCandidates.actionError')))
+      if (handleConflict(error)) return
+      message.error(getErrorMessage(error, t('exitCandidates.confirmError')))
     },
     onSettled: () => {
       submittingRef.current = false
     },
   })
 
-  const submit = (action: ResolutionAction) => {
-    if (submittingRef.current || resolutionMutation.isPending) return
+  const forceMutation = useMutation({
+    mutationFn: () =>
+      forceOpenExitCandidate(candidate.candidate_id, {
+        reason: forceReason!,
+        ...(forceNote.trim() ? { note: forceNote.trim() } : {}),
+      }),
+    onSuccess: (data) => {
+      if (handleBarrierProblem(data.barrier_status)) return
+      message.success(t('exitCandidates.forceOpenSuccess'))
+      onResolved()
+    },
+    onError: (error) => {
+      if (handleConflict(error)) return
+      message.error(getErrorMessage(error, t('exitCandidates.forceOpenError')))
+    },
+    onSettled: () => {
+      submittingRef.current = false
+    },
+  })
+
+  const retryMutation = useMutation({
+    mutationFn: () => retryExitCandidateBarrier(candidate.candidate_id),
+    onSuccess: (data) => {
+      if (handleBarrierProblem(data.barrier_status)) return
+      message.success(t('exitCandidates.retrySuccess'))
+      onResolved()
+    },
+    onError: (error) => {
+      if (isAxiosError(error) && error.response?.status === 400) {
+        setRetryUnavailable(true)
+      }
+      message.error(getErrorMessage(error, t('exitCandidates.retryError')))
+    },
+    onSettled: () => {
+      submittingRef.current = false
+    },
+  })
+
+  const isResolving =
+    confirmMutation.isPending || forceMutation.isPending || retryMutation.isPending
+  const canConfirm =
+    candidate.status === 'pending' &&
+    Boolean(session) &&
+    (!isRegular || Boolean(paymentMethod)) &&
+    !isResolving &&
+    !barrierStatus
+  const canForce =
+    Boolean(forceReason) &&
+    (forceReason !== 'other' || Boolean(forceNote.trim())) &&
+    !isResolving
+
+  const submitConfirm = () => {
+    if (!canConfirm || submittingRef.current) return
     submittingRef.current = true
-    resolutionMutation.mutate(action)
+    confirmMutation.mutate()
   }
 
-  const candidateImages = candidate
-    ? [
-        ['overviewImageUrl', 'exitCandidates.overviewImage'],
-        ['vehicleImageUrl', 'exitCandidates.vehicleImage'],
-        ['plateImageUrl', 'exitCandidates.plateImage'],
-      ]
-        .map(([field, labelKey]) => ({
-          field,
-          labelKey,
-          url: candidate[field as keyof ExitCandidate] as string | null,
-        }))
-        .filter((image) => Boolean(image.url))
-    : []
+  const submitForce = () => {
+    if (!canForce || submittingRef.current) return
+    submittingRef.current = true
+    forceMutation.mutate()
+  }
 
-  const footer = candidate ? (
-    mode === 'view' ? (
-      <Space wrap>
-        <Button
-          danger
-          disabled={!canResolve || resolutionMutation.isPending}
-          onClick={() => setMode('dismiss')}
-        >
-          {t('exitCandidates.dismiss')}
-        </Button>
-        <Button
-          disabled={!canResolve || resolutionMutation.isPending}
-          onClick={() => setMode('reassign')}
-        >
-          {t('exitCandidates.chooseAnotherSession')}
-        </Button>
-        <Button
-          type="primary"
-          loading={resolutionMutation.isPending}
-          disabled={!canAccept || resolutionMutation.isPending}
-          onClick={() => submit({ type: 'accept', candidateId: candidate.id })}
-        >
-          {t('exitCandidates.accept')}
-        </Button>
-      </Space>
-    ) : mode === 'reassign' ? (
-      <Space wrap>
-        <Button
-          disabled={resolutionMutation.isPending}
-          onClick={() => setMode('view')}
-        >
-          {t('common.cancel')}
-        </Button>
-        <Button
-          type="primary"
-          loading={resolutionMutation.isPending}
-          disabled={!selectedSessionId || resolutionMutation.isPending}
-          onClick={() =>
-            selectedSessionId &&
-            submit({
-              type: 'reassign',
-              candidateId: candidate.id,
-              sessionId: selectedSessionId,
-            })
-          }
-        >
-          {t('exitCandidates.reassignAndAccept')}
-        </Button>
-      </Space>
-    ) : (
-      <Space wrap>
-        <Button
-          disabled={resolutionMutation.isPending}
-          onClick={() => setMode('view')}
-        >
-          {t('common.cancel')}
-        </Button>
-        <Button
-          danger
-          type="primary"
-          loading={resolutionMutation.isPending}
-          disabled={resolutionMutation.isPending}
-          onClick={() =>
-            submit({
-              type: 'dismiss',
-              candidateId: candidate.id,
-              note: dismissNote,
-            })
-          }
-        >
-          {t('exitCandidates.confirmDismiss')}
-        </Button>
-      </Space>
-    )
-  ) : null
+  const submitRetry = () => {
+    if (
+      barrierStatus !== 'failed' ||
+      retryUnavailable ||
+      submittingRef.current ||
+      retryMutation.isPending
+    ) {
+      return
+    }
+    submittingRef.current = true
+    retryMutation.mutate()
+  }
+
+  const selectSession = (result: ExitCandidateSearchResult) => {
+    setSelectedSession(result)
+    setSelectedAt(Date.now())
+    setPaymentMethod(null)
+    setMode('view')
+  }
 
   return (
     <Modal
-      open={Boolean(initialCandidate)}
+      open
       title={t('exitCandidates.detailTitle')}
-      onCancel={resolutionMutation.isPending ? undefined : onClose}
-      closable={!resolutionMutation.isPending}
-      mask={{ closable: !resolutionMutation.isPending }}
-      footer={footer}
-      width={920}
+      onCancel={isResolving ? undefined : onClose}
+      closable={!isResolving}
+      mask={{ closable: false }}
+      footer={null}
+      width={1000}
       destroyOnHidden
     >
-      {detailQuery.isLoading && !candidate ? (
-        <Skeleton active paragraph={{ rows: 8 }} />
-      ) : candidate ? (
-        <div className="flex flex-col gap-4">
-          {detailQuery.isError && (
-            <Alert
-              type="error"
-              showIcon
-              title={t('exitCandidates.detailLoadError')}
-            />
-          )}
-          <Descriptions bordered size="small" column={{ xs: 1, sm: 2 }}>
-            <Descriptions.Item label={t('exitCandidates.detectedPlate')}>
-              {candidate.detected_plate ? (
-                <PlateBadge value={candidate.detected_plate} />
-              ) : (
-                t('exitCandidates.plateNotDetected')
-              )}
-            </Descriptions.Item>
-            <Descriptions.Item label={t('exitCandidates.confidence')}>
-              {candidate.confidence != null
-                ? t('exitCandidates.confidenceValue', {
-                    value: candidate.confidence,
-                  })
-                : '—'}
-            </Descriptions.Item>
-            <Descriptions.Item label={t('exitCandidates.cameraTime')}>
-              {formatDate(candidate.camera_event_at)}
-            </Descriptions.Item>
-            <Descriptions.Item label={t('exitCandidates.status')}>
-              <Tag color="processing">{t('exitCandidates.statusPending')}</Tag>
-            </Descriptions.Item>
-          </Descriptions>
+      <div className="flex flex-col gap-5">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <VehicleImageBlock
+            title={t('exitCandidates.entryVehicle')}
+            images={entryImages}
+            emptyText={
+              session
+                ? t('sessions.noImages')
+                : t('exitCandidates.vehicleNotSelected')
+            }
+          />
+          <VehicleImageBlock
+            title={t('exitCandidates.exitVehicle')}
+            images={candidate.exit_images}
+            emptyText={t('sessions.noImages')}
+          />
+        </div>
 
-          <Typography.Title level={5} className="m-0!">
-            {t('exitCandidates.exitImages')}
-          </Typography.Title>
-          {candidateImages.length ? (
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-              {candidateImages.map((image) => (
-                <section key={image.field} className="min-w-0">
-                  <Typography.Text strong>{t(image.labelKey)}</Typography.Text>
-                  <AuthenticatedImage
-                    url={image.url}
-                    alt={t(image.labelKey)}
-                    style={{ maxHeight: 260, objectFit: 'contain' }}
-                  />
-                </section>
-              ))}
-            </div>
-          ) : (
-            <Empty description={t('sessions.noImages')} />
-          )}
-
-          <Typography.Title level={5} className="m-0!">
-            {t('exitCandidates.matchedSession')}
-          </Typography.Title>
-          {matchedSession ? (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Descriptions bordered size="small" column={1}>
-                <Descriptions.Item label={t('exitCandidates.sessionNumber')}>
-                  #{matchedSession.id}
-                </Descriptions.Item>
-                <Descriptions.Item label={t('exitCandidates.sessionPlate')}>
-                  <PlateBadge value={matchedSession.plate_number} />
-                </Descriptions.Item>
-                <Descriptions.Item label={t('exitCandidates.sessionSource')}>
-                  {t(sourceKey[matchedSession.session_source])}
-                </Descriptions.Item>
-                <Descriptions.Item label={t('exitCandidates.enteredAt')}>
-                  {formatDate(matchedSession.entered_at)}
-                </Descriptions.Item>
-                <Descriptions.Item label={t('exitCandidates.sessionStatus')}>
-                  {t(
-                    `exitCandidates.sessionStatus${matchedSession.status === 'active' ? 'Active' : matchedSession.status === 'awaiting_payment' ? 'AwaitingPayment' : 'Completed'}`,
-                  )}
-                </Descriptions.Item>
-              </Descriptions>
-              <section>
-                <Typography.Text strong>
-                  {t('exitCandidates.entryImage')}
-                </Typography.Text>
-                {matchedActiveSession?.entryOverviewImageUrl ||
-                matchedActiveSession?.entryVehicleImageUrl ? (
-                  <AuthenticatedImage
-                    url={
-                      matchedActiveSession.entryOverviewImageUrl ??
-                      matchedActiveSession.entryVehicleImageUrl
-                    }
-                    alt={t('exitCandidates.entryImage')}
-                  />
-                ) : (
-                  <Empty description={t('sessions.noImages')} />
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <Card size="small" title={t('exitCandidates.vehicleDetails')}>
+            <Descriptions column={1} size="small">
+              <Descriptions.Item label={t('exitCandidates.plateNumber')}>
+                {displayPlate ? <PlateBadge value={displayPlate} /> : '—'}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('exitCandidates.vehicleType')}>
+                {session ? t(sourceKey[session.session_source]) : '—'}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('exitCandidates.enteredAt')}>
+                {session ? formatDate(session.entered_at) : '—'}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('exitCandidates.cameraTime')}>
+                {formatDate(candidate.camera_event_at)}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('exitCandidates.parkedDuration')}>
+                {durationText}
+              </Descriptions.Item>
+              <Descriptions.Item
+                label={t(
+                  isReassigned
+                    ? 'exitCandidates.amount'
+                    : 'exitCandidates.finalAmount',
                 )}
-              </section>
-            </div>
-          ) : (
-            <Alert
-              type="warning"
-              showIcon
-              title={t('exitCandidates.noMatchedSession')}
-            />
-          )}
+              >
+                {amount != null ? formatMoney(amount) : '—'}
+              </Descriptions.Item>
+            </Descriptions>
+          </Card>
 
-          {mode === 'reassign' && (
-            <div className="flex flex-col gap-3 rounded-lg border p-4">
-              <Typography.Title level={5} className="m-0!">
-                {t('exitCandidates.chooseActiveSession')}
-              </Typography.Title>
-              <Select
-                showSearch={{ optionFilterProp: 'label' }}
-                value={selectedSessionId}
-                onChange={setSelectedSessionId}
-                placeholder={t('exitCandidates.searchSessionPlaceholder')}
-                options={reassignmentSessions.map((session) => ({
-                  value: session.id,
-                  label: `${session.plate_number} — ${session.session_source ? t(sourceKey[session.session_source]) : '—'} — ${formatDate(session.entered_at)}`,
-                }))}
+          <Card size="small" title={t('exitCandidates.paymentAndAction')}>
+            {session ? (
+              isRegular ? (
+                <div className="flex flex-col gap-3">
+                  <Typography.Text strong>
+                    {t('exitCandidates.paymentMethod')}
+                  </Typography.Text>
+                  <Radio.Group
+                    value={paymentMethod}
+                    onChange={(event) => setPaymentMethod(event.target.value)}
+                    optionType="button"
+                    buttonStyle="solid"
+                    options={[
+                      { label: t('paymentMethod.cash'), value: 'cash' },
+                      { label: t('paymentMethod.online'), value: 'online' },
+                    ]}
+                  />
+                  <Typography.Text strong>
+                    {amount != null ? formatMoney(amount) : '—'}
+                  </Typography.Text>
+                </div>
+              ) : (
+                <Space orientation="vertical">
+                  <Typography.Text strong>
+                    {t('exitCandidates.paymentNotRequired')}
+                  </Typography.Text>
+                  <Typography.Title level={4} className="m-0!">
+                    {formatMoney(0)}
+                  </Typography.Title>
+                </Space>
+              )
+            ) : (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={t('exitCandidates.vehicleNotSelected')}
               />
-              {selectedSession && (
-                <AuthenticatedImage
-                  url={
-                    selectedSession.entryOverviewImageUrl ??
-                    selectedSession.entryVehicleImageUrl
+            )}
+          </Card>
+        </div>
+
+        {mode === 'search' && (
+          <Card size="small" title={t('exitCandidates.chooseAnotherSession')}>
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Input
+                  value={searchPlate}
+                  onChange={(event) => setSearchPlate(event.target.value)}
+                  placeholder={t('exitCandidates.searchInputPlaceholder')}
+                  onPressEnter={() =>
+                    searchPlate.trim() && searchMutation.mutate()
                   }
-                  alt={t('exitCandidates.entryImage')}
-                  style={{ maxHeight: 240, objectFit: 'contain' }}
                 />
+                <Button
+                  type="primary"
+                  loading={searchMutation.isPending}
+                  disabled={!searchPlate.trim() || searchMutation.isPending}
+                  onClick={() => searchMutation.mutate()}
+                >
+                  {t('exitCandidates.search')}
+                </Button>
+                {candidate.matched_session && (
+                  <Button onClick={() => setMode('view')}>
+                    {t('common.cancel')}
+                  </Button>
+                )}
+              </div>
+              {searchMutation.isSuccess && searchResults.length === 0 && (
+                <Empty description={t('exitCandidates.searchEmpty')} />
+              )}
+              {searchResults.length > 0 && (
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {searchResults.map((result) => (
+                    <Card
+                      key={result.session_id}
+                      hoverable
+                      size="small"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => selectSession(result)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          selectSession(result)
+                        }
+                      }}
+                    >
+                      <div className="grid grid-cols-[96px_1fr] gap-3">
+                        <div className="flex h-20 items-center justify-center overflow-hidden rounded border">
+                          {imageUrl(result.entry_images) ? (
+                            <AuthenticatedImage
+                              url={imageUrl(result.entry_images)}
+                              alt={t('exitCandidates.entryVehicle')}
+                              preview={false}
+                              style={{ height: 76, objectFit: 'contain' }}
+                            />
+                          ) : (
+                            <Typography.Text type="secondary">
+                              {t('sessions.noImages')}
+                            </Typography.Text>
+                          )}
+                        </div>
+                        <Space orientation="vertical" size={1}>
+                          <PlateBadge value={result.plate_number} />
+                          <Typography.Text>
+                            {t(sourceKey[result.session_source])}
+                          </Typography.Text>
+                          <Typography.Text type="secondary">
+                            {formatDate(result.entered_at)}
+                          </Typography.Text>
+                          <Typography.Text type="secondary">
+                            {t('exitCandidates.similarity', {
+                              value: result.similarity_score,
+                            })}
+                          </Typography.Text>
+                          <Typography.Text type="secondary">
+                            {t('exitCandidates.parkedDuration')}:{' '}
+                            {formatDuration(result.duration_minutes, t)}
+                          </Typography.Text>
+                          <Typography.Text strong>
+                            {t('exitCandidates.estimatedAmount')}:{' '}
+                            {formatMoney(result.tariff_snapshot_amount)}
+                          </Typography.Text>
+                          <Typography.Text type="secondary">
+                            {t('exitCandidates.estimatedAmountNote')}
+                          </Typography.Text>
+                        </Space>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
               )}
             </div>
-          )}
+          </Card>
+        )}
 
-          {mode === 'dismiss' && (
-            <div className="flex flex-col gap-3 rounded-lg border p-4">
+        {mode === 'force' && (
+          <Card size="small" title={t('exitCandidates.forceOpen')}>
+            <div className="flex flex-col gap-3">
               <Alert
                 type="warning"
                 showIcon
-                title={t('exitCandidates.dismissWarning')}
+                title={t('exitCandidates.forceWarning')}
+              />
+              <Select
+                value={forceReason}
+                onChange={setForceReason}
+                placeholder={t('exitCandidates.forceReasonPlaceholder')}
+                options={forceReasons.map((reason) => ({
+                  value: reason,
+                  label: t(forceReasonKey[reason]),
+                }))}
               />
               <Input.TextArea
-                value={dismissNote}
-                onChange={(event) => setDismissNote(event.target.value)}
+                value={forceNote}
+                onChange={(event) => setForceNote(event.target.value)}
+                placeholder={t('exitCandidates.forceNotePlaceholder')}
                 maxLength={500}
-                showCount
-                placeholder={t('exitCandidates.dismissNotePlaceholder')}
               />
+              {forceReason === 'other' && !forceNote.trim() && (
+                <Typography.Text type="danger">
+                  {t('exitCandidates.forceNoteRequired')}
+                </Typography.Text>
+              )}
+              <Space wrap>
+                <Button onClick={() => setMode(candidate.matched_session ? 'view' : 'search')}>
+                  {t('common.cancel')}
+                </Button>
+                <Button
+                  danger
+                  type="primary"
+                  loading={forceMutation.isPending}
+                  disabled={!canForce}
+                  onClick={submitForce}
+                >
+                  {t('exitCandidates.confirmForceOpen')}
+                </Button>
+              </Space>
             </div>
-          )}
+          </Card>
+        )}
+
+        <div className="flex flex-col gap-3">
+          {barrierStatus === 'failed' && !retryUnavailable ? (
+            <Button
+              block
+              size="large"
+              type="primary"
+              danger
+              loading={retryMutation.isPending}
+              disabled={isResolving}
+              onClick={submitRetry}
+            >
+              {t('exitCandidates.retryBarrier')}
+            </Button>
+          ) : !barrierStatus ? (
+            <Button
+              block
+              size="large"
+              type="primary"
+              loading={confirmMutation.isPending}
+              disabled={!canConfirm}
+              onClick={submitConfirm}
+            >
+              {t('exitCandidates.confirmAndOpen')}
+            </Button>
+          ) : null}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <Button
+              block
+              disabled={isResolving || Boolean(barrierStatus)}
+              onClick={() => setMode('search')}
+            >
+              {t('exitCandidates.chooseAnotherSession')}
+            </Button>
+            <Button
+              block
+              danger
+              disabled={isResolving || Boolean(barrierStatus)}
+              onClick={() => setMode('force')}
+            >
+              {t('exitCandidates.forceOpen')}
+            </Button>
+          </div>
         </div>
-      ) : (
-        <Alert type="error" showIcon title={t('exitCandidates.detailLoadError')} />
-      )}
+      </div>
     </Modal>
   )
 }

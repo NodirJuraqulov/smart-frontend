@@ -1,6 +1,5 @@
 import { axiosInstance } from './axiosInstance'
 import type {
-  AwaitingPaymentSession,
   ParkingCapacity,
   ParkingSession,
   Payment,
@@ -67,20 +66,6 @@ export const updateSessionPaymentMethod = ({
     .post<{ session: ParkingSession; payment: Payment }>(
       `/api/parking/sessions/${id}/payment-method`,
       { payment_method },
-    )
-    .then((res) => res.data)
-
-export const getAwaitingPayments = () =>
-  axiosInstance
-    .get<{ sessions: AwaitingPaymentSession[] }>(
-      '/api/parking/sessions/awaiting-payment',
-    )
-    .then((res) => res.data.sessions)
-
-export const confirmCashPayment = (id: number) =>
-  axiosInstance
-    .post<{ session: ParkingSession; payment: Payment }>(
-      `/api/parking/sessions/${id}/confirm-cash-payment`,
     )
     .then((res) => res.data)
 

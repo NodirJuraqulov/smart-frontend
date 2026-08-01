@@ -3,26 +3,28 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { App as AntdApp } from 'antd'
 import ExitCandidateModal from './ExitCandidateModal'
-import type { ExitCandidate } from '@/types/exitCandidate'
-import type { ParkingSession } from '@/types/parking'
+import type {
+  ExitCandidateNext,
+  ExitCandidateSearchResult,
+} from '@/types/exitCandidate'
 
 const {
-  getExitCandidateMock,
-  acceptExitCandidateMock,
-  reassignExitCandidateMock,
-  dismissExitCandidateMock,
+  confirmExitCandidateMock,
+  forceOpenExitCandidateMock,
+  retryExitCandidateBarrierMock,
+  searchExitCandidateMock,
 } = vi.hoisted(() => ({
-  getExitCandidateMock: vi.fn(),
-  acceptExitCandidateMock: vi.fn(),
-  reassignExitCandidateMock: vi.fn(),
-  dismissExitCandidateMock: vi.fn(),
+  confirmExitCandidateMock: vi.fn(),
+  forceOpenExitCandidateMock: vi.fn(),
+  retryExitCandidateBarrierMock: vi.fn(),
+  searchExitCandidateMock: vi.fn(),
 }))
 
 vi.mock('@/api/exitCandidates', () => ({
-  getExitCandidate: getExitCandidateMock,
-  acceptExitCandidate: acceptExitCandidateMock,
-  reassignExitCandidate: reassignExitCandidateMock,
-  dismissExitCandidate: dismissExitCandidateMock,
+  confirmExitCandidate: confirmExitCandidateMock,
+  forceOpenExitCandidate: forceOpenExitCandidateMock,
+  retryExitCandidateBarrier: retryExitCandidateBarrierMock,
+  searchExitCandidate: searchExitCandidateMock,
 }))
 
 vi.mock('@/components/AuthenticatedImage', () => ({
@@ -30,275 +32,452 @@ vi.mock('@/components/AuthenticatedImage', () => ({
     url ? <img data-testid="authenticated-image" src={url} alt={alt} /> : null,
 }))
 
-const matchedCandidate: ExitCandidate = {
-  id: 7,
-  org_id: 2,
-  webhook_event_id: 101,
-  detected_plate: '01A777BA',
-  matched_session_id: 44,
-  resolved_session_id: null,
-  confidence: 96.5,
-  camera_event_at: '2026-08-01T08:00:00.000Z',
+const candidate: ExitCandidateNext = {
+  candidate_id: 'candidate-1',
   status: 'pending',
-  resolution_type: null,
-  resolved_by: null,
-  resolved_at: null,
-  resolution_note: null,
-  created_at: '2026-08-01T08:00:01.000Z',
-  updated_at: '2026-08-01T08:00:01.000Z',
-  overviewImageUrl: '/api/exit-candidates/7/images/overview',
-  vehicleImageUrl: '/api/exit-candidates/7/images/vehicle',
-  plateImageUrl: '/api/exit-candidates/7/images/plate',
-  matched_session: {
-    id: 44,
-    org_id: 2,
-    plate_number: '01A777BA',
-    entered_at: '2026-08-01T07:00:00.000Z',
-    exited_at: null,
-    status: 'active',
-    session_source: 'regular',
-    amount: null,
-    duration_minutes: null,
+  webhook_event_id: 'event-1',
+  detected_plate: '01A777BA',
+  camera_event_at: '2026-08-01T08:00:00.000Z',
+  exit_images: {
+    overview_url: '/api/events/event-1/exit-overview',
+    vehicle_url: '/api/events/event-1/exit-vehicle',
+    image_available: true,
   },
+  matched_session: {
+    session_id: 'session-1',
+    plate_number: '01A777BA',
+    session_source: 'regular',
+    entered_at: '2026-08-01T07:00:00.000Z',
+    entry_images: {
+      overview_url: '/api/sessions/session-1/entry-overview',
+      vehicle_url: '/api/sessions/session-1/entry-vehicle',
+      image_available: true,
+    },
+    duration_minutes: 60,
+    tariff_snapshot_amount: 12000,
+  },
+  pending_count_for_org: 1,
 }
 
-const activeSession: ParkingSession = {
-  id: 44,
-  org_id: 2,
-  plate_number: '01A777BA',
-  entered_at: '2026-08-01T07:00:00.000Z',
-  exited_at: null,
-  duration_minutes: null,
-  amount: null,
-  status: 'active',
-  entry_method: 'auto',
-  exit_method: null,
-  session_source: 'regular',
-  entryOverviewImageUrl: '/api/parking/sessions/44/images/entry-overview',
-  operator_id: null,
-  created_at: '2026-08-01T07:00:00.000Z',
-}
-
-const otherSession: ParkingSession = {
-  ...activeSession,
-  id: 55,
+const searchResult: ExitCandidateSearchResult = {
+  session_id: 'session-2',
   plate_number: '01B555BB',
-  session_source: 'vip',
-  entryOverviewImageUrl: '/api/parking/sessions/55/images/entry-overview',
+  entered_at: '2026-08-01T06:30:00.000Z',
+  session_source: 'regular',
+  similarity_score: 87.5,
+  entry_images: {
+    overview_url: '/api/sessions/session-2/entry-overview',
+    vehicle_url: null,
+    image_available: true,
+  },
+  duration_minutes: 134,
+  tariff_snapshot_amount: 15000,
 }
 
-function renderModal(
-  candidate: ExitCandidate = matchedCandidate,
-  activeSessions: ParkingSession[] = [activeSession, otherSession],
-) {
+function renderModal(value: ExitCandidateNext = candidate) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   })
   const onClose = vi.fn()
+  const onResolved = vi.fn()
+  const onPendingRefresh = vi.fn()
+  const onDataChanged = vi.fn()
   render(
     <QueryClientProvider client={queryClient}>
       <AntdApp>
         <ExitCandidateModal
-          candidate={candidate}
-          activeSessions={activeSessions}
+          candidate={value}
           onClose={onClose}
+          onResolved={onResolved}
+          onPendingRefresh={onPendingRefresh}
+          onDataChanged={onDataChanged}
         />
       </AntdApp>
     </QueryClientProvider>,
   )
-  return { queryClient, onClose }
+  return { onClose, onResolved, onPendingRefresh, onDataChanged }
+}
+
+function selectCash() {
+  fireEvent.click(screen.getByRole('radio', { name: 'Naqd' }))
 }
 
 describe('ExitCandidateModal', () => {
   beforeEach(() => {
-    getExitCandidateMock.mockReset().mockResolvedValue({
-      candidate: matchedCandidate,
-      suggestions: [matchedCandidate.matched_session].filter(Boolean),
+    confirmExitCandidateMock.mockReset().mockResolvedValue({
+      session_id: 'session-1',
+      plate: '01A777BA',
+      amount: 12000,
+      payment_method: 'cash',
+      barrier_status: 'opened',
     })
-    acceptExitCandidateMock.mockReset().mockResolvedValue({
-      ...matchedCandidate,
-      status: 'accepted',
+    forceOpenExitCandidateMock.mockReset().mockResolvedValue({
+      barrier_status: 'opened',
     })
-    reassignExitCandidateMock.mockReset().mockResolvedValue({
-      ...matchedCandidate,
-      status: 'accepted',
-      resolution_type: 'reassigned',
+    retryExitCandidateBarrierMock.mockReset().mockResolvedValue({
+      barrier_status: 'opened',
     })
-    dismissExitCandidateMock.mockReset().mockResolvedValue({
-      ...matchedCandidate,
-      status: 'dismissed',
+    searchExitCandidateMock.mockReset().mockResolvedValue({
+      results: [searchResult],
     })
   })
 
-  it('matched candidate tafsilotlari va rasmlarini authenticated komponentda ko‘rsatadi', async () => {
+  it('faqat kirish va chiqish avtomobil rasmlarini ko‘rsatadi', () => {
     renderModal()
 
-    expect(await screen.findAllByText('01A777BA')).toHaveLength(2)
-    const images = screen.getAllByTestId('authenticated-image')
-    expect(images.map((image) => image.getAttribute('src'))).toEqual(
-      expect.arrayContaining([
-        '/api/exit-candidates/7/images/overview',
-        '/api/exit-candidates/7/images/vehicle',
-        '/api/exit-candidates/7/images/plate',
-        '/api/parking/sessions/44/images/entry-overview',
-      ]),
-    )
+    expect(screen.getByText('Kirish — avtomobil')).toBeInTheDocument()
+    expect(screen.getByText('Chiqish — avtomobil')).toBeInTheDocument()
+    expect(screen.getAllByTestId('authenticated-image')).toHaveLength(2)
+    expect(screen.queryByText(/davlat raqami rasmi/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/plate/i)).not.toBeInTheDocument()
   })
 
-  it('exact matched active candidate ni accept qiladi va tegishli querylarni yangilaydi', async () => {
-    const { queryClient, onClose } = renderModal()
-    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries')
-
-    fireEvent.click(await screen.findByRole('button', { name: 'Tasdiqlash' }))
-
-    await waitFor(() => expect(acceptExitCandidateMock).toHaveBeenCalledWith(7))
-    expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: ['parking', 'awaiting-payment'],
-    })
-    expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: ['parking', 'active'],
-    })
-    expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: ['reports', 'daily'],
-    })
-    expect(onClose).toHaveBeenCalled()
-  })
-
-  it('VIP/subscription natijasini frontendda hisoblamay active va stats querylarini yangilaydi', async () => {
-    const vipCandidate: ExitCandidate = {
-      ...matchedCandidate,
+  it('image_available false bo‘lsa xavfsiz bo‘sh holat ko‘rsatadi', () => {
+    renderModal({
+      ...candidate,
+      exit_images: { ...candidate.exit_images, image_available: false },
       matched_session: {
-        ...matchedCandidate.matched_session!,
-        session_source: 'vip',
+        ...candidate.matched_session!,
+        entry_images: {
+          ...candidate.matched_session!.entry_images,
+          image_available: false,
+        },
       },
-    }
-    getExitCandidateMock.mockResolvedValue({
-      candidate: vipCandidate,
-      suggestions: [vipCandidate.matched_session],
     })
-    const { queryClient } = renderModal(vipCandidate)
-    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries')
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Tasdiqlash' }))
-
-    await waitFor(() => expect(acceptExitCandidateMock).toHaveBeenCalledWith(7))
-    expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: ['parking', 'active'],
-    })
-    expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: ['parking', 'capacity'],
-    })
-    expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: ['reports', 'daily'],
-    })
+    expect(screen.getAllByText('Rasm mavjud emas')).toHaveLength(2)
+    expect(screen.queryByTestId('authenticated-image')).not.toBeInTheDocument()
   })
 
-  it('matched sessiyasi yo‘q candidate uchun accept tugmasini bloklaydi', async () => {
-    const unmatched = {
-      ...matchedCandidate,
-      matched_session_id: null,
-      matched_session: null,
-    }
-    getExitCandidateMock.mockResolvedValue({
-      candidate: unmatched,
-      suggestions: [],
-    })
-    renderModal(unmatched, [])
-
-    expect(
-      await screen.findByText(/mos faol sessiya topilmadi/i),
-    ).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Tasdiqlash' })).toBeDisabled()
-  })
-
-  it('boshqa active sessiyani tanlab reassign qiladi', async () => {
-    renderModal()
-    fireEvent.click(
-      await screen.findByRole('button', { name: 'Boshqa sessiyani tanlash' }),
-    )
-
-    fireEvent.mouseDown(screen.getByRole('combobox'))
-    fireEvent.click(await screen.findByText(/01B555BB/))
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Biriktirish va tasdiqlash' }),
-    )
-
-    await waitFor(() =>
-      expect(reassignExitCandidateMock).toHaveBeenCalledWith(7, 55),
-    )
-  })
-
-  it('dismiss oldidan confirmation va sessiya o‘zgarmasligi ogohlantirishini ko‘rsatadi', async () => {
-    renderModal()
-    fireEvent.click(await screen.findByRole('button', { name: 'Rad etish' }))
-
-    expect(
-      screen.getByText('Rad etilganda to‘xtash joyi sessiyasi o‘zgarmaydi.'),
-    ).toBeInTheDocument()
-    fireEvent.change(screen.getByPlaceholderText('Izoh yoki sabab (ixtiyoriy)'), {
-      target: { value: 'OCR xato' },
-    })
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Rad etishni tasdiqlash' }),
-    )
-
-    await waitFor(() =>
-      expect(dismissExitCandidateMock).toHaveBeenCalledWith(7, 'OCR xato'),
-    )
-  })
-
-  it('409 bo‘lsa ro‘yxatni yangilaydi, xabar beradi va modalni yopadi', async () => {
-    acceptExitCandidateMock.mockRejectedValue({
-      isAxiosError: true,
-      response: { status: 409 },
-    })
-    const { queryClient, onClose } = renderModal()
-    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries')
-
-    fireEvent.click(await screen.findByRole('button', { name: 'Tasdiqlash' }))
-
-    expect(
-      await screen.findByText(/boshqa operator tomonidan hal qilingan/i),
-    ).toBeInTheDocument()
-    expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: ['exit-candidates'],
-    })
-    expect(onClose).toHaveBeenCalled()
-  })
-
-  it('detail refetch candidate allaqachon hal qilinganini ko‘rsatsa modalni yopadi', async () => {
-    getExitCandidateMock.mockResolvedValue({
-      candidate: { ...matchedCandidate, status: 'accepted' },
-      suggestions: [],
-    })
-    const { onClose } = renderModal()
-
-    expect(
-      await screen.findByText(/boshqa operator tomonidan hal qilingan/i),
-    ).toBeInTheDocument()
-    expect(onClose).toHaveBeenCalled()
-  })
-
-  it('mutation tugamaguncha double submitni bloklaydi', async () => {
-    let resolveRequest!: (value: ExitCandidate) => void
-    acceptExitCandidateMock.mockReturnValue(
-      new Promise<ExitCandidate>((resolve) => {
+  it('confirm mutation davomida ikkinchi submitni bloklaydi', async () => {
+    let resolveRequest!: (value: {
+      session_id: string
+      plate: string
+      amount: number
+      payment_method: 'cash'
+      barrier_status: 'opened'
+    }) => void
+    confirmExitCandidateMock.mockReturnValue(
+      new Promise((resolve) => {
         resolveRequest = resolve
       }),
     )
     renderModal()
-    const acceptButton = await screen.findByRole('button', {
-      name: 'Tasdiqlash',
+    selectCash()
+    const button = screen.getByRole('button', {
+      name: 'Tasdiqlash va ochish',
     })
 
-    fireEvent.click(acceptButton)
-    fireEvent.click(acceptButton)
-    await waitFor(() =>
-      expect(acceptExitCandidateMock).toHaveBeenCalledTimes(1),
-    )
-    expect(acceptButton).toBeDisabled()
+    fireEvent.click(button)
+    fireEvent.click(button)
 
-    resolveRequest({ ...matchedCandidate, status: 'accepted' })
-    await waitFor(() => expect(acceptExitCandidateMock).toHaveBeenCalledTimes(1))
+    await waitFor(() =>
+      expect(confirmExitCandidateMock).toHaveBeenCalledTimes(1),
+    )
+    expect(button).toBeDisabled()
+    resolveRequest({
+      session_id: 'session-1',
+      plate: '01A777BA',
+      amount: 12000,
+      payment_method: 'cash',
+      barrier_status: 'opened',
+    })
+  })
+
+  it('matched sessiya confirmida session_id yubormaydi', async () => {
+    const { onResolved } = renderModal()
+    selectCash()
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Tasdiqlash va ochish' }),
+    )
+
+    await waitFor(() =>
+      expect(confirmExitCandidateMock).toHaveBeenCalledWith('candidate-1', {
+        payment_method: 'cash',
+      }),
+    )
+    await waitFor(() => expect(onResolved).toHaveBeenCalled())
+  })
+
+  it.each(['vip', 'subscription'] as const)(
+    '%s sessiya uchun to‘lov tanlovini yashiradi va 0 so‘m ko‘rsatadi',
+    (source) => {
+      renderModal({
+        ...candidate,
+        matched_session: {
+          ...candidate.matched_session!,
+          session_source: source,
+          tariff_snapshot_amount: 0,
+        },
+      })
+
+      expect(screen.queryByRole('radio', { name: 'Naqd' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('radio', { name: 'Online' })).not.toBeInTheDocument()
+      expect(screen.getByText('To‘lov talab qilinmaydi')).toBeInTheDocument()
+      expect(screen.getAllByText("0 so'm").length).toBeGreaterThan(0)
+    },
+  )
+
+  it('search natijasini tanlab confirmga faqat yangi session_id yuboradi', async () => {
+    renderModal()
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Boshqa sessiyani tanlash' }),
+    )
+    fireEvent.change(
+      screen.getByPlaceholderText('Chiqayotgan mashina raqamini kiriting'),
+      { target: { value: '01B555BB' } },
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Qidirish' }))
+
+    const resultCard = await screen.findByRole('button', { name: /01B555BB/ })
+    fireEvent.click(resultCard)
+    expect(screen.getByAltText('Kirish — avtomobil')).toHaveAttribute(
+      'src',
+      '/api/sessions/session-2/entry-overview',
+    )
+    selectCash()
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Tasdiqlash va ochish' }),
+    )
+
+    await waitFor(() =>
+      expect(confirmExitCandidateMock).toHaveBeenCalledWith('candidate-1', {
+        session_id: 'session-2',
+        payment_method: 'cash',
+      }),
+    )
+  })
+
+  it('search natijasida davomiylik, taxminiy summa va foizni ko‘rsatadi', async () => {
+    renderModal()
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Boshqa sessiyani tanlash' }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Qidirish' }))
+
+    const resultCard = await screen.findByRole('button', { name: /01B555BB/ })
+    expect(resultCard).toHaveTextContent('2 soat 14 daqiqa')
+    expect(resultCard).toHaveTextContent("15 000 so'm")
+    expect(resultCard).toHaveTextContent(
+      '(yakuniy summa tasdiqlashda qayta hisoblanadi)',
+    )
+    expect(resultCard).toHaveTextContent('O‘xshashlik: 87.5%')
+
+    fireEvent.click(resultCard)
+    expect(screen.getByText('Summa')).toBeInTheDocument()
+    expect(screen.getByText('2 soat 14 daqiqa')).toBeInTheDocument()
+    expect(screen.getAllByText("15 000 so'm").length).toBeGreaterThan(0)
+  })
+
+  it('matched session bo‘lmasa avtomatik search rejimini va tanlanmagan holatini ko‘rsatadi', () => {
+    renderModal({ ...candidate, matched_session: null })
+
+    expect(
+      screen.getByPlaceholderText('Chiqayotgan mashina raqamini kiriting'),
+    ).toBeInTheDocument()
+    expect(screen.getAllByText('Mashina tanlanmagan').length).toBeGreaterThan(0)
+    expect(
+      screen.getByRole('button', { name: 'Tasdiqlash va ochish' }),
+    ).toBeDisabled()
+  })
+
+  it('force-open uchun other izohini validatsiya qiladi va payload yuboradi', async () => {
+    renderModal()
+    fireEvent.click(screen.getByRole('button', { name: 'Majburiy ochish' }))
+    fireEvent.mouseDown(screen.getByRole('combobox'))
+    fireEvent.click(await screen.findByText('Boshqa'))
+
+    const confirmButton = screen.getByRole('button', {
+      name: 'Majburiy ochishni tasdiqlash',
+    })
+    expect(confirmButton).toBeDisabled()
+    expect(
+      screen.getByText('“Boshqa” sababi uchun izoh majburiy'),
+    ).toBeInTheDocument()
+    fireEvent.change(screen.getByPlaceholderText('Izoh (ixtiyoriy)'), {
+      target: { value: 'Maxsus holat' },
+    })
+    fireEvent.click(confirmButton)
+
+    await waitFor(() =>
+      expect(forceOpenExitCandidateMock).toHaveBeenCalledWith('candidate-1', {
+        reason: 'other',
+        note: 'Maxsus holat',
+      }),
+    )
+  })
+
+  it('barrier failed bo‘lsa retry tugmasini ko‘rsatadi va qayta ochadi', async () => {
+    confirmExitCandidateMock.mockResolvedValue({
+      session_id: 'session-1',
+      plate: '01A777BA',
+      amount: 12000,
+      payment_method: 'cash',
+      barrier_status: 'failed',
+    })
+    const { onResolved } = renderModal()
+    selectCash()
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Tasdiqlash va ochish' }),
+    )
+
+    const retryButton = await screen.findByRole('button', {
+      name: 'Qayta ochish',
+    })
+    fireEvent.click(retryButton)
+
+    await waitFor(() =>
+      expect(retryExitCandidateBarrierMock).toHaveBeenCalledWith('candidate-1'),
+    )
+    expect(await screen.findByText('Shlagbaum ochildi')).toBeInTheDocument()
+    expect(onResolved).toHaveBeenCalled()
+  })
+
+  it('force-open barrier failed bo‘lsa retry tugmasini ko‘rsatadi', async () => {
+    forceOpenExitCandidateMock.mockResolvedValue({ barrier_status: 'failed' })
+    renderModal()
+    fireEvent.click(screen.getByRole('button', { name: 'Majburiy ochish' }))
+    fireEvent.mouseDown(screen.getByRole('combobox'))
+    fireEvent.click(await screen.findByText('Favqulodda holat'))
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: 'Majburiy ochishni tasdiqlash',
+      }),
+    )
+
+    expect(
+      await screen.findByRole('button', { name: 'Qayta ochish' }),
+    ).toBeInTheDocument()
+  })
+
+  it.each(['disabled', 'not_configured'] as const)(
+    'barrier %s bo‘lsa retry ko‘rsatmaydi va administrator xabarini chiqaradi',
+    async (barrierStatus) => {
+      confirmExitCandidateMock.mockResolvedValue({
+        session_id: 'session-1',
+        plate: '01A777BA',
+        amount: 12000,
+        payment_method: 'cash',
+        barrier_status: barrierStatus,
+      })
+      const { onResolved } = renderModal()
+      selectCash()
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Tasdiqlash va ochish' }),
+      )
+
+      expect(
+        await screen.findByText(
+          'To‘lov saqlandi, lekin shlagbaum konfiguratsiya qilinmagan. Administrator bilan bog‘laning',
+        ),
+      ).toBeInTheDocument()
+      expect(
+        screen.queryByRole('button', { name: 'Qayta ochish' }),
+      ).not.toBeInTheDocument()
+      expect(onResolved).not.toHaveBeenCalled()
+    },
+  )
+
+  it('retry failed bo‘lsa retry tugmasini ko‘rsatishda davom etadi', async () => {
+    confirmExitCandidateMock.mockResolvedValue({
+      session_id: 'session-1',
+      plate: '01A777BA',
+      amount: 12000,
+      payment_method: 'cash',
+      barrier_status: 'failed',
+    })
+    retryExitCandidateBarrierMock.mockResolvedValue({
+      barrier_status: 'failed',
+    })
+    renderModal()
+    selectCash()
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Tasdiqlash va ochish' }),
+    )
+    fireEvent.click(await screen.findByRole('button', { name: 'Qayta ochish' }))
+
+    expect(
+      await screen.findByRole('button', { name: 'Qayta ochish' }),
+    ).toBeInTheDocument()
+  })
+
+  it('retry not_configured bo‘lsa retry tugmasini yashiradi', async () => {
+    confirmExitCandidateMock.mockResolvedValue({
+      session_id: 'session-1',
+      plate: '01A777BA',
+      amount: 12000,
+      payment_method: 'cash',
+      barrier_status: 'failed',
+    })
+    retryExitCandidateBarrierMock.mockResolvedValue({
+      barrier_status: 'not_configured',
+    })
+    renderModal()
+    selectCash()
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Tasdiqlash va ochish' }),
+    )
+    fireEvent.click(await screen.findByRole('button', { name: 'Qayta ochish' }))
+
+    expect(
+      await screen.findByText(
+        'To‘lov saqlandi, lekin shlagbaum konfiguratsiya qilinmagan. Administrator bilan bog‘laning',
+      ),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Qayta ochish' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('retry 400 bo‘lsa backend errorini ko‘rsatadi va tugmani yashiradi', async () => {
+    confirmExitCandidateMock.mockResolvedValue({
+      session_id: 'session-1',
+      plate: '01A777BA',
+      amount: 12000,
+      payment_method: 'cash',
+      barrier_status: 'failed',
+    })
+    retryExitCandidateBarrierMock.mockRejectedValue({
+      isAxiosError: true,
+      response: {
+        status: 400,
+        data: { message: 'Shlagbaum konfiguratsiya qilinmagan' },
+      },
+    })
+    renderModal()
+    selectCash()
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Tasdiqlash va ochish' }),
+    )
+    fireEvent.click(await screen.findByRole('button', { name: 'Qayta ochish' }))
+
+    expect(
+      await screen.findByText('Shlagbaum konfiguratsiya qilinmagan'),
+    ).toBeInTheDocument()
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('button', { name: 'Qayta ochish' }),
+      ).not.toBeInTheDocument(),
+    )
+  })
+
+  it('409 bo‘lsa xabar ko‘rsatadi va modalni queue callback orqali yopadi', async () => {
+    confirmExitCandidateMock.mockRejectedValue({
+      isAxiosError: true,
+      response: { status: 409, data: { error: 'resolved' } },
+    })
+    const { onResolved, onPendingRefresh } = renderModal()
+    selectCash()
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Tasdiqlash va ochish' }),
+    )
+
+    expect(
+      await screen.findByText(
+        'Bu chiqish allaqachon boshqa operator tomonidan hal qilingan',
+      ),
+    ).toBeInTheDocument()
+    expect(onPendingRefresh).not.toHaveBeenCalled()
+    expect(onResolved).toHaveBeenCalled()
   })
 })

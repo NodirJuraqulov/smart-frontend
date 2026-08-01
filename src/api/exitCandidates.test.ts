@@ -10,45 +10,69 @@ vi.mock('./axiosInstance', () => ({
 }))
 
 import {
-  acceptExitCandidate,
-  dismissExitCandidate,
-  getExitCandidate,
-  getExitCandidates,
-  reassignExitCandidate,
+  confirmExitCandidate,
+  forceOpenExitCandidate,
+  getNextExitCandidate,
+  retryExitCandidateBarrier,
+  searchExitCandidate,
 } from './exitCandidates'
 
 describe('exit candidates API', () => {
   beforeEach(() => {
-    getMock.mockReset().mockResolvedValue({ data: {} })
-    postMock.mockReset().mockResolvedValue({ data: { candidate: { id: 7 } } })
+    getMock.mockReset()
+    postMock.mockReset().mockResolvedValue({ data: {} })
   })
 
-  it('pending ro‘yxat va detail endpointlarini chaqiradi', async () => {
-    await getExitCandidates()
-    await getExitCandidate(7)
+  it('next 204 javobini null qiymatiga aylantiradi', async () => {
+    getMock.mockResolvedValue({ status: 204 })
 
-    expect(getMock).toHaveBeenNthCalledWith(1, '/api/exit-candidates', {
-      params: { page: 1, limit: 100 },
+    await expect(getNextExitCandidate()).resolves.toBeNull()
+    expect(getMock).toHaveBeenCalledWith('/api/exit-candidates/next')
+  })
+
+  it('next 200 candidate javobini qaytaradi', async () => {
+    const candidate = { candidate_id: 'candidate-1', status: 'pending' }
+    getMock.mockResolvedValue({ status: 200, data: candidate })
+
+    await expect(getNextExitCandidate()).resolves.toBe(candidate)
+  })
+
+  it('search uchun trim qilingan plate yuboradi', async () => {
+    await searchExitCandidate('candidate/1', '  01A777BA  ')
+
+    expect(postMock).toHaveBeenCalledWith(
+      '/api/exit-candidates/candidate%2F1/search',
+      { plate: '01A777BA' },
+    )
+  })
+
+  it('confirm payloadini o‘zgartirmasdan yuboradi', async () => {
+    await confirmExitCandidate('candidate-1', {
+      session_id: 'session-2',
+      payment_method: 'cash',
     })
-    expect(getMock).toHaveBeenNthCalledWith(2, '/api/exit-candidates/7')
+
+    expect(postMock).toHaveBeenCalledWith(
+      '/api/exit-candidates/candidate-1/confirm',
+      { session_id: 'session-2', payment_method: 'cash' },
+    )
   })
 
-  it('accept endpointini chaqiradi', async () => {
-    await acceptExitCandidate(7)
-    expect(postMock).toHaveBeenCalledWith('/api/exit-candidates/7/accept')
-  })
-
-  it('reassign uchun session_id yuboradi', async () => {
-    await reassignExitCandidate(7, 44)
-    expect(postMock).toHaveBeenCalledWith('/api/exit-candidates/7/reassign', {
-      session_id: 44,
+  it('force-open va retry-barrier endpointlarini chaqiradi', async () => {
+    await forceOpenExitCandidate('candidate-1', {
+      reason: 'other',
+      note: 'Operator izohi',
     })
-  })
+    await retryExitCandidateBarrier('candidate-1')
 
-  it('dismiss note qiymatini yuboradi', async () => {
-    await dismissExitCandidate(7, '  OCR xato  ')
-    expect(postMock).toHaveBeenCalledWith('/api/exit-candidates/7/dismiss', {
-      note: 'OCR xato',
-    })
+    expect(postMock).toHaveBeenNthCalledWith(
+      1,
+      '/api/exit-candidates/candidate-1/force-open',
+      { reason: 'other', note: 'Operator izohi' },
+    )
+    expect(postMock).toHaveBeenNthCalledWith(
+      2,
+      '/api/exit-candidates/candidate-1/retry-barrier',
+    )
   })
 })

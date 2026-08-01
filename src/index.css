@@ -25,10 +25,6 @@ body {
   background-color: rgba(217, 119, 6, 0.12) !important;
 }
 
-.awaiting-payment-row-overdue > td {
-  background-color: rgba(220, 38, 38, 0.12) !important;
-}
-
 .print-receipt-title {
   text-align: center;
   margin: 0 0 12px !important;

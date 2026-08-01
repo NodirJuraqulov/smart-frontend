@@ -1,7 +1,8 @@
 import { io, type Socket } from 'socket.io-client'
 import type { DetectionType, ParkingSession, Payment } from '@/types/parking'
 import type {
-  ExitCandidate,
+  ExitCompletedEvent,
+  ExitCandidateCreatedEvent,
   ExitCandidateResolvedEvent,
 } from '@/types/exitCandidate'
 import { API_BASE_URL } from '@/utils/runtimeBaseUrl'
@@ -20,12 +21,8 @@ interface ServerToClientEvents {
     type: DetectionType
     image_url: string
   }) => void
-  exit_awaiting_payment: (payload: {
-    plateNumber: string
-    amount: number
-  }) => void
-  exit_completed: (payload: { plateNumber: string; amount: number }) => void
-  exit_candidate_created: (payload: ExitCandidate) => void
+  exit_completed: (payload: ExitCompletedEvent) => void
+  exit_candidate_created: (payload: ExitCandidateCreatedEvent) => void
   exit_candidate_resolved: (payload: ExitCandidateResolvedEvent) => void
   relay_failed: (payload: {
     direction: 'entry' | 'exit'

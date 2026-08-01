@@ -16,17 +16,12 @@ import { getErrorMessage } from '@/utils/apiError'
 import { formatDate } from '@/utils/format'
 import ReceiptModal from '@/components/ReceiptModal'
 import type { DetectionType, ParkingSession, Payment } from '@/types/parking'
-import type {
-  ExitCandidate,
-  ExitCandidatesResponse,
-} from '@/types/exitCandidate'
+import type { ExitCandidateCreatedEvent } from '@/types/exitCandidate'
 import StatsRow from './StatsRow'
 import DetectionFailedAlert from './DetectionFailedAlert'
-import AwaitingPaymentsSection from './AwaitingPaymentsSection'
 import ActiveSessionsTable from './ActiveSessionsTable'
 import ManualEntryModal, { type ManualFormValues } from './ManualEntryModal'
-import ExitCandidatesSection from './ExitCandidatesSection'
-import { EXIT_CANDIDATES_QUERY_KEY } from './exitCandidateQueryKeys'
+import ExitCandidateWorkflow from './ExitCandidateWorkflow'
 
 interface DetectionFailedState {
   type: DetectionType
@@ -55,11 +50,12 @@ export default function OperatorDashboard() {
   const [manualModalOpen, setManualModalOpen] = useState(false)
   const [receipt, setReceipt] = useState<ReceiptState | null>(null)
   const [now, setNow] = useState(() => Date.now())
-  const [selectedCandidateId, setSelectedCandidateId] = useState<number | null>(
+  const [newCandidateSignal, setNewCandidateSignal] = useState(0)
+  const [exitStatusSignal, setExitStatusSignal] = useState(0)
+  const [resolvedCandidateId, setResolvedCandidateId] = useState<string | null>(
     null,
   )
-  const notifiedCandidateIdsRef = useRef(new Set<number>())
-  const resolvedCandidateIdsRef = useRef(new Set<number>())
+  const notifiedCandidateIdsRef = useRef(new Set<string>())
 
   const [manualForm] = Form.useForm<ManualFormValues>()
 
@@ -87,9 +83,8 @@ export default function OperatorDashboard() {
 
   const invalidateResolvedExitData = () => {
     queryClient.invalidateQueries({ queryKey: ['parking', 'active'] })
-    queryClient.invalidateQueries({ queryKey: ['parking', 'awaiting-payment'] })
     queryClient.invalidateQueries({ queryKey: ['parking', 'capacity'] })
-    queryClient.invalidateQueries({ queryKey: ['reports', 'daily'] })
+    queryClient.invalidateQueries({ queryKey: ['reports'] })
   }
 
   useParkingSocket({
@@ -119,43 +114,21 @@ export default function OperatorDashboard() {
     onDetectionFailed: (type, imageUrl) => {
       setDetectionFailed({ type, imageUrl })
     },
-    onAwaitingPayment: () => {
-      invalidateResolvedExitData()
-    },
     onExitCompleted: () => {
       invalidateResolvedExitData()
+      setExitStatusSignal((current) => current + 1)
     },
-    onExitCandidateCreated: (candidate: ExitCandidate) => {
+    onExitCandidateCreated: (candidate: ExitCandidateCreatedEvent) => {
       if (!canViewExitCandidates) return
-      resolvedCandidateIdsRef.current.delete(candidate.id)
-      queryClient.setQueryData<ExitCandidatesResponse>(
-        EXIT_CANDIDATES_QUERY_KEY,
-        (current) => {
-          if (!current) return current
-          const exists = current.candidates.some((item) => item.id === candidate.id)
-          return {
-            ...current,
-            candidates: [
-              candidate,
-              ...current.candidates.filter((item) => item.id !== candidate.id),
-            ],
-            pagination: {
-              ...current.pagination,
-              total: exists
-                ? current.pagination.total
-                : current.pagination.total + 1,
-            },
-          }
-        },
-      )
-      queryClient.invalidateQueries({ queryKey: EXIT_CANDIDATES_QUERY_KEY })
-      setSelectedCandidateId((current) => current ?? candidate.id)
-      if (!notifiedCandidateIdsRef.current.has(candidate.id)) {
-        notifiedCandidateIdsRef.current.add(candidate.id)
+      setNewCandidateSignal((current) => current + 1)
+      const notificationKey = String(candidate.candidateId)
+      if (!notifiedCandidateIdsRef.current.has(notificationKey)) {
+        notifiedCandidateIdsRef.current.add(notificationKey)
         notification.warning({
           title: t('exitCandidates.newCandidateNotificationTitle'),
           description: t('exitCandidates.newCandidateNotificationDescription', {
-            plate: candidate.detected_plate ?? t('exitCandidates.plateNotDetected'),
+            plate:
+              candidate.detectedPlate ?? t('exitCandidates.plateNotDetected'),
           }),
           placement: 'topRight',
           duration: 8,
@@ -164,29 +137,9 @@ export default function OperatorDashboard() {
     },
     onExitCandidateResolved: (payload) => {
       if (!canViewExitCandidates) return
-      if (resolvedCandidateIdsRef.current.has(payload.candidateId)) return
-      resolvedCandidateIdsRef.current.add(payload.candidateId)
-      queryClient.setQueryData<ExitCandidatesResponse>(
-        EXIT_CANDIDATES_QUERY_KEY,
-        (current) =>
-          current
-            ? {
-                ...current,
-                candidates: current.candidates.filter(
-                  (candidate) => candidate.id !== payload.candidateId,
-                ),
-                pagination: {
-                  ...current.pagination,
-                  total: Math.max(0, current.pagination.total - 1),
-                },
-              }
-            : current,
-      )
-      queryClient.invalidateQueries({ queryKey: EXIT_CANDIDATES_QUERY_KEY })
+      setResolvedCandidateId(String(payload.candidateId))
+      setExitStatusSignal((current) => current + 1)
       invalidateResolvedExitData()
-      setSelectedCandidateId((current) =>
-        current === payload.candidateId ? null : current,
-      )
     },
     onRelayFailed: (direction) => {
       notification.warning({
@@ -272,10 +225,19 @@ export default function OperatorDashboard() {
 
   return (
     <div className="flex flex-col gap-4 p-6">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <Typography.Title level={3} className="m-0!">
           {t('operatorDashboard.title')}
         </Typography.Title>
+        {canViewExitCandidates && (
+          <ExitCandidateWorkflow
+            newCandidateSignal={newCandidateSignal}
+            statusRefreshSignal={exitStatusSignal}
+            resolvedCandidateId={resolvedCandidateId}
+            autoOpenBlocked={manualModalOpen || Boolean(receipt)}
+            onDataChanged={invalidateResolvedExitData}
+          />
+        )}
       </div>
 
       <StatsRow
@@ -290,14 +252,6 @@ export default function OperatorDashboard() {
           imageUrl={detectionFailed.imageUrl}
           onManualEntry={() => setManualModalOpen(true)}
           onClose={() => setDetectionFailed(null)}
-        />
-      )}
-
-      {canViewExitCandidates && (
-        <ExitCandidatesSection
-          activeSessions={activeSessionsQuery.data ?? []}
-          selectedCandidateId={selectedCandidateId}
-          onSelectCandidate={setSelectedCandidateId}
         />
       )}
 
@@ -317,8 +271,6 @@ export default function OperatorDashboard() {
         }
         isConfirmingPaymentMethod={confirmPaymentMethodMutation.isPending}
       />
-
-      <AwaitingPaymentsSection />
 
       <ActiveSessionsTable
         dataSource={activeSessionsQuery.data ?? []}

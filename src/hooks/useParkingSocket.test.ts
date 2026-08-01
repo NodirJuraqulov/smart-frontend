@@ -2,7 +2,8 @@ import { act, renderHook } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { useParkingSocket } from './useParkingSocket'
 import type {
-  ExitCandidate,
+  ExitCompletedEvent,
+  ExitCandidateCreatedEvent,
   ExitCandidateResolvedEvent,
 } from '@/types/exitCandidate'
 
@@ -30,26 +31,20 @@ vi.mock('./redux', () => ({
     }),
 }))
 
-const candidate: ExitCandidate = {
-  id: 7,
-  org_id: 2,
-  webhook_event_id: 101,
-  detected_plate: '01A777BA',
-  matched_session_id: null,
-  resolved_session_id: null,
-  confidence: 94,
-  camera_event_at: '2026-08-01T08:00:00.000Z',
+const candidate: ExitCandidateCreatedEvent = {
+  candidateId: 7,
+  orgId: 3,
+  webhookEventId: 91,
+  detectedPlate: '01A777BA',
+  matchedSessionId: 44,
+  confidence: 98.2,
+  cameraEventAt: '2026-08-01T08:00:00.000Z',
   status: 'pending',
-  resolution_type: null,
-  resolved_by: null,
-  resolved_at: null,
-  resolution_note: null,
-  created_at: '2026-08-01T08:00:01.000Z',
-  updated_at: '2026-08-01T08:00:01.000Z',
-  overviewImageUrl: null,
-  vehicleImageUrl: null,
-  plateImageUrl: null,
-  matched_session: null,
+  exitImages: {
+    overviewUrl: '/api/exit-overview',
+    vehicleUrl: '/api/exit-vehicle',
+    plateUrl: '/api/exit-plate',
+  },
 }
 
 describe('useParkingSocket exit candidate events', () => {
@@ -63,33 +58,50 @@ describe('useParkingSocket exit candidate events', () => {
   it('created va resolved eventlarini callbacklarga uzatadi va cleanup qiladi', () => {
     const onCreated = vi.fn()
     const onResolved = vi.fn()
+    const onCompleted = vi.fn()
     const { unmount } = renderHook(() =>
       useParkingSocket({
         onExitCandidateCreated: onCreated,
         onExitCandidateResolved: onResolved,
+        onExitCompleted: onCompleted,
       }),
     )
 
     const createdHandler = onMock.mock.calls.find(
       ([event]) => event === 'exit_candidate_created',
-    )?.[1] as (payload: ExitCandidate) => void
+    )?.[1] as (payload: unknown) => void
     const resolvedHandler = onMock.mock.calls.find(
       ([event]) => event === 'exit_candidate_resolved',
-    )?.[1] as (payload: ExitCandidateResolvedEvent) => void
+    )?.[1] as (payload: unknown) => void
+    const completedHandler = onMock.mock.calls.find(
+      ([event]) => event === 'exit_completed',
+    )?.[1] as (payload: unknown) => void
     const resolvedPayload: ExitCandidateResolvedEvent = {
       candidateId: 7,
+      orgId: 3,
       status: 'accepted',
       resolutionType: 'exact',
       sessionId: 44,
+      barrierStatus: 'opened',
+    }
+    const completedPayload: ExitCompletedEvent = {
+      orgId: 3,
+      sessionId: 44,
+      plateNumber: '01A777BA',
+      amount: 12000,
+      paymentMethod: 'cash',
+      barrierStatus: 'opened',
     }
 
     act(() => {
       createdHandler(candidate)
       resolvedHandler(resolvedPayload)
+      completedHandler(completedPayload)
     })
 
     expect(onCreated).toHaveBeenCalledWith(candidate)
     expect(onResolved).toHaveBeenCalledWith(resolvedPayload)
+    expect(onCompleted).toHaveBeenCalledWith(completedPayload)
 
     unmount()
     expect(offMock).toHaveBeenCalledWith(
@@ -100,6 +112,42 @@ describe('useParkingSocket exit candidate events', () => {
       'exit_candidate_resolved',
       resolvedHandler,
     )
+    expect(onMock).not.toHaveBeenCalledWith(
+      'exit_awaiting_payment',
+      expect.any(Function),
+    )
     expect(disconnectSocketMock).toHaveBeenCalled()
+  })
+
+  it('snake_case WebSocket payloadlarini callbacklarga uzatmaydi', () => {
+    const onCreated = vi.fn()
+    const onResolved = vi.fn()
+    const onCompleted = vi.fn()
+    renderHook(() =>
+      useParkingSocket({
+        onExitCandidateCreated: onCreated,
+        onExitCandidateResolved: onResolved,
+        onExitCompleted: onCompleted,
+      }),
+    )
+    const createdHandler = onMock.mock.calls.find(
+      ([event]) => event === 'exit_candidate_created',
+    )?.[1] as (payload: unknown) => void
+    const resolvedHandler = onMock.mock.calls.find(
+      ([event]) => event === 'exit_candidate_resolved',
+    )?.[1] as (payload: unknown) => void
+    const completedHandler = onMock.mock.calls.find(
+      ([event]) => event === 'exit_completed',
+    )?.[1] as (payload: unknown) => void
+
+    act(() => {
+      createdHandler({ candidate_id: 7, status: 'pending' })
+      resolvedHandler({ candidate_id: 7, status: 'accepted' })
+      completedHandler({ session_id: 44, barrier_status: 'opened' })
+    })
+
+    expect(onCreated).not.toHaveBeenCalled()
+    expect(onResolved).not.toHaveBeenCalled()
+    expect(onCompleted).not.toHaveBeenCalled()
   })
 })
