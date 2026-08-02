@@ -1,25 +1,13 @@
 import { io, type Socket } from 'socket.io-client'
 import { API_BASE_URL } from '@/utils/runtimeBaseUrl'
+import type {
+  EntryDisplayFlowStatus,
+  ExitDisplayFlowStatus,
+} from '@/types/publicDisplay'
 
 interface PublicDisplayServerToClientEvents {
-  entry_detected: (payload: { plateNumber: string; enteredAt: string }) => void
-  parking_full: (payload: { plateNumber: string }) => void
-  exit_awaiting_payment: (payload: {
-    plateNumber: string
-    amount: number
-    enteredAt: string
-    durationMinutes: number
-  }) => void
-  exit_completed: (payload: { plateNumber: string; amount: number }) => void
-  plate_not_recognized_for_exit: (payload: {
-    plateNumber: string
-    message: string
-  }) => void
-  relay_failed: (payload: {
-    direction: 'entry' | 'exit'
-    plateNumber: string
-    message: string
-  }) => void
+  'public:entry-status-changed': (payload: EntryDisplayFlowStatus) => void
+  'public:exit-status-changed': (payload: ExitDisplayFlowStatus) => void
 }
 
 type PublicDisplayClientToServerEvents = Record<string, never>

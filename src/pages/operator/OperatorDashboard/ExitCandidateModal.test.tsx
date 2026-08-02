@@ -117,6 +117,10 @@ function selectCash() {
   fireEvent.click(screen.getByRole('radio', { name: 'Naqd' }))
 }
 
+function selectOnline() {
+  fireEvent.click(screen.getByRole('radio', { name: 'Online' }))
+}
+
 describe('ExitCandidateModal', () => {
   beforeEach(() => {
     confirmExitCandidateMock.mockReset().mockResolvedValue({
@@ -215,8 +219,25 @@ describe('ExitCandidateModal', () => {
     await waitFor(() => expect(onResolved).toHaveBeenCalled())
   })
 
+  it('regular sessiyada tanlovsiz, naqd va online holatlarida QR kodini doim ko‘rsatadi', () => {
+    renderModal()
+
+    expect(screen.getByAltText('To‘lov QR kodi')).toBeInTheDocument()
+    selectCash()
+    expect(screen.getByAltText('To‘lov QR kodi')).toBeInTheDocument()
+    selectOnline()
+
+    expect(
+      screen.getByText('Onlayn to‘lov uchun mijozga ko‘rsating'),
+    ).toBeInTheDocument()
+    expect(screen.getByAltText('To‘lov QR kodi')).toHaveAttribute(
+      'loading',
+      'lazy',
+    )
+  })
+
   it.each(['vip', 'subscription'] as const)(
-    '%s sessiya uchun to‘lov tanlovini yashiradi va 0 so‘m ko‘rsatadi',
+    '%s sessiya uchun to‘lov tanlovini yashiradi, 0 so‘m va QR ko‘rsatadi',
     (source) => {
       renderModal({
         ...candidate,
@@ -231,6 +252,7 @@ describe('ExitCandidateModal', () => {
       expect(screen.queryByRole('radio', { name: 'Online' })).not.toBeInTheDocument()
       expect(screen.getByText('To‘lov talab qilinmaydi')).toBeInTheDocument()
       expect(screen.getAllByText("0 so'm").length).toBeGreaterThan(0)
+      expect(screen.getByAltText('To‘lov QR kodi')).toBeInTheDocument()
     },
   )
 

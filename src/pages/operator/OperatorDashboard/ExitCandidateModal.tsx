@@ -25,6 +25,7 @@ import {
   searchExitCandidate,
 } from '@/api/exitCandidates'
 import AuthenticatedImage from '@/components/AuthenticatedImage'
+import PaymentQrCode from '@/components/PaymentQrCode'
 import PlateBadge from '@/components/PlateBadge'
 import { getErrorMessage } from '@/utils/apiError'
 import { formatDate, formatMoney } from '@/utils/format'
@@ -417,42 +418,49 @@ export default function ExitCandidateModal({
           </Card>
 
           <Card size="small" title={t('exitCandidates.paymentAndAction')}>
-            {session ? (
-              isRegular ? (
-                <div className="flex flex-col gap-3">
-                  <Typography.Text strong>
-                    {t('exitCandidates.paymentMethod')}
-                  </Typography.Text>
-                  <Radio.Group
-                    value={paymentMethod}
-                    onChange={(event) => setPaymentMethod(event.target.value)}
-                    optionType="button"
-                    buttonStyle="solid"
-                    options={[
-                      { label: t('paymentMethod.cash'), value: 'cash' },
-                      { label: t('paymentMethod.online'), value: 'online' },
-                    ]}
-                  />
-                  <Typography.Text strong>
-                    {amount != null ? formatMoney(amount) : '—'}
-                  </Typography.Text>
-                </div>
+            <div className="flex flex-col gap-5">
+              {session ? (
+                isRegular ? (
+                  <div className="flex flex-col gap-3">
+                    <Typography.Text strong>
+                      {t('exitCandidates.paymentMethod')}
+                    </Typography.Text>
+                    <Radio.Group
+                      value={paymentMethod}
+                      onChange={(event) => setPaymentMethod(event.target.value)}
+                      optionType="button"
+                      buttonStyle="solid"
+                      options={[
+                        { label: t('paymentMethod.cash'), value: 'cash' },
+                        { label: t('paymentMethod.online'), value: 'online' },
+                      ]}
+                    />
+                    <Typography.Text strong>
+                      {amount != null ? formatMoney(amount) : '—'}
+                    </Typography.Text>
+                  </div>
+                ) : (
+                  <Space orientation="vertical">
+                    <Typography.Text strong>
+                      {t('exitCandidates.paymentNotRequired')}
+                    </Typography.Text>
+                    <Typography.Title level={4} className="m-0!">
+                      {formatMoney(0)}
+                    </Typography.Title>
+                  </Space>
+                )
               ) : (
-                <Space orientation="vertical">
-                  <Typography.Text strong>
-                    {t('exitCandidates.paymentNotRequired')}
-                  </Typography.Text>
-                  <Typography.Title level={4} className="m-0!">
-                    {formatMoney(0)}
-                  </Typography.Title>
-                </Space>
-              )
-            ) : (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description={t('exitCandidates.vehicleNotSelected')}
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description={t('exitCandidates.vehicleNotSelected')}
+                />
+              )}
+              <PaymentQrCode
+                size="compact"
+                label={t('exitCandidates.onlinePaymentShowCustomer')}
+                alt={t('publicDisplay.paymentQrAlt')}
               />
-            )}
+            </div>
           </Card>
         </div>
 

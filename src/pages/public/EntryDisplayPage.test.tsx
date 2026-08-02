@@ -3,25 +3,30 @@ import { act, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import EntryDisplayPage from './EntryDisplayPage'
-import type { DisplayStatus } from '@/types/publicDisplay'
+import type {
+  DisplayStatus,
+  EntryDisplayFlowStatus,
+} from '@/types/publicDisplay'
 
 interface SocketCallbacks {
-  onEntryDetected?: (plateNumber: string, enteredAt: string) => void
-  onParkingFull?: (plateNumber: string) => void
-  onExitCompleted?: (plateNumber: string, amount: number) => void
-  onExitAwaitingPayment?: (plateNumber: string, amount: number) => void
+  onEntryStatusChanged?: (status: EntryDisplayFlowStatus) => void
 }
 
-const { getDisplayStatusMock, socketCallbacksRef, isConnectedRef } = vi.hoisted(
-  () => ({
-    getDisplayStatusMock: vi.fn(),
-    socketCallbacksRef: { current: null as SocketCallbacks | null },
-    isConnectedRef: { current: true },
-  }),
-)
+const {
+  getDisplayStatusMock,
+  getEntryDisplayStatusMock,
+  socketCallbacksRef,
+  isConnectedRef,
+} = vi.hoisted(() => ({
+  getDisplayStatusMock: vi.fn(),
+  getEntryDisplayStatusMock: vi.fn(),
+  socketCallbacksRef: { current: null as SocketCallbacks | null },
+  isConnectedRef: { current: true },
+}))
 
 vi.mock('@/api/publicDisplay', () => ({
   getDisplayStatus: getDisplayStatusMock,
+  getEntryDisplayStatus: getEntryDisplayStatusMock,
 }))
 
 vi.mock('@/hooks/usePublicDisplaySocket', () => ({
@@ -48,6 +53,13 @@ const intervalStatus: DisplayStatus = {
   ],
 }
 
+const idleFlow: EntryDisplayFlowStatus = {
+  state: 'idle',
+  plate: null,
+  barrier_status: null,
+  updated_at: '2026-08-02T10:00:00.000Z',
+}
+
 function renderPage(orgId = 5) {
   const queryClient = new QueryClient()
   return render(
@@ -63,7 +75,8 @@ function renderPage(orgId = 5) {
 
 describe('EntryDisplayPage', () => {
   beforeEach(() => {
-    getDisplayStatusMock.mockReset()
+    getDisplayStatusMock.mockReset().mockResolvedValue(hourlyStatus)
+    getEntryDisplayStatusMock.mockReset().mockResolvedValue(idleFlow)
     socketCallbacksRef.current = null
     isConnectedRef.current = true
   })
@@ -73,14 +86,12 @@ describe('EntryDisplayPage', () => {
   })
 
   it("soatlik narx va sigimni korsatadi", async () => {
-    getDisplayStatusMock.mockResolvedValue(hourlyStatus)
-    renderPage()
+    const { container } = renderPage()
 
     expect(await screen.findByText('Chorsu Stoyanka')).toBeInTheDocument()
+    expect(container.firstElementChild).toHaveClass('min-h-screen')
     expect(screen.getByText("5 000 so'm / soat")).toBeInTheDocument()
-    expect(
-      screen.getByText('Birinchi 15 daqiqa bepul'),
-    ).toBeInTheDocument()
+    expect(screen.getByText('Birinchi 15 daqiqa bepul')).toBeInTheDocument()
     expect(screen.getByText(/3 \/ 10/)).toBeInTheDocument()
     expect(screen.getByText('Bo‘sh joylar: 7')).toBeInTheDocument()
   })
@@ -96,80 +107,126 @@ describe('EntryDisplayPage', () => {
   it("stoyanka toliq bolganda ogohlantirish korsatadi", async () => {
     getDisplayStatusMock.mockResolvedValue({
       ...hourlyStatus,
-      capacity: { occupied: 9, total: 10, available: 0 },
+      capacity: { occupied: 10, total: 10, available: 0 },
     })
     renderPage()
 
     expect(await screen.findByText("Stoyanka to'liq")).toBeInTheDocument()
   })
 
-  it("entry_detected kelganda xush kelibsiz xabarini korsatadi va vaqt tugagach yopiladi (regression)", async () => {
-    getDisplayStatusMock.mockResolvedValue(hourlyStatus)
+  it("public socket candidate holatini korsatadi", async () => {
     renderPage()
-
     await screen.findByText("5 000 so'm / soat")
     await waitFor(() => expect(socketCallbacksRef.current).not.toBeNull())
 
-    vi.useFakeTimers()
-
     act(() => {
-      socketCallbacksRef.current!.onEntryDetected?.(
-        '01A123BC',
-        '2026-07-25T10:00:00Z',
-      )
-    })
-
-    expect(screen.getByText('Xush kelibsiz, 01A123BC!')).toBeInTheDocument()
-
-    act(() => {
-      vi.advanceTimersByTime(4000)
+      socketCallbacksRef.current?.onEntryStatusChanged?.({
+        state: 'awaiting_operator',
+        plate: '01A123BC',
+        barrier_status: null,
+        updated_at: new Date().toISOString(),
+      })
     })
 
     expect(
-      screen.queryByText('Xush kelibsiz, 01A123BC!'),
-    ).not.toBeInTheDocument()
+      await screen.findByText("Operator tasdig'i kutilmoqda"),
+    ).toBeInTheDocument()
+    expect(screen.getByText('01A123BC')).toBeInTheDocument()
+  })
+
+  it("completed holatini 15 soniyadan keyin yopadi", async () => {
+    renderPage()
+    await screen.findByText("5 000 so'm / soat")
+    await waitFor(() => expect(socketCallbacksRef.current).not.toBeNull())
+    act(() => {
+      socketCallbacksRef.current?.onEntryStatusChanged?.({
+        state: 'completed',
+        plate: '01A123BC',
+        barrier_status: 'opened',
+        updated_at: new Date().toISOString(),
+      })
+    })
+
+    expect(
+      await screen.findByText('Xush kelibsiz, 01A123BC!'),
+    ).toBeInTheDocument()
+
+    act(() => {
+      socketCallbacksRef.current?.onEntryStatusChanged?.({
+        state: 'completed',
+        plate: '01A123BC',
+        barrier_status: 'opened',
+        updated_at: new Date(Date.now() - 14_900).toISOString(),
+      })
+    })
+
+    expect(await screen.findByText("5 000 so'm / soat")).toBeInTheDocument()
+  })
+
+  it("barrier failed holatida texnik tafsilotsiz neytral xabar korsatadi", async () => {
+    getEntryDisplayStatusMock.mockResolvedValue({
+      state: 'barrier_failed',
+      plate: '01A123BC',
+      barrier_status: 'failed',
+      updated_at: new Date().toISOString(),
+    })
+    renderPage()
+
+    expect(await screen.findByText('Iltimos, kuting')).toBeInTheDocument()
+    expect(screen.getByText('Operator sizga yordam bermoqda')).toBeInTheDocument()
+    expect(screen.queryByText(/shlagbaum/i)).not.toBeInTheDocument()
+  })
+
+  it("declined holatida sababni oshkor qilmaydi", async () => {
+    getEntryDisplayStatusMock.mockResolvedValue({
+      state: 'declined',
+      plate: '01A123BC',
+      barrier_status: null,
+      updated_at: new Date().toISOString(),
+    })
+    renderPage()
+
+    expect(
+      await screen.findByText('Operator yordamida yakunlandi'),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/tasdiqlanmadi/i)).not.toBeInTheDocument()
   })
 
   it("ulanish uzilganda indikator korsatadi", async () => {
     isConnectedRef.current = false
-    getDisplayStatusMock.mockResolvedValue(hourlyStatus)
     renderPage()
 
-    expect(await screen.findByText('Ulanish yo\'q')).toBeInTheDocument()
+    expect(await screen.findByText("Ulanish yo'q")).toBeInTheDocument()
   })
 
-  it("getDisplayStatus xato bersa qayta yuklash haqidagi xabarni korsatadi", async () => {
-    getDisplayStatusMock.mockRejectedValue(new Error('network error'))
+  it("status yuklanmasa xato xabarini korsatadi", async () => {
+    getEntryDisplayStatusMock.mockRejectedValue(new Error('network error'))
     renderPage()
 
     expect(
       await screen.findByText(
-        "Ma'lumot yuklanmadi. Sahifa 30 soniyadan keyin qayta yuklanadi",
+        "Ma'lumot yuklanmadi. Qayta ulanilmoqda",
       ),
     ).toBeInTheDocument()
   })
 
-  it("unmount qilinganda xush kelibsiz taymeri tozalanadi (memory leak yoq) (regression)", async () => {
+  it("unmount qilinganda status taymerini tozalaydi", async () => {
     const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout')
-    getDisplayStatusMock.mockResolvedValue(hourlyStatus)
     const { unmount } = renderPage()
-
     await screen.findByText("5 000 so'm / soat")
-    await waitFor(() => expect(socketCallbacksRef.current).not.toBeNull())
 
     act(() => {
-      socketCallbacksRef.current!.onEntryDetected?.(
-        '01A123BC',
-        '2026-07-25T10:00:00Z',
-      )
+      socketCallbacksRef.current?.onEntryStatusChanged?.({
+        state: 'completed',
+        plate: '01A123BC',
+        barrier_status: 'opened',
+        updated_at: new Date().toISOString(),
+      })
     })
 
     const callsBeforeUnmount = clearTimeoutSpy.mock.calls.length
     unmount()
-
-    expect(clearTimeoutSpy.mock.calls.length).toBeGreaterThan(
-      callsBeforeUnmount,
-    )
+    expect(clearTimeoutSpy.mock.calls.length).toBeGreaterThan(callsBeforeUnmount)
     clearTimeoutSpy.mockRestore()
   })
 })

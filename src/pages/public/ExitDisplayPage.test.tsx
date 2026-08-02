@@ -3,30 +3,30 @@ import { act, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import ExitDisplayPage from './ExitDisplayPage'
-import { formatDate } from '@/utils/format'
-import type { DisplayStatus } from '@/types/publicDisplay'
+import type {
+  DisplayStatus,
+  ExitDisplayFlowStatus,
+} from '@/types/publicDisplay'
 
 interface SocketCallbacks {
-  onExitAwaitingPayment?: (
-    plateNumber: string,
-    amount: number,
-    enteredAt: string,
-    durationMinutes: number,
-  ) => void
-  onExitCompleted?: (plateNumber: string, amount: number) => void
-  onPlateNotRecognized?: (plateNumber: string, message: string) => void
+  onExitStatusChanged?: (status: ExitDisplayFlowStatus) => void
 }
 
-const { getDisplayStatusMock, socketCallbacksRef, isConnectedRef } = vi.hoisted(
-  () => ({
-    getDisplayStatusMock: vi.fn(),
-    socketCallbacksRef: { current: null as SocketCallbacks | null },
-    isConnectedRef: { current: true },
-  }),
-)
+const {
+  getDisplayStatusMock,
+  getExitDisplayStatusMock,
+  socketCallbacksRef,
+  isConnectedRef,
+} = vi.hoisted(() => ({
+  getDisplayStatusMock: vi.fn(),
+  getExitDisplayStatusMock: vi.fn(),
+  socketCallbacksRef: { current: null as SocketCallbacks | null },
+  isConnectedRef: { current: true },
+}))
 
 vi.mock('@/api/publicDisplay', () => ({
   getDisplayStatus: getDisplayStatusMock,
+  getExitDisplayStatus: getExitDisplayStatusMock,
 }))
 
 vi.mock('@/hooks/usePublicDisplaySocket', () => ({
@@ -41,6 +41,17 @@ const status: DisplayStatus = {
   pricingMode: 'hourly',
   capacity: { occupied: 3, total: 10, available: 7 },
   hourlyTariff: { price: 5000, gracePeriodMinutes: 15 },
+}
+
+const idleFlow: ExitDisplayFlowStatus = {
+  state: 'idle',
+  plate: null,
+  session_source: null,
+  amount: null,
+  payment_method: null,
+  duration_minutes: null,
+  barrier_status: null,
+  updated_at: '2026-08-02T10:00:00.000Z',
 }
 
 function renderPage(orgId = 5) {
@@ -59,6 +70,7 @@ function renderPage(orgId = 5) {
 describe('ExitDisplayPage', () => {
   beforeEach(() => {
     getDisplayStatusMock.mockReset().mockResolvedValue(status)
+    getExitDisplayStatusMock.mockReset().mockResolvedValue(idleFlow)
     socketCallbacksRef.current = null
     isConnectedRef.current = true
   })
@@ -67,112 +79,192 @@ describe('ExitDisplayPage', () => {
     vi.useRealTimers()
   })
 
-  it("oddiy holatda chiqish xabarini korsatadi", async () => {
-    renderPage()
+  it("idle holatida chiqish xabari bilan QR kodini ko‘rsatadi", async () => {
+    const { container } = renderPage()
 
     expect(
       await screen.findByText('Chiqish uchun mashinangizni yaqinlashtiring'),
     ).toBeInTheDocument()
+    expect(screen.getByAltText('To‘lov QR kodi')).toBeInTheDocument()
+    expect(container.firstElementChild).toHaveClass('min-h-screen')
   })
 
-  it("exit_awaiting_payment kelganda nomer, summa va turgan vaqtni korsatadi (regression)", async () => {
+  it("awaiting operator holatida operator matni va QR kodini birga ko‘rsatadi", async () => {
     renderPage()
-    await waitFor(() => expect(socketCallbacksRef.current).not.toBeNull())
+    await screen.findByText('Chiqish uchun mashinangizni yaqinlashtiring')
 
     act(() => {
-      socketCallbacksRef.current!.onExitAwaitingPayment?.(
-        '01A123BC',
-        15000,
-        '2026-07-18T08:00:00.000Z',
-        90,
-      )
+      socketCallbacksRef.current?.onExitStatusChanged?.({
+        ...idleFlow,
+        state: 'awaiting_operator',
+        plate: '01A123BC',
+        updated_at: new Date().toISOString(),
+      })
     })
 
+    expect(
+      await screen.findByText("Operator tasdig'i kutilmoqda"),
+    ).toBeInTheDocument()
     expect(screen.getByText('01A123BC')).toBeInTheDocument()
-    expect(screen.getByText("15 000 so'm")).toBeInTheDocument()
-    expect(
-      screen.getByText("Turgan vaqt: 1 soat 30 daqiqa"),
-    ).toBeInTheDocument()
-    expect(
-      screen.getByText(`Kirgan vaqt: ${formatDate('2026-07-18T08:00:00.000Z')}`),
-    ).toBeInTheDocument()
-    expect(
-      screen.getByText('Operator kutmoqda, iltimos kuting'),
-    ).toBeInTheDocument()
+    expect(screen.getByText('Operator siz bilan ishlamoqda')).toBeInTheDocument()
+    expect(screen.getByAltText('To‘lov QR kodi')).toBeInTheDocument()
   })
 
-  it("exit_completed kelganda rahmat xabarini korsatadi va vaqt tugagach oddiy holatga qaytadi (regression)", async () => {
+  it("completed holatida yakun matni va QR kodini birga ko‘rsatadi", async () => {
+    renderPage()
+    await screen.findByText('Chiqish uchun mashinangizni yaqinlashtiring')
+    await waitFor(() => expect(socketCallbacksRef.current).not.toBeNull())
+    act(() => {
+      socketCallbacksRef.current?.onExitStatusChanged?.({
+        state: 'completed',
+        plate: '01A123BC',
+        session_source: 'regular',
+        amount: 15000,
+        payment_method: 'cash',
+        duration_minutes: 90,
+        barrier_status: 'opened',
+        updated_at: new Date().toISOString(),
+      })
+    })
+
+    expect(await screen.findByText("Rahmat, yaxshi yo'l!")).toBeInTheDocument()
+    expect(screen.getByText('01A123BC')).toBeInTheDocument()
+    expect(screen.getByText("15 000 so'm")).toBeInTheDocument()
+    expect(screen.getByText('Turgan vaqt: 1 soat 30 daqiqa')).toBeInTheDocument()
+    expect(screen.getByText("To'lov usuli: naqd")).toBeInTheDocument()
+    expect(screen.getByText('Onlayn to‘lov uchun skanerlang')).toBeInTheDocument()
+    expect(screen.getByAltText('To‘lov QR kodi')).toHaveAttribute(
+      'loading',
+      'lazy',
+    )
+  })
+
+  it("completed matni 15 soniyadan keyin yo‘qoladi, QR kodi esa qoladi", async () => {
     renderPage()
     await screen.findByText('Chiqish uchun mashinangizni yaqinlashtiring')
     await waitFor(() => expect(socketCallbacksRef.current).not.toBeNull())
 
-    vi.useFakeTimers()
-
     act(() => {
-      socketCallbacksRef.current!.onExitCompleted?.('01A123BC', 15000)
+      socketCallbacksRef.current?.onExitStatusChanged?.({
+        state: 'completed',
+        plate: '01A123BC',
+        session_source: 'regular',
+        amount: 15000,
+        payment_method: 'cash',
+        duration_minutes: 90,
+        barrier_status: 'opened',
+        updated_at: new Date(Date.now() - 14_700).toISOString(),
+      })
     })
 
-    expect(screen.getByText('Rahmat, yaxshi yo\'l!')).toBeInTheDocument()
-
-    act(() => {
-      vi.advanceTimersByTime(4000)
-    })
-
+    expect(await screen.findByText("Rahmat, yaxshi yo'l!")).toBeInTheDocument()
     expect(
-      screen.getByText('Chiqish uchun mashinangizni yaqinlashtiring'),
+      await screen.findByText('Chiqish uchun mashinangizni yaqinlashtiring'),
     ).toBeInTheDocument()
+    expect(screen.queryByText("Rahmat, yaxshi yo'l!")).not.toBeInTheDocument()
+    expect(screen.getByAltText('To‘lov QR kodi')).toBeInTheDocument()
   })
 
-  it("plate_not_recognized_for_exit kelganda operator bilan boglanish xabarini korsatadi", async () => {
-    renderPage()
-    await waitFor(() => expect(socketCallbacksRef.current).not.toBeNull())
-
-    act(() => {
-      socketCallbacksRef.current!.onPlateNotRecognized?.(
-        '01A123BC',
-        'Operator bilan bog\'laning',
-      )
+  it("online completed tolov usulini korsatadi", async () => {
+    getExitDisplayStatusMock.mockResolvedValue({
+      ...idleFlow,
+      state: 'completed',
+      plate: '01O777AA',
+      session_source: 'regular',
+      amount: 20000,
+      payment_method: 'online',
+      duration_minutes: 120,
+      barrier_status: 'opened',
+      updated_at: new Date().toISOString(),
     })
+    renderPage()
 
-    expect(screen.getByText('Nomer aniqlanmadi')).toBeInTheDocument()
-    expect(screen.getByText('Operator bilan bog\'laning')).toBeInTheDocument()
+    expect(await screen.findByText("To'lov usuli: online")).toBeInTheDocument()
+  })
+
+  it('VIP completed holatida to‘lov talab qilinmasligi bilan QR kodini ko‘rsatadi', async () => {
+    getExitDisplayStatusMock.mockResolvedValue({
+      ...idleFlow,
+      state: 'completed',
+      plate: '01V777IP',
+      session_source: 'vip',
+      amount: 0,
+      duration_minutes: 45,
+      barrier_status: 'opened',
+      updated_at: new Date().toISOString(),
+    })
+    renderPage()
+
+    expect(await screen.findByText('To‘lov talab qilinmaydi')).toBeInTheDocument()
+    expect(screen.getByAltText('To‘lov QR kodi')).toBeInTheDocument()
+  })
+
+  it("barrier failed holatida neytral xabar va QR kodini birga ko‘rsatadi", async () => {
+    getExitDisplayStatusMock.mockResolvedValue({
+      ...idleFlow,
+      state: 'barrier_failed',
+      plate: '01A123BC',
+      barrier_status: 'failed',
+    })
+    renderPage()
+
+    expect(await screen.findByText('Iltimos, kuting')).toBeInTheDocument()
+    expect(screen.getByText('Operator sizga yordam bermoqda')).toBeInTheDocument()
+    expect(screen.queryByText(/shlagbaum/i)).not.toBeInTheDocument()
+    expect(screen.getByAltText('To‘lov QR kodi')).toBeInTheDocument()
+  })
+
+  it("force open yakunini umumiy xabar bilan korsatadi", async () => {
+    getExitDisplayStatusMock.mockResolvedValue({
+      ...idleFlow,
+      state: 'declined',
+      plate: '01A123BC',
+      barrier_status: 'opened',
+      updated_at: new Date().toISOString(),
+    })
+    renderPage()
+
+    expect(
+      await screen.findByText('Operator yordamida yakunlandi'),
+    ).toBeInTheDocument()
   })
 
   it("ulanish uzilganda indikator korsatadi", async () => {
     isConnectedRef.current = false
     renderPage()
 
-    expect(await screen.findByText('Ulanish yo\'q')).toBeInTheDocument()
+    expect(await screen.findByText("Ulanish yo'q")).toBeInTheDocument()
   })
 
-  it("getDisplayStatus xato bersa qayta yuklash haqidagi xabarni korsatadi", async () => {
-    getDisplayStatusMock.mockReset().mockRejectedValue(new Error('network error'))
+  it("status yuklanmasa xato xabarini korsatadi", async () => {
+    getExitDisplayStatusMock.mockRejectedValue(new Error('network error'))
     renderPage()
 
     expect(
       await screen.findByText(
-        "Ma'lumot yuklanmadi. Sahifa 30 soniyadan keyin qayta yuklanadi",
+        "Ma'lumot yuklanmadi. Qayta ulanilmoqda",
       ),
     ).toBeInTheDocument()
   })
 
-  it("unmount qilinganda rahmat xabari taymeri tozalanadi (memory leak yoq) (regression)", async () => {
+  it("unmount qilinganda status taymerini tozalaydi", async () => {
     const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout')
     const { unmount } = renderPage()
-
     await screen.findByText('Chiqish uchun mashinangizni yaqinlashtiring')
-    await waitFor(() => expect(socketCallbacksRef.current).not.toBeNull())
 
     act(() => {
-      socketCallbacksRef.current!.onExitCompleted?.('01A123BC', 15000)
+      socketCallbacksRef.current?.onExitStatusChanged?.({
+        ...idleFlow,
+        state: 'completed',
+        plate: '01A123BC',
+        barrier_status: 'opened',
+        updated_at: new Date().toISOString(),
+      })
     })
 
     const callsBeforeUnmount = clearTimeoutSpy.mock.calls.length
     unmount()
-
-    expect(clearTimeoutSpy.mock.calls.length).toBeGreaterThan(
-      callsBeforeUnmount,
-    )
+    expect(clearTimeoutSpy.mock.calls.length).toBeGreaterThan(callsBeforeUnmount)
     clearTimeoutSpy.mockRestore()
   })
 })
