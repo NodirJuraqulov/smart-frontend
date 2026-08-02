@@ -46,6 +46,14 @@ describe('exit candidates API', () => {
     )
   })
 
+  it('barcha active sessiyalar uchun searchni bodysiz yuboradi', async () => {
+    await searchExitCandidate('candidate-1')
+
+    expect(postMock).toHaveBeenCalledWith(
+      '/api/exit-candidates/candidate-1/search',
+    )
+  })
+
   it('confirm payloadini o‘zgartirmasdan yuboradi', async () => {
     await confirmExitCandidate('candidate-1', {
       session_id: 'session-2',

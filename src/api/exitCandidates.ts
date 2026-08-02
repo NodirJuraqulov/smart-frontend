@@ -18,12 +18,16 @@ export async function getNextExitCandidate(): Promise<ExitCandidateNext | null> 
   return response.status === 204 ? null : response.data
 }
 
-export const searchExitCandidate = (id: string, plate: string) =>
-  axiosInstance
-    .post<ExitCandidateSearchResponse>(`${candidatePath(id)}/search`, {
-      plate: plate.trim(),
-    })
-    .then((response) => response.data)
+export const searchExitCandidate = (id: string, plate?: string) => {
+  const path = `${candidatePath(id)}/search`
+  const normalizedPlate = plate?.trim()
+  const request = normalizedPlate
+    ? axiosInstance.post<ExitCandidateSearchResponse>(path, {
+        plate: normalizedPlate,
+      })
+    : axiosInstance.post<ExitCandidateSearchResponse>(path)
+  return request.then((response) => response.data)
+}
 
 export const confirmExitCandidate = (
   id: string,

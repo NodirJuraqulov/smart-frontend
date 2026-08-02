@@ -2,16 +2,16 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { App as AntdApp, Button } from 'antd'
-import { getNextExitCandidate } from '@/api/exitCandidates'
+import { getNextEntryCandidate } from '@/api/entryCandidates'
 import { getErrorMessage } from '@/utils/apiError'
-import type { ExitCandidateNext } from '@/types/exitCandidate'
-import ExitCandidateModal from './ExitCandidateModal'
-import { EXIT_CANDIDATE_NEXT_QUERY_KEY } from './exitCandidateQueryKeys'
+import type { EntryCandidateNext } from '@/types/entryCandidate'
+import EntryCandidateModal from './EntryCandidateModal'
+import { ENTRY_CANDIDATE_NEXT_QUERY_KEY } from './entryCandidateQueryKeys'
 
 interface Props {
   newCandidateSignal: number
   statusRefreshSignal: number
-  resolvedCandidateId: string | null
+  resolvedCandidateId: number | null
   autoOpenBlocked?: boolean
   requestModalOpen?: () => boolean
   releaseModal?: () => void
@@ -21,7 +21,7 @@ interface Props {
 const allowModalOpen = () => true
 const releaseModalOpen = () => undefined
 
-export default function ExitCandidateWorkflow({
+export default function EntryCandidateWorkflow({
   newCandidateSignal,
   statusRefreshSignal,
   resolvedCandidateId,
@@ -33,12 +33,12 @@ export default function ExitCandidateWorkflow({
   const { t } = useTranslation()
   const { message } = AntdApp.useApp()
   const [currentCandidate, setCurrentCandidate] =
-    useState<ExitCandidateNext | null>(null)
-  const currentCandidateRef = useRef<ExitCandidateNext | null>(null)
+    useState<EntryCandidateNext | null>(null)
+  const currentCandidateRef = useRef<EntryCandidateNext | null>(null)
   const initialLoadHandledRef = useRef(false)
   const newCandidateSignalRef = useRef(newCandidateSignal)
   const statusRefreshSignalRef = useRef(statusRefreshSignal)
-  const resolvedCandidateIdRef = useRef<string | null>(resolvedCandidateId)
+  const resolvedCandidateIdRef = useRef<number | null>(resolvedCandidateId)
 
   const {
     data: nextCandidate,
@@ -46,19 +46,19 @@ export default function ExitCandidateWorkflow({
     isLoading,
     refetch: refetchNextCandidate,
   } = useQuery({
-    queryKey: EXIT_CANDIDATE_NEXT_QUERY_KEY,
-    queryFn: getNextExitCandidate,
+    queryKey: ENTRY_CANDIDATE_NEXT_QUERY_KEY,
+    queryFn: getNextEntryCandidate,
     refetchInterval: 30000,
     retry: false,
   })
 
-  const setCandidate = useCallback((candidate: ExitCandidateNext | null) => {
+  const setCandidate = useCallback((candidate: EntryCandidateNext | null) => {
     currentCandidateRef.current = candidate
     setCurrentCandidate(candidate)
   }, [])
 
   const openCandidate = useCallback(
-    (candidate: ExitCandidateNext) => {
+    (candidate: EntryCandidateNext) => {
       if (autoOpenBlocked || currentCandidateRef.current) return false
       if (!requestModalOpen()) return false
       setCandidate(candidate)
@@ -71,13 +71,12 @@ export default function ExitCandidateWorkflow({
       const result = await refetchNextCandidate()
       if (result.error) {
         message.error(
-          getErrorMessage(result.error, t('exitCandidates.nextLoadError')),
+          getErrorMessage(result.error, t('entryCandidates.nextLoadError')),
         )
         return
       }
       if (autoOpen && result.data) openCandidate(result.data)
-    },
-    [message, openCandidate, refetchNextCandidate, t],
+    }, [message, openCandidate, refetchNextCandidate, t],
   )
 
   useEffect(() => {
@@ -106,9 +105,7 @@ export default function ExitCandidateWorkflow({
       return
     }
     resolvedCandidateIdRef.current = resolvedCandidateId
-    if (
-      currentCandidateRef.current?.candidate_id === resolvedCandidateId
-    ) {
+    if (currentCandidateRef.current?.candidate_id === resolvedCandidateId) {
       setCandidate(null)
       releaseModal()
       void loadNext(true)
@@ -129,7 +126,7 @@ export default function ExitCandidateWorkflow({
   }
 
   const pendingCount = nextCandidate?.pending_count_for_org ?? 0
-  const buttonLabel = t('exitCandidates.reviewButton', {
+  const buttonLabel = t('entryCandidates.reviewButton', {
     count: pendingCount,
   })
 
@@ -144,7 +141,7 @@ export default function ExitCandidateWorkflow({
         {buttonLabel}
       </Button>
       {currentCandidate && (
-        <ExitCandidateModal
+        <EntryCandidateModal
           candidate={currentCandidate}
           onClose={closeCurrent}
           onResolved={resolveAndAdvance}

@@ -5,6 +5,10 @@ import type {
   ExitCandidateCreatedEvent,
   ExitCandidateResolvedEvent,
 } from '@/types/exitCandidate'
+import type {
+  EntryCandidateCreatedEvent,
+  EntryCandidateResolvedEvent,
+} from '@/types/entryCandidate'
 import { API_BASE_URL } from '@/utils/runtimeBaseUrl'
 
 interface ServerToClientEvents {
@@ -24,6 +28,8 @@ interface ServerToClientEvents {
   exit_completed: (payload: ExitCompletedEvent) => void
   exit_candidate_created: (payload: ExitCandidateCreatedEvent) => void
   exit_candidate_resolved: (payload: ExitCandidateResolvedEvent) => void
+  entry_candidate_created: (payload: EntryCandidateCreatedEvent) => void
+  entry_candidate_resolved: (payload: EntryCandidateResolvedEvent) => void
   relay_failed: (payload: {
     direction: 'entry' | 'exit'
     plateNumber: string

@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { App as AntdApp, Form, Typography } from 'antd'
+import { App as AntdApp, Button, Form, Space, Typography } from 'antd'
 import { getDailyReport } from '@/api/reports'
 import {
   entryManual,
@@ -17,11 +17,14 @@ import { formatDate } from '@/utils/format'
 import ReceiptModal from '@/components/ReceiptModal'
 import type { DetectionType, ParkingSession, Payment } from '@/types/parking'
 import type { ExitCandidateCreatedEvent } from '@/types/exitCandidate'
+import type { EntryCandidateCreatedEvent } from '@/types/entryCandidate'
 import StatsRow from './StatsRow'
 import DetectionFailedAlert from './DetectionFailedAlert'
 import ActiveSessionsTable from './ActiveSessionsTable'
 import ManualEntryModal, { type ManualFormValues } from './ManualEntryModal'
 import ExitCandidateWorkflow from './ExitCandidateWorkflow'
+import EntryCandidateWorkflow from './EntryCandidateWorkflow'
+import ManualParkingEntryModal from './ManualParkingEntryModal'
 
 interface DetectionFailedState {
   type: DetectionType
@@ -48,6 +51,7 @@ export default function OperatorDashboard() {
   const [detectionFailed, setDetectionFailed] =
     useState<DetectionFailedState | null>(null)
   const [manualModalOpen, setManualModalOpen] = useState(false)
+  const [manualParkingEntryOpen, setManualParkingEntryOpen] = useState(false)
   const [receipt, setReceipt] = useState<ReceiptState | null>(null)
   const [now, setNow] = useState(() => Date.now())
   const [newCandidateSignal, setNewCandidateSignal] = useState(0)
@@ -55,7 +59,14 @@ export default function OperatorDashboard() {
   const [resolvedCandidateId, setResolvedCandidateId] = useState<string | null>(
     null,
   )
+  const [newEntryCandidateSignal, setNewEntryCandidateSignal] = useState(0)
+  const [entryStatusSignal, setEntryStatusSignal] = useState(0)
+  const [resolvedEntryCandidateId, setResolvedEntryCandidateId] = useState<
+    number | null
+  >(null)
   const notifiedCandidateIdsRef = useRef(new Set<string>())
+  const notifiedEntryCandidateIdsRef = useRef(new Set<string>())
+  const activeReviewModalRef = useRef<'entry' | 'exit' | null>(null)
 
   const [manualForm] = Form.useForm<ManualFormValues>()
 
@@ -86,6 +97,40 @@ export default function OperatorDashboard() {
     queryClient.invalidateQueries({ queryKey: ['parking', 'capacity'] })
     queryClient.invalidateQueries({ queryKey: ['reports'] })
   }
+
+  const requestEntryModal = useCallback(() => {
+    if (
+      activeReviewModalRef.current &&
+      activeReviewModalRef.current !== 'entry'
+    ) {
+      return false
+    }
+    activeReviewModalRef.current = 'entry'
+    return true
+  }, [])
+
+  const requestExitModal = useCallback(() => {
+    if (
+      activeReviewModalRef.current &&
+      activeReviewModalRef.current !== 'exit'
+    ) {
+      return false
+    }
+    activeReviewModalRef.current = 'exit'
+    return true
+  }, [])
+
+  const releaseEntryModal = useCallback(() => {
+    if (activeReviewModalRef.current === 'entry') {
+      activeReviewModalRef.current = null
+    }
+  }, [])
+
+  const releaseExitModal = useCallback(() => {
+    if (activeReviewModalRef.current === 'exit') {
+      activeReviewModalRef.current = null
+    }
+  }, [])
 
   useParkingSocket({
     onEntry: (session, detected) => {
@@ -139,6 +184,29 @@ export default function OperatorDashboard() {
       if (!canViewExitCandidates) return
       setResolvedCandidateId(String(payload.candidateId))
       setExitStatusSignal((current) => current + 1)
+      invalidateResolvedExitData()
+    },
+    onEntryCandidateCreated: (candidate: EntryCandidateCreatedEvent) => {
+      if (!canViewExitCandidates) return
+      setNewEntryCandidateSignal((current) => current + 1)
+      const notificationKey = String(candidate.candidateId)
+      if (!notifiedEntryCandidateIdsRef.current.has(notificationKey)) {
+        notifiedEntryCandidateIdsRef.current.add(notificationKey)
+        notification.warning({
+          title: t('entryCandidates.newCandidateNotificationTitle'),
+          description: t('entryCandidates.newCandidateNotificationDescription', {
+            plate:
+              candidate.detectedPlate ?? t('entryCandidates.plateNotDetected'),
+          }),
+          placement: 'topRight',
+          duration: 8,
+        })
+      }
+    },
+    onEntryCandidateResolved: (payload) => {
+      if (!canViewExitCandidates) return
+      setResolvedEntryCandidateId(payload.candidateId)
+      setEntryStatusSignal((current) => current + 1)
       invalidateResolvedExitData()
     },
     onRelayFailed: (direction) => {
@@ -230,13 +298,36 @@ export default function OperatorDashboard() {
           {t('operatorDashboard.title')}
         </Typography.Title>
         {canViewExitCandidates && (
-          <ExitCandidateWorkflow
-            newCandidateSignal={newCandidateSignal}
-            statusRefreshSignal={exitStatusSignal}
-            resolvedCandidateId={resolvedCandidateId}
-            autoOpenBlocked={manualModalOpen || Boolean(receipt)}
-            onDataChanged={invalidateResolvedExitData}
-          />
+          <Space wrap>
+            <Button
+              size="small"
+              onClick={() => setManualParkingEntryOpen(true)}
+            >
+              {t('entryCandidates.manualButton')}
+            </Button>
+            <EntryCandidateWorkflow
+              newCandidateSignal={newEntryCandidateSignal}
+              statusRefreshSignal={entryStatusSignal}
+              resolvedCandidateId={resolvedEntryCandidateId}
+              autoOpenBlocked={
+                manualModalOpen || manualParkingEntryOpen || Boolean(receipt)
+              }
+              requestModalOpen={requestEntryModal}
+              releaseModal={releaseEntryModal}
+              onDataChanged={invalidateResolvedExitData}
+            />
+            <ExitCandidateWorkflow
+              newCandidateSignal={newCandidateSignal}
+              statusRefreshSignal={exitStatusSignal}
+              resolvedCandidateId={resolvedCandidateId}
+              autoOpenBlocked={
+                manualModalOpen || manualParkingEntryOpen || Boolean(receipt)
+              }
+              requestModalOpen={requestExitModal}
+              releaseModal={releaseExitModal}
+              onDataChanged={invalidateResolvedExitData}
+            />
+          </Space>
         )}
       </div>
 
@@ -288,6 +379,12 @@ export default function OperatorDashboard() {
           manualForm.resetFields()
         }}
         onSubmit={handleManualSubmit}
+      />
+
+      <ManualParkingEntryModal
+        open={manualParkingEntryOpen}
+        onClose={() => setManualParkingEntryOpen(false)}
+        onDataChanged={invalidateResolvedExitData}
       />
     </div>
   )

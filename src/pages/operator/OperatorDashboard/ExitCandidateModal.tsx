@@ -13,6 +13,7 @@ import {
   Input,
   Modal,
   Radio,
+  Segmented,
   Select,
   Space,
   Typography,
@@ -33,7 +34,9 @@ import type {
   ExitCandidateMatchedSession,
   ExitCandidateNext,
   ExitCandidateSearchResult,
+  ExitCandidateActiveSession,
   ExitCandidateBarrierStatus,
+  ExitCandidateSessionOption,
 } from '@/types/exitCandidate'
 import type { PaymentMethod, SessionSource } from '@/types/parking'
 
@@ -45,8 +48,9 @@ interface Props {
   onDataChanged: () => void
 }
 
-type SelectedSession = ExitCandidateMatchedSession | ExitCandidateSearchResult
+type SelectedSession = ExitCandidateMatchedSession | ExitCandidateSessionOption
 type ModalMode = 'view' | 'search' | 'force'
+type SearchListMode = 'search' | 'active'
 
 const sourceKey: Record<SessionSource, string> = {
   regular: 'exitCandidates.sourceRegular',
@@ -138,7 +142,7 @@ export default function ExitCandidateModal({
     candidate.matched_session ? 'view' : 'search',
   )
   const [selectedSession, setSelectedSession] =
-    useState<ExitCandidateSearchResult | null>(null)
+    useState<ExitCandidateSessionOption | null>(null)
   const [selectedAt, setSelectedAt] = useState<number | null>(null)
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null)
   const [searchPlate, setSearchPlate] = useState<string>(
@@ -147,6 +151,11 @@ export default function ExitCandidateModal({
   const [searchResults, setSearchResults] = useState<
     ExitCandidateSearchResult[]
   >([])
+  const [activeSessionOptions, setActiveSessionOptions] = useState<
+    ExitCandidateActiveSession[]
+  >([])
+  const [searchListMode, setSearchListMode] =
+    useState<SearchListMode>('search')
   const [forceReason, setForceReason] =
     useState<ExitCandidateForceReason | null>(null)
   const [forceNote, setForceNote] = useState('')
@@ -163,6 +172,8 @@ export default function ExitCandidateModal({
     setPaymentMethod(null)
     setSearchPlate(candidate.detected_plate ?? '')
     setSearchResults([])
+    setActiveSessionOptions([])
+    setSearchListMode('search')
     setForceReason(null)
     setForceNote('')
     setBarrierStatus(null)
@@ -221,8 +232,15 @@ export default function ExitCandidateModal({
   }
 
   const searchMutation = useMutation({
-    mutationFn: () => searchExitCandidate(candidate.candidate_id, searchPlate),
-    onSuccess: (data) => setSearchResults(data.results),
+    mutationFn: (plate?: string) =>
+      searchExitCandidate(candidate.candidate_id, plate),
+    onSuccess: (data, plate) => {
+      if (plate?.trim()) {
+        setSearchResults(data.results)
+        return
+      }
+      setActiveSessionOptions(data.active_sessions)
+    },
     onError: (error) =>
       message.error(getErrorMessage(error, t('exitCandidates.searchError'))),
   })
@@ -328,7 +346,7 @@ export default function ExitCandidateModal({
     retryMutation.mutate()
   }
 
-  const selectSession = (result: ExitCandidateSearchResult) => {
+  const selectSession = (result: ExitCandidateSessionOption) => {
     setSelectedSession(result)
     setSelectedAt(Date.now())
     setPaymentMethod(null)
@@ -441,35 +459,73 @@ export default function ExitCandidateModal({
         {mode === 'search' && (
           <Card size="small" title={t('exitCandidates.chooseAnotherSession')}>
             <div className="flex flex-col gap-4">
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Input
-                  value={searchPlate ?? ''}
-                  onChange={(event) => setSearchPlate(event.target.value)}
-                  placeholder={t('exitCandidates.searchInputPlaceholder')}
-                  onPressEnter={() =>
-                    searchPlate.trim() && searchMutation.mutate()
+              <Segmented
+                block
+                value={searchListMode}
+                options={[
+                  {
+                    value: 'search',
+                    label: t('exitCandidates.searchTab'),
+                  },
+                  {
+                    value: 'active',
+                    label: t('exitCandidates.allActiveTab'),
+                  },
+                ]}
+                onChange={(value) => {
+                  const nextMode = value as SearchListMode
+                  setSearchListMode(nextMode)
+                  if (nextMode === 'active') {
+                    searchMutation.mutate(undefined)
                   }
-                />
-                <Button
-                  type="primary"
-                  loading={searchMutation.isPending}
-                  disabled={!searchPlate.trim() || searchMutation.isPending}
-                  onClick={() => searchMutation.mutate()}
-                >
-                  {t('exitCandidates.search')}
-                </Button>
-                {candidate.matched_session && (
-                  <Button onClick={() => setMode('view')}>
-                    {t('common.cancel')}
+                }}
+              />
+              {searchListMode === 'search' && (
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <Input
+                    value={searchPlate ?? ''}
+                    onChange={(event) => setSearchPlate(event.target.value)}
+                    placeholder={t('exitCandidates.searchInputPlaceholder')}
+                    onPressEnter={() =>
+                      searchPlate.trim() &&
+                      searchMutation.mutate(searchPlate)
+                    }
+                  />
+                  <Button
+                    type="primary"
+                    loading={searchMutation.isPending}
+                    disabled={!searchPlate.trim() || searchMutation.isPending}
+                    onClick={() => searchMutation.mutate(searchPlate)}
+                  >
+                    {t('exitCandidates.search')}
                   </Button>
-                )}
-              </div>
-              {searchMutation.isSuccess && searchResults.length === 0 && (
-                <Empty description={t('exitCandidates.searchEmpty')} />
+                  {candidate.matched_session && (
+                    <Button onClick={() => setMode('view')}>
+                      {t('common.cancel')}
+                    </Button>
+                  )}
+                </div>
               )}
-              {searchResults.length > 0 && (
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  {searchResults.map((result) => (
+              {searchMutation.isSuccess &&
+                (searchListMode === 'search'
+                  ? searchResults.length === 0
+                  : activeSessionOptions.length === 0) && (
+                  <Empty description={t('exitCandidates.searchEmpty')} />
+                )}
+              {(searchListMode === 'search'
+                ? searchResults.length > 0
+                : activeSessionOptions.length > 0) && (
+                <div
+                  className={`grid grid-cols-1 gap-3 sm:grid-cols-2 ${
+                    searchListMode === 'active'
+                      ? 'max-h-96 overflow-y-auto pr-1'
+                      : ''
+                  }`}
+                >
+                  {(searchListMode === 'search'
+                    ? searchResults
+                    : activeSessionOptions
+                  ).map((result) => (
                     <Card
                       key={result.session_id}
                       hoverable
@@ -512,11 +568,13 @@ export default function ExitCandidateModal({
                           <Typography.Text type="secondary">
                             {formatDate(result.entered_at)}
                           </Typography.Text>
-                          <Typography.Text type="secondary">
-                            {t('exitCandidates.similarity', {
-                              value: result.similarity_score,
-                            })}
-                          </Typography.Text>
+                          {'similarity_score' in result && (
+                            <Typography.Text type="secondary">
+                              {t('exitCandidates.similarity', {
+                                value: result.similarity_score,
+                              })}
+                            </Typography.Text>
+                          )}
                           <Typography.Text type="secondary">
                             {t('exitCandidates.parkedDuration')}:{' '}
                             {formatDuration(result.duration_minutes, t)}

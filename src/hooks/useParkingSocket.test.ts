@@ -6,6 +6,10 @@ import type {
   ExitCandidateCreatedEvent,
   ExitCandidateResolvedEvent,
 } from '@/types/exitCandidate'
+import type {
+  EntryCandidateCreatedEvent,
+  EntryCandidateResolvedEvent,
+} from '@/types/entryCandidate'
 
 const { connectSocketMock, disconnectSocketMock, onMock, offMock } = vi.hoisted(
   () => ({
@@ -117,6 +121,60 @@ describe('useParkingSocket exit candidate events', () => {
       expect.any(Function),
     )
     expect(disconnectSocketMock).toHaveBeenCalled()
+  })
+
+  it('entry candidate created va resolved eventlarini uzatadi', () => {
+    const onCreated = vi.fn()
+    const onResolved = vi.fn()
+    const { unmount } = renderHook(() =>
+      useParkingSocket({
+        onEntryCandidateCreated: onCreated,
+        onEntryCandidateResolved: onResolved,
+      }),
+    )
+    const createdHandler = onMock.mock.calls.find(
+      ([event]) => event === 'entry_candidate_created',
+    )?.[1] as (payload: unknown) => void
+    const resolvedHandler = onMock.mock.calls.find(
+      ([event]) => event === 'entry_candidate_resolved',
+    )?.[1] as (payload: unknown) => void
+    const createdPayload: EntryCandidateCreatedEvent = {
+      candidateId: 17,
+      orgId: 3,
+      detectedPlate: null,
+      cameraEventAt: '2026-08-02T08:00:00.000Z',
+      confidence: null,
+      entryImages: {
+        overviewUrl: null,
+        vehicleUrl: '/api/entry-vehicle',
+        imageAvailable: true,
+      },
+    }
+    const resolvedPayload: EntryCandidateResolvedEvent = {
+      candidateId: 17,
+      orgId: 3,
+      status: 'accepted',
+      sessionId: 51,
+      barrierStatus: 'opened',
+    }
+
+    act(() => {
+      createdHandler(createdPayload)
+      resolvedHandler(resolvedPayload)
+    })
+
+    expect(onCreated).toHaveBeenCalledWith(createdPayload)
+    expect(onResolved).toHaveBeenCalledWith(resolvedPayload)
+
+    unmount()
+    expect(offMock).toHaveBeenCalledWith(
+      'entry_candidate_created',
+      createdHandler,
+    )
+    expect(offMock).toHaveBeenCalledWith(
+      'entry_candidate_resolved',
+      resolvedHandler,
+    )
   })
 
   it('snake_case WebSocket payloadlarini callbacklarga uzatmaydi', () => {

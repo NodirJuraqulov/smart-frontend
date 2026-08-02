@@ -27,19 +27,25 @@ export interface ExitCandidateNext {
   pending_count_for_org: number
 }
 
-export interface ExitCandidateSearchResult {
+export interface ExitCandidateSessionOption {
   session_id: string
   plate_number: string | null
   entered_at: string
   session_source: SessionSource
-  similarity_score: number
   entry_images: ExitCandidateImages
   duration_minutes: number
   tariff_snapshot_amount: number
 }
 
+export interface ExitCandidateSearchResult extends ExitCandidateSessionOption {
+  similarity_score: number
+}
+
+export type ExitCandidateActiveSession = ExitCandidateSessionOption
+
 export interface ExitCandidateSearchResponse {
   results: ExitCandidateSearchResult[]
+  active_sessions: ExitCandidateActiveSession[]
 }
 
 export interface ExitCandidateConfirmPayload {

@@ -9,6 +9,10 @@ import type {
   ExitCandidateCreatedEvent,
   ExitCandidateResolvedEvent,
 } from '@/types/exitCandidate'
+import type {
+  EntryCandidateCreatedEvent,
+  EntryCandidateResolvedEvent,
+} from '@/types/entryCandidate'
 
 interface SocketCallbacks {
   onEntry?: (...args: unknown[]) => void
@@ -17,6 +21,8 @@ interface SocketCallbacks {
   onExitCompleted?: (payload: ExitCompletedEvent) => void
   onExitCandidateCreated?: (candidate: ExitCandidateCreatedEvent) => void
   onExitCandidateResolved?: (payload: ExitCandidateResolvedEvent) => void
+  onEntryCandidateCreated?: (candidate: EntryCandidateCreatedEvent) => void
+  onEntryCandidateResolved?: (payload: EntryCandidateResolvedEvent) => void
   onRelayFailed?: (direction: 'entry' | 'exit', message: string) => void
   onWebhookParseFailed?: (direction: 'entry' | 'exit', message: string) => void
 }
@@ -80,7 +86,7 @@ vi.mock('./ExitCandidateWorkflow', () => ({
   }: {
     newCandidateSignal: number
     statusRefreshSignal: number
-    resolvedCandidateId: string | null
+    resolvedCandidateId: number | null
   }) => (
     <div
       data-testid="exit-candidate-workflow"
@@ -89,6 +95,30 @@ vi.mock('./ExitCandidateWorkflow', () => ({
       data-resolved-candidate={resolvedCandidateId ?? ''}
     />
   ),
+}))
+
+vi.mock('./EntryCandidateWorkflow', () => ({
+  default: ({
+    newCandidateSignal,
+    statusRefreshSignal,
+    resolvedCandidateId,
+  }: {
+    newCandidateSignal: number
+    statusRefreshSignal: number
+    resolvedCandidateId: string | null
+  }) => (
+    <div
+      data-testid="entry-candidate-workflow"
+      data-new-candidate-signal={newCandidateSignal}
+      data-status-refresh-signal={statusRefreshSignal}
+      data-resolved-candidate={resolvedCandidateId ?? ''}
+    />
+  ),
+}))
+
+vi.mock('./ManualParkingEntryModal', () => ({
+  default: ({ open }: { open: boolean }) =>
+    open ? <div role="dialog">Qo‘lda kirish qo‘shish</div> : null,
 }))
 
 function renderDashboard() {
@@ -116,6 +146,19 @@ const pendingCandidate: ExitCandidateCreatedEvent = {
     overviewUrl: '/api/exit-overview',
     vehicleUrl: '/api/exit-vehicle',
     plateUrl: '/api/exit-plate',
+  },
+}
+
+const pendingEntryCandidate: EntryCandidateCreatedEvent = {
+  candidateId: 17,
+  orgId: 3,
+  detectedPlate: '01B555BB',
+  cameraEventAt: '2026-08-02T08:00:00.000Z',
+  confidence: 97,
+  entryImages: {
+    overviewUrl: '/api/entry-overview',
+    vehicleUrl: null,
+    imageAvailable: true,
   },
 }
 
@@ -280,6 +323,47 @@ describe('OperatorDashboard exit candidate WebSocket va ruxsat oqimi', () => {
     expect(
       await screen.findByTestId('exit-candidate-workflow'),
     ).toBeInTheDocument()
+    expect(screen.getByTestId('entry-candidate-workflow')).toBeInTheDocument()
+  })
+
+  it('Qo‘lda kirish qo‘shish tugmasi yangi modalni ochadi', async () => {
+    useAppSelectorMock.mockReset().mockReturnValue({
+      role: 'operator',
+      org_name: 'Test parking',
+      permissions: { can_view_sessions: true },
+    })
+    renderDashboard()
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Qo‘lda kirish qo‘shish' }),
+    )
+    expect(screen.getByRole('dialog')).toHaveTextContent(
+      'Qo‘lda kirish qo‘shish',
+    )
+  })
+
+  it('entry candidate WebSocket hodisalari entry badge signallarini yangilaydi', async () => {
+    useAppSelectorMock.mockReset().mockReturnValue({
+      role: 'operator',
+      org_name: 'Test parking',
+      permissions: { can_view_sessions: true },
+    })
+    renderDashboard()
+    await waitFor(() => expect(socketCallbacksRef.current).not.toBeNull())
+
+    act(() => {
+      socketCallbacksRef.current!.onEntryCandidateCreated?.(
+        pendingEntryCandidate,
+      )
+      socketCallbacksRef.current!.onEntryCandidateResolved?.({
+        candidateId: 17,
+      })
+    })
+
+    const workflow = screen.getByTestId('entry-candidate-workflow')
+    expect(workflow).toHaveAttribute('data-new-candidate-signal', '1')
+    expect(workflow).toHaveAttribute('data-status-refresh-signal', '1')
+    expect(workflow).toHaveAttribute('data-resolved-candidate', '17')
   })
 
   it('created hodisasida workflow signalini yangilaydi va notificationni takrorlamaydi', async () => {

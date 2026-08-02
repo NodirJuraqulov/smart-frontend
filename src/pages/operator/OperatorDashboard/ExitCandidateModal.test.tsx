@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { App as AntdApp } from 'antd'
 import ExitCandidateModal from './ExitCandidateModal'
 import type {
+  ExitCandidateActiveSession,
   ExitCandidateNext,
   ExitCandidateSearchResult,
 } from '@/types/exitCandidate'
@@ -74,6 +75,20 @@ const searchResult: ExitCandidateSearchResult = {
   tariff_snapshot_amount: 15000,
 }
 
+const activeSession: ExitCandidateActiveSession = {
+  session_id: 'session-3',
+  plate_number: '01C333CC',
+  entered_at: '2026-08-01T05:30:00.000Z',
+  session_source: 'subscription',
+  entry_images: {
+    overview_url: '/api/sessions/session-3/entry-overview',
+    vehicle_url: null,
+    image_available: true,
+  },
+  duration_minutes: 180,
+  tariff_snapshot_amount: 0,
+}
+
 function renderModal(value: ExitCandidateNext = candidate) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -119,6 +134,7 @@ describe('ExitCandidateModal', () => {
     })
     searchExitCandidateMock.mockReset().mockResolvedValue({
       results: [searchResult],
+      active_sessions: [activeSession],
     })
   })
 
@@ -267,6 +283,57 @@ describe('ExitCandidateModal', () => {
     expect(screen.getByText('Summa')).toBeInTheDocument()
     expect(screen.getByText('2 soat 14 daqiqa')).toBeInTheDocument()
     expect(screen.getAllByText("15 000 so'm").length).toBeGreaterThan(0)
+  })
+
+  it('Barcha faol mashinalar tabida active_sessionsni ko‘rsatadi', async () => {
+    renderModal()
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Boshqa sessiyani tanlash' }),
+    )
+    fireEvent.click(screen.getByText('Barcha faol mashinalar'))
+
+    expect(await screen.findByText('01C333CC')).toBeInTheDocument()
+    expect(searchExitCandidateMock).toHaveBeenCalledWith(
+      'candidate-1',
+      undefined,
+    )
+  })
+
+  it('Qidiruv va barcha faol mashinalar natijalarini bir vaqtda ko‘rsatmaydi', async () => {
+    renderModal()
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Boshqa sessiyani tanlash' }),
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Qidirish' }))
+    expect(await screen.findByText('01B555BB')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('Barcha faol mashinalar'))
+    expect(await screen.findByText('01C333CC')).toBeInTheDocument()
+    expect(screen.queryByText('01B555BB')).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByText('Qidiruv'))
+    expect(screen.getByText('01B555BB')).toBeInTheDocument()
+    expect(screen.queryByText('01C333CC')).not.toBeInTheDocument()
+  })
+
+  it('active_sessions tanlanganda confirmga session_id yuboradi', async () => {
+    renderModal()
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Boshqa sessiyani tanlash' }),
+    )
+    fireEvent.click(screen.getByText('Barcha faol mashinalar'))
+    fireEvent.click(
+      await screen.findByRole('button', { name: /01C333CC/ }),
+    )
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Tasdiqlash va ochish' }),
+    )
+
+    await waitFor(() =>
+      expect(confirmExitCandidateMock).toHaveBeenCalledWith('candidate-1', {
+        session_id: 'session-3',
+      }),
+    )
   })
 
   it('matched session bo‘lmasa avtomatik search rejimini va tanlanmagan holatini ko‘rsatadi', () => {

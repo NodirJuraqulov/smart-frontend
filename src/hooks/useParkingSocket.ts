@@ -12,6 +12,14 @@ import {
   isExitCandidateResolvedEvent,
   isExitCompletedEvent,
 } from '@/types/exitCandidate'
+import type {
+  EntryCandidateCreatedEvent,
+  EntryCandidateResolvedEvent,
+} from '@/types/entryCandidate'
+import {
+  isEntryCandidateCreatedEvent,
+  isEntryCandidateResolvedEvent,
+} from '@/types/entryCandidate'
 
 interface UseParkingSocketCallbacks {
   onEntry?: (session: ParkingSession, detected: boolean) => void
@@ -24,6 +32,8 @@ interface UseParkingSocketCallbacks {
   onExitCompleted?: (payload: ExitCompletedEvent) => void
   onExitCandidateCreated?: (candidate: ExitCandidateCreatedEvent) => void
   onExitCandidateResolved?: (payload: ExitCandidateResolvedEvent) => void
+  onEntryCandidateCreated?: (candidate: EntryCandidateCreatedEvent) => void
+  onEntryCandidateResolved?: (payload: EntryCandidateResolvedEvent) => void
   onRelayFailed?: (direction: 'entry' | 'exit', message: string) => void
   onWebhookParseFailed?: (direction: 'entry' | 'exit', message: string) => void
 }
@@ -78,6 +88,16 @@ export function useParkingSocket(callbacks: UseParkingSocketCallbacks) {
       callbacksRef.current.onExitCandidateResolved?.(payload)
     }
 
+    const handleEntryCandidateCreated = (payload: unknown) => {
+      if (!isEntryCandidateCreatedEvent(payload)) return
+      callbacksRef.current.onEntryCandidateCreated?.(payload)
+    }
+
+    const handleEntryCandidateResolved = (payload: unknown) => {
+      if (!isEntryCandidateResolvedEvent(payload)) return
+      callbacksRef.current.onEntryCandidateResolved?.(payload)
+    }
+
     const handleRelayFailed = (payload: {
       direction: 'entry' | 'exit'
       message: string
@@ -98,6 +118,8 @@ export function useParkingSocket(callbacks: UseParkingSocketCallbacks) {
     socket.on('exit_completed', handleExitCompleted)
     socket.on('exit_candidate_created', handleExitCandidateCreated)
     socket.on('exit_candidate_resolved', handleExitCandidateResolved)
+    socket.on('entry_candidate_created', handleEntryCandidateCreated)
+    socket.on('entry_candidate_resolved', handleEntryCandidateResolved)
     socket.on('relay_failed', handleRelayFailed)
     socket.on('webhook_parse_failed', handleWebhookParseFailed)
 
@@ -108,6 +130,8 @@ export function useParkingSocket(callbacks: UseParkingSocketCallbacks) {
       socket.off('exit_completed', handleExitCompleted)
       socket.off('exit_candidate_created', handleExitCandidateCreated)
       socket.off('exit_candidate_resolved', handleExitCandidateResolved)
+      socket.off('entry_candidate_created', handleEntryCandidateCreated)
+      socket.off('entry_candidate_resolved', handleEntryCandidateResolved)
       socket.off('relay_failed', handleRelayFailed)
       socket.off('webhook_parse_failed', handleWebhookParseFailed)
       disconnectSocket()
