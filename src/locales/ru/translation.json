@@ -777,7 +777,7 @@
     "intervalTariffsTitle": "Тарифы",
     "intervalRangeLabel": "{{from}}–{{to}} мин",
     "intervalRangeUnlimitedLabel": "{{from}}+ мин",
-    "exitIdleMessage": "Подъезжайте для выезда",
+    "exitIdleMessage": "Пожалуйста, подождите",
     "awaitingOperatorTitle": "Ожидание подтверждения оператора",
     "awaitingOperatorDescription": "Пожалуйста, дождитесь решения оператора",
     "awaitingPaymentTitle": "Ожидание оплаты",

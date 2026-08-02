@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import ExitDisplayPage from './ExitDisplayPage'
@@ -79,19 +79,49 @@ describe('ExitDisplayPage', () => {
     vi.useRealTimers()
   })
 
-  it("idle holatida chiqish xabari bilan QR kodini ko‘rsatadi", async () => {
+  it("chiqish ekranini yuqori-pastki vertikal layoutda ko‘rsatadi", async () => {
     const { container } = renderPage()
 
-    expect(
-      await screen.findByText('Chiqish uchun mashinangizni yaqinlashtiring'),
-    ).toBeInTheDocument()
+    expect(await screen.findByText('Kuting')).toBeInTheDocument()
+    const layout = screen.getByTestId('exit-display-portrait-layout')
+    expect(layout).toHaveClass('flex', 'flex-col')
+    expect(layout).not.toHaveClass('lg:grid-cols-2')
+    expect(screen.getByTestId('exit-display-status-section')).toHaveClass(
+      'flex-[3]',
+    )
+    expect(screen.getByTestId('exit-display-qr-section')).toHaveClass(
+      'flex-[2]',
+    )
     expect(screen.getByAltText('To‘lov QR kodi')).toBeInTheDocument()
     expect(container.firstElementChild).toHaveClass('min-h-screen')
   })
 
+  it("pastki qismda captionsiz faqat QR rasmini ko‘rsatadi", async () => {
+    renderPage()
+    await screen.findByText('Kuting')
+
+    const qrSection = screen.getByTestId('exit-display-qr-section')
+    expect(within(qrSection).getByAltText('To‘lov QR kodi')).toBeInTheDocument()
+    expect(within(qrSection).queryByText(/.+/)).not.toBeInTheDocument()
+    expect(screen.queryByText('Onlayn to‘lov uchun skanerlang')).not.toBeInTheDocument()
+  })
+
+  it("status matni va QR kodini portret ekran uchun katta o‘lchamda ko‘rsatadi", async () => {
+    renderPage()
+    await screen.findByText('Kuting')
+
+    expect(screen.getByTestId('exit-display-status-title')).toHaveStyle({
+      fontSize: '68px',
+    })
+    expect(screen.getByAltText('To‘lov QR kodi')).toHaveStyle({
+      width: '76vw',
+      maxWidth: '760px',
+    })
+  })
+
   it("awaiting operator holatida operator matni va QR kodini birga ko‘rsatadi", async () => {
     renderPage()
-    await screen.findByText('Chiqish uchun mashinangizni yaqinlashtiring')
+    await screen.findByText('Kuting')
 
     act(() => {
       socketCallbacksRef.current?.onExitStatusChanged?.({
@@ -112,7 +142,7 @@ describe('ExitDisplayPage', () => {
 
   it("completed holatida yakun matni va QR kodini birga ko‘rsatadi", async () => {
     renderPage()
-    await screen.findByText('Chiqish uchun mashinangizni yaqinlashtiring')
+    await screen.findByText('Kuting')
     await waitFor(() => expect(socketCallbacksRef.current).not.toBeNull())
     act(() => {
       socketCallbacksRef.current?.onExitStatusChanged?.({
@@ -129,10 +159,13 @@ describe('ExitDisplayPage', () => {
 
     expect(await screen.findByText("Rahmat, yaxshi yo'l!")).toBeInTheDocument()
     expect(screen.getByText('01A123BC')).toBeInTheDocument()
+    expect(screen.getByText(/Mashina turi:/)).toHaveTextContent('Oddiy')
+    expect(screen.getByText(/Kirgan vaqt:/)).not.toHaveTextContent('—')
+    expect(screen.getByText('Yakuniy summa')).toBeInTheDocument()
     expect(screen.getByText("15 000 so'm")).toBeInTheDocument()
     expect(screen.getByText('Turgan vaqt: 1 soat 30 daqiqa')).toBeInTheDocument()
     expect(screen.getByText("To'lov usuli: naqd")).toBeInTheDocument()
-    expect(screen.getByText('Onlayn to‘lov uchun skanerlang')).toBeInTheDocument()
+    expect(screen.queryByText('Onlayn to‘lov uchun skanerlang')).not.toBeInTheDocument()
     expect(screen.getByAltText('To‘lov QR kodi')).toHaveAttribute(
       'loading',
       'lazy',
@@ -141,7 +174,7 @@ describe('ExitDisplayPage', () => {
 
   it("completed matni 15 soniyadan keyin yo‘qoladi, QR kodi esa qoladi", async () => {
     renderPage()
-    await screen.findByText('Chiqish uchun mashinangizni yaqinlashtiring')
+    await screen.findByText('Kuting')
     await waitFor(() => expect(socketCallbacksRef.current).not.toBeNull())
 
     act(() => {
@@ -158,9 +191,7 @@ describe('ExitDisplayPage', () => {
     })
 
     expect(await screen.findByText("Rahmat, yaxshi yo'l!")).toBeInTheDocument()
-    expect(
-      await screen.findByText('Chiqish uchun mashinangizni yaqinlashtiring'),
-    ).toBeInTheDocument()
+    expect(await screen.findByText('Kuting')).toBeInTheDocument()
     expect(screen.queryByText("Rahmat, yaxshi yo'l!")).not.toBeInTheDocument()
     expect(screen.getByAltText('To‘lov QR kodi')).toBeInTheDocument()
   })
@@ -250,7 +281,7 @@ describe('ExitDisplayPage', () => {
   it("unmount qilinganda status taymerini tozalaydi", async () => {
     const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout')
     const { unmount } = renderPage()
-    await screen.findByText('Chiqish uchun mashinangizni yaqinlashtiring')
+    await screen.findByText('Kuting')
 
     act(() => {
       socketCallbacksRef.current?.onExitStatusChanged?.({

@@ -777,7 +777,7 @@
     "intervalTariffsTitle": "Нархлар",
     "intervalRangeLabel": "{{from}}–{{to}} дақиқа",
     "intervalRangeUnlimitedLabel": "{{from}}+ дақиқа",
-    "exitIdleMessage": "Чиқиш учун машинангизни яқинлаштиринг",
+    "exitIdleMessage": "Кутинг",
     "awaitingOperatorTitle": "Оператор тасдиғи кутилмоқда",
     "awaitingOperatorDescription": "Илтимос, оператор қарорини кутинг",
     "awaitingPaymentTitle": "Тўлов кутилмоқда",

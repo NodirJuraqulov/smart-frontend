@@ -223,13 +223,13 @@ describe('ExitCandidateModal', () => {
     renderModal()
 
     expect(screen.getByAltText('To‘lov QR kodi')).toBeInTheDocument()
+    expect(
+      screen.queryByText('Onlayn to‘lov uchun mijozga ko‘rsating'),
+    ).not.toBeInTheDocument()
     selectCash()
     expect(screen.getByAltText('To‘lov QR kodi')).toBeInTheDocument()
     selectOnline()
 
-    expect(
-      screen.getByText('Onlayn to‘lov uchun mijozga ko‘rsating'),
-    ).toBeInTheDocument()
     expect(screen.getByAltText('To‘lov QR kodi')).toHaveAttribute(
       'loading',
       'lazy',

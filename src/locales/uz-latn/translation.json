@@ -777,7 +777,7 @@
     "intervalTariffsTitle": "Narxlar",
     "intervalRangeLabel": "{{from}}–{{to}} daqiqa",
     "intervalRangeUnlimitedLabel": "{{from}}+ daqiqa",
-    "exitIdleMessage": "Chiqish uchun mashinangizni yaqinlashtiring",
+    "exitIdleMessage": "Kuting",
     "awaitingOperatorTitle": "Operator tasdig'i kutilmoqda",
     "awaitingOperatorDescription": "Iltimos, operator qarorini kuting",
     "awaitingPaymentTitle": "To'lov kutilmoqda",

@@ -457,7 +457,6 @@ export default function ExitCandidateModal({
               )}
               <PaymentQrCode
                 size="compact"
-                label={t('exitCandidates.onlinePaymentShowCustomer')}
                 alt={t('publicDisplay.paymentQrAlt')}
               />
             </div>

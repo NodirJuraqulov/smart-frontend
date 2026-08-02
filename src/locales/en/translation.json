@@ -777,7 +777,7 @@
     "intervalTariffsTitle": "Rates",
     "intervalRangeLabel": "{{from}}–{{to}} min",
     "intervalRangeUnlimitedLabel": "{{from}}+ min",
-    "exitIdleMessage": "Please drive up to exit",
+    "exitIdleMessage": "Please wait",
     "awaitingOperatorTitle": "Waiting for operator confirmation",
     "awaitingOperatorDescription": "Please wait for the operator's decision",
     "awaitingPaymentTitle": "Payment pending",
