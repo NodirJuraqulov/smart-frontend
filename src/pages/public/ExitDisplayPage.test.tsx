@@ -96,6 +96,16 @@ describe('ExitDisplayPage', () => {
     expect(container.firstElementChild).toHaveClass('min-h-screen')
   })
 
+  it("tashkilot nomini sahifada va brauzer sarlavhasida ko‘rsatmaydi", async () => {
+    renderPage()
+
+    await screen.findByText('Kuting')
+    expect(screen.queryByText('Chorsu Stoyanka')).not.toBeInTheDocument()
+    await waitFor(() =>
+      expect(document.title).not.toContain('Chorsu Stoyanka'),
+    )
+  })
+
   it("pastki qismda captionsiz faqat QR rasmini ko‘rsatadi", async () => {
     renderPage()
     await screen.findByText('Kuting')
@@ -226,7 +236,9 @@ describe('ExitDisplayPage', () => {
     })
     renderPage()
 
-    expect(await screen.findByText('To‘lov talab qilinmaydi')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(document.body).toHaveTextContent('To‘lov talab qilinmaydi')
+    })
     expect(screen.getByAltText('To‘lov QR kodi')).toBeInTheDocument()
   })
 

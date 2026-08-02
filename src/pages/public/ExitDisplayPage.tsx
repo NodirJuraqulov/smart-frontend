@@ -85,9 +85,7 @@ export default function ExitDisplayPage() {
     refetchInterval: 5000,
   })
 
-  useDocumentTitle(
-    `${t('publicDisplay.exitPageTitle')} — ${statusQuery.data?.orgName ?? ''}`,
-  )
+  useDocumentTitle(t('publicDisplay.exitPageTitle'))
 
   const isConnected = usePublicDisplaySocket(orgId, {
     onExitStatusChanged: (status) => {
@@ -135,11 +133,10 @@ export default function ExitDisplayPage() {
     )
   }
 
-  const data = statusQuery.data
   const flow = flowQuery.data
 
   return (
-    <DisplayLayout orgName={data.orgName} isConnected={isConnected}>
+    <DisplayLayout isConnected={isConnected}>
       <div
         data-testid="exit-display-portrait-layout"
         className="flex min-h-[calc(100vh-10rem)] w-full flex-col"
