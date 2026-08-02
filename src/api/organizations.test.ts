@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const { getMock, postMock, putMock, patchMock, deleteMock } = vi.hoisted(
   () => ({
@@ -27,12 +27,14 @@ import {
   createTariffIntervalAdmin,
   deleteTariffInterval,
   deleteTariffIntervalAdmin,
+  getCameraRelaySettings,
   getIntegrationSettings,
   getOrganizations,
   getPermissions,
   getTariffIntervals,
   getTariffIntervalsAdmin,
   updateCapacity,
+  updateCameraRelaySettings,
   updateIntegrationSettings,
   updatePermissions,
   updatePricingMode,
@@ -64,6 +66,14 @@ const integrationSettingsDto = {
   gateLayout: 'shared' as const,
   crossCameraGuardSeconds: 90,
 }
+
+beforeEach(() => {
+  getMock.mockReset()
+  postMock.mockReset()
+  putMock.mockReset()
+  patchMock.mockReset()
+  deleteMock.mockReset()
+})
 
 describe('integration settings lane protection', () => {
   it('GET camelCase qiymatlarini frontend modeliga map qiladi', async () => {
@@ -98,6 +108,63 @@ describe('integration settings lane protection', () => {
         camera_brand: 'hikvision',
         gate_layout: 'shared',
         cross_camera_guard_seconds: 90,
+      },
+    )
+  })
+})
+
+describe('camera relay settings', () => {
+  const cameraRelaySettings = {
+    entry: {
+      configured: true,
+      host: '192.168.1.10',
+      port: 80,
+      username: 'admin',
+      channel: 1,
+    },
+    exit: {
+      configured: false,
+      host: null,
+      port: 80,
+      username: null,
+      channel: 1,
+    },
+  }
+
+  it('GET organization camera relay endpointidan parolsiz sozlamalarni oladi', async () => {
+    getMock.mockResolvedValue({ data: cameraRelaySettings })
+
+    const result = await getCameraRelaySettings(7)
+
+    expect(getMock).toHaveBeenCalledWith(
+      '/api/organizations/7/camera-relay-settings',
+    )
+    expect(result).toEqual(cameraRelaySettings)
+    expect(result.entry).not.toHaveProperty('password')
+  })
+
+  it('PATCH faqat berilgan direction payloadini yuboradi', async () => {
+    patchMock.mockResolvedValue({ data: cameraRelaySettings })
+
+    await updateCameraRelaySettings({
+      orgId: 7,
+      entry: {
+        host: '192.168.1.10',
+        port: 80,
+        username: 'admin',
+        channel: 1,
+      },
+    })
+
+    expect(patchMock).toHaveBeenCalledWith(
+      '/api/organizations/7/camera-relay-settings',
+      {
+        entry: {
+          host: '192.168.1.10',
+          port: 80,
+          username: 'admin',
+          channel: 1,
+        },
       },
     )
   })

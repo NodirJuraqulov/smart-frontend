@@ -102,6 +102,7 @@ describe('mapAuthUser', () => {
     const result = mapAuthUser(
       {
         id: 'u1',
+        org_id: 1,
         name: 'Aziz',
         role: 'operator',
         org_name: 'Chorsu',
@@ -120,6 +121,7 @@ describe('mapAuthUser', () => {
 
     expect(result).toEqual({
       id: 'u1',
+      org_id: 1,
       name: 'Aziz',
       role: 'operator',
       org_name: 'Chorsu',
@@ -140,6 +142,7 @@ describe('mapAuthUser', () => {
     const result = mapAuthUser(
       {
         id: 'u2',
+        org_id: 1,
         name: 'Aziz Egamov',
         role: 'owner',
         org_name: 'Chorsu',
@@ -150,6 +153,7 @@ describe('mapAuthUser', () => {
 
     expect(result).toEqual({
       id: 'u2',
+      org_id: 1,
       name: 'Aziz Egamov',
       role: 'owner',
       org_name: 'Chorsu',

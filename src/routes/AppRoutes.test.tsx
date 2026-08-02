@@ -12,6 +12,7 @@ import type { AuthUser } from '@/types/auth'
 
 const operatorUser: AuthUser = {
   id: 'u1',
+  org_id: 1,
   name: 'Bekzod',
   role: 'operator',
   org_name: 'Chorsu',

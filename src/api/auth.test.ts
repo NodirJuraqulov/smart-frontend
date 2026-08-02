@@ -26,6 +26,7 @@ const authPermissionsDto = {
 
 const authUserDto = {
   id: 'u1',
+  org_id: 1,
   name: 'Bekzod',
   role: 'operator' as const,
   org_name: 'Chorsu',
@@ -77,6 +78,7 @@ describe('login', () => {
         refreshToken: 'owner-refresh-token',
         user: {
           id: 'u2',
+          org_id: 1,
           name: 'Aziz Egamov',
           role: 'owner',
           org_name: 'Chorsu',

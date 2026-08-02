@@ -72,3 +72,29 @@ export interface UpdateIntegrationSettingsPayload {
   gate_layout?: GateLayout
   cross_camera_guard_seconds?: number
 }
+
+export interface CameraRelayDirectionSettings {
+  configured: boolean
+  host: string | null
+  port: number
+  username: string | null
+  channel: number
+}
+
+export interface CameraRelaySettings {
+  entry: CameraRelayDirectionSettings
+  exit: CameraRelayDirectionSettings
+}
+
+export interface CameraRelayDirectionPayload {
+  host: string
+  port: number
+  username: string
+  password?: string
+  channel: number
+}
+
+export interface UpdateCameraRelaySettingsPayload {
+  entry?: CameraRelayDirectionPayload
+  exit?: CameraRelayDirectionPayload
+}

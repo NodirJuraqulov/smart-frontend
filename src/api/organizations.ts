@@ -8,10 +8,12 @@ import {
   type OrganizationDto,
 } from './mappers'
 import type {
+  CameraRelaySettings,
   CreateOrganizationPayload,
   OrganizationStats,
   PricingMode,
   UpdateIntegrationSettingsPayload,
+  UpdateCameraRelaySettingsPayload,
   UpdateOrganizationPayload,
 } from '@/types/organization'
 import type {
@@ -110,6 +112,24 @@ export const testPrinter = (orgId: number) =>
   axiosInstance
     .post<{ success: boolean; reason?: string }>(
       `/api/admin/organizations/${orgId}/printer/test`,
+    )
+    .then((res) => res.data)
+
+export const getCameraRelaySettings = (orgId: number) =>
+  axiosInstance
+    .get<CameraRelaySettings>(
+      `/api/organizations/${orgId}/camera-relay-settings`,
+    )
+    .then((res) => res.data)
+
+export const updateCameraRelaySettings = ({
+  orgId,
+  ...payload
+}: UpdateCameraRelaySettingsPayload & { orgId: number }) =>
+  axiosInstance
+    .patch<CameraRelaySettings>(
+      `/api/organizations/${orgId}/camera-relay-settings`,
+      payload,
     )
     .then((res) => res.data)
 

@@ -3,9 +3,12 @@ import { useTranslation } from 'react-i18next'
 import { Card, Descriptions, Empty, Skeleton, Typography } from 'antd'
 import { getSettings } from '@/api/settings'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { useAppSelector } from '@/hooks/redux'
+import CameraRelaySettingsCard from '@/pages/admin/OrganizationDetailPage/CameraRelaySettingsCard'
 
 export default function OperatorSettingsPage() {
   const { t } = useTranslation()
+  const user = useAppSelector((state) => state.auth.user)
   useDocumentTitle(t('operatorSettings.title'))
 
   const settingsQuery = useQuery({
@@ -38,6 +41,10 @@ export default function OperatorSettingsPage() {
           />
         )}
       </Card>
+
+      {user?.role === 'owner' && user.org_id ? (
+        <CameraRelaySettingsCard orgId={user.org_id} />
+      ) : null}
     </div>
   )
 }

@@ -5,6 +5,7 @@ export type UserRole = 'operator' | 'owner' | 'super_admin'
 
 export interface AuthUser {
   id: string
+  org_id: number | null
   name: string
   role: UserRole
   org_name?: string | null
@@ -14,6 +15,7 @@ export interface AuthUser {
 
 export interface AuthUserDto {
   id: string
+  org_id: number | null
   name: string
   role: UserRole
   org_name?: string | null
