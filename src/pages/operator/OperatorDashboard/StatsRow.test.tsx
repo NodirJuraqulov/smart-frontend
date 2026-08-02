@@ -114,9 +114,9 @@ describe('StatsRow', () => {
     getCapacityMock.mockResolvedValue({ occupied: 8, total: 50, available: 42 })
     renderRow()
 
-    const activityCard = (await screen.findByText('Bugungi harakat')).closest(
-      '.ant-card',
-    )!
+    const activityCard = (
+      await screen.findByText('Bugungi harakat')
+    ).closest<HTMLElement>('.ant-card')!
     expect(within(activityCard).getByText('Bugun kirdi')).toBeInTheDocument()
     expect(within(activityCard).getByText('10')).toBeInTheDocument()
     expect(within(activityCard).getByText('Bugun chiqdi')).toBeInTheDocument()

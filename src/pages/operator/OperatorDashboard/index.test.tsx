@@ -357,6 +357,10 @@ describe('OperatorDashboard exit candidate WebSocket va ruxsat oqimi', () => {
       )
       socketCallbacksRef.current!.onEntryCandidateResolved?.({
         candidateId: 17,
+        orgId: 1,
+        status: 'accepted',
+        sessionId: 101,
+        barrierStatus: 'opened',
       })
     })
 

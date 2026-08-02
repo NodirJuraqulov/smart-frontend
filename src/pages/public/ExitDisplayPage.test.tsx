@@ -80,19 +80,20 @@ describe('ExitDisplayPage', () => {
   })
 
   it("chiqish ekranini yuqori-pastki vertikal layoutda ko‘rsatadi", async () => {
-    const { container } = renderPage()
+    const { container, getByAltText, getByTestId } = renderPage()
 
-    expect(await screen.findByText('Kuting')).toBeInTheDocument()
-    const layout = screen.getByTestId('exit-display-portrait-layout')
+    await waitFor(() => {
+      expect(document.body).toHaveTextContent('Kuting')
+    })
+    const layout = getByTestId('exit-display-portrait-layout')
+    const statusSection = getByTestId('exit-display-status-section')
+    const qrSection = getByTestId('exit-display-qr-section')
+    const qrImage = getByAltText('To‘lov QR kodi')
     expect(layout).toHaveClass('flex', 'flex-col')
     expect(layout).not.toHaveClass('lg:grid-cols-2')
-    expect(screen.getByTestId('exit-display-status-section')).toHaveClass(
-      'flex-[3]',
-    )
-    expect(screen.getByTestId('exit-display-qr-section')).toHaveClass(
-      'flex-[2]',
-    )
-    expect(screen.getByAltText('To‘lov QR kodi')).toBeInTheDocument()
+    expect(statusSection).toHaveClass('flex-[3]')
+    expect(qrSection).toHaveClass('flex-[2]')
+    expect(qrImage).toBeInTheDocument()
     expect(container.firstElementChild).toHaveClass('min-h-screen')
   })
 
@@ -291,7 +292,7 @@ describe('ExitDisplayPage', () => {
   })
 
   it("unmount qilinganda status taymerini tozalaydi", async () => {
-    const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout')
+    const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout')
     const { unmount } = renderPage()
     await screen.findByText('Kuting')
 

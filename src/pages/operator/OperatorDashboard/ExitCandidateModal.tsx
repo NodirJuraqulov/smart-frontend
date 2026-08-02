@@ -384,7 +384,11 @@ export default function ExitCandidateModal({
         </div>
 
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Card size="small" title={t('exitCandidates.vehicleDetails')}>
+          <Card
+            data-testid="exit-candidate-vehicle-details"
+            size="small"
+            title={t('exitCandidates.vehicleDetails')}
+          >
             <Descriptions column={1} size="small">
               <Descriptions.Item label={t('exitCandidates.plateNumber')}>
                 {displayPlate ? (
@@ -415,46 +419,39 @@ export default function ExitCandidateModal({
                 {amount != null ? formatMoney(amount) : '—'}
               </Descriptions.Item>
             </Descriptions>
+            {session && isRegular && (
+              <div className="flex flex-col gap-3 border-t pt-4">
+                <Typography.Text strong>
+                  {t('exitCandidates.paymentMethod')}
+                </Typography.Text>
+                <Radio.Group
+                  value={paymentMethod}
+                  onChange={(event) => setPaymentMethod(event.target.value)}
+                  optionType="button"
+                  buttonStyle="solid"
+                  options={[
+                    { label: t('paymentMethod.cash'), value: 'cash' },
+                    { label: t('paymentMethod.online'), value: 'online' },
+                  ]}
+                />
+              </div>
+            )}
           </Card>
 
-          <Card size="small" title={t('exitCandidates.paymentAndAction')}>
-            <div className="flex flex-col gap-5">
-              {session ? (
-                isRegular ? (
-                  <div className="flex flex-col gap-3">
-                    <Typography.Text strong>
-                      {t('exitCandidates.paymentMethod')}
-                    </Typography.Text>
-                    <Radio.Group
-                      value={paymentMethod}
-                      onChange={(event) => setPaymentMethod(event.target.value)}
-                      optionType="button"
-                      buttonStyle="solid"
-                      options={[
-                        { label: t('paymentMethod.cash'), value: 'cash' },
-                        { label: t('paymentMethod.online'), value: 'online' },
-                      ]}
-                    />
-                    <Typography.Text strong>
-                      {amount != null ? formatMoney(amount) : '—'}
-                    </Typography.Text>
-                  </div>
-                ) : (
-                  <Space orientation="vertical">
-                    <Typography.Text strong>
-                      {t('exitCandidates.paymentNotRequired')}
-                    </Typography.Text>
-                    <Typography.Title level={4} className="m-0!">
-                      {formatMoney(0)}
-                    </Typography.Title>
-                  </Space>
-                )
-              ) : (
-                <Empty
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
-                  description={t('exitCandidates.vehicleNotSelected')}
-                />
-              )}
+          <Card
+            data-testid="exit-candidate-qr-column"
+            size="small"
+            className="h-full"
+            styles={{
+              body: {
+                height: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              },
+            }}
+          >
+            <div className="flex w-full items-center justify-center">
               <PaymentQrCode
                 size="compact"
                 alt={t('publicDisplay.paymentQrAlt')}

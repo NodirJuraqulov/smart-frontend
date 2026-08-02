@@ -1,8 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { App as AntdApp } from 'antd'
 import ExitCandidateModal from './ExitCandidateModal'
+import type * as ExitCandidatesApi from '@/api/exitCandidates'
 import type {
   ExitCandidateActiveSession,
   ExitCandidateNext,
@@ -15,10 +22,14 @@ const {
   retryExitCandidateBarrierMock,
   searchExitCandidateMock,
 } = vi.hoisted(() => ({
-  confirmExitCandidateMock: vi.fn(),
-  forceOpenExitCandidateMock: vi.fn(),
-  retryExitCandidateBarrierMock: vi.fn(),
-  searchExitCandidateMock: vi.fn(),
+  confirmExitCandidateMock:
+    vi.fn<typeof ExitCandidatesApi.confirmExitCandidate>(),
+  forceOpenExitCandidateMock:
+    vi.fn<typeof ExitCandidatesApi.forceOpenExitCandidate>(),
+  retryExitCandidateBarrierMock:
+    vi.fn<typeof ExitCandidatesApi.retryExitCandidateBarrier>(),
+  searchExitCandidateMock:
+    vi.fn<typeof ExitCandidatesApi.searchExitCandidate>(),
 }))
 
 vi.mock('@/api/exitCandidates', () => ({
@@ -89,6 +100,28 @@ const activeSession: ExitCandidateActiveSession = {
   tariff_snapshot_amount: 0,
 }
 
+interface TestQueries {
+  getAllByTestId: (id: string) => HTMLElement[]
+  getAllByText: (text: string | RegExp) => HTMLElement[]
+  getByAltText: (text: string | RegExp) => HTMLElement
+  getByPlaceholderText: (text: string | RegExp) => HTMLElement
+  getByRole: (
+    role: string,
+    options?: { name?: string | RegExp },
+  ) => HTMLElement
+  getByTestId: (id: string) => HTMLElement
+  getByText: (text: string | RegExp) => HTMLElement
+  queryByRole: (
+    role: string,
+    options?: { name?: string | RegExp },
+  ) => HTMLElement | null
+  queryByTestId: (id: string) => HTMLElement | null
+  queryByText: (text: string | RegExp) => HTMLElement | null
+}
+
+const page = screen as unknown as TestQueries
+const scope = within as unknown as (element: HTMLElement) => TestQueries
+
 function renderModal(value: ExitCandidateNext = candidate) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
@@ -113,30 +146,71 @@ function renderModal(value: ExitCandidateNext = candidate) {
   return { onClose, onResolved, onPendingRefresh, onDataChanged }
 }
 
-function selectCash() {
-  fireEvent.click(screen.getByRole('radio', { name: 'Naqd' }))
+function queryButtonByText(label: string): HTMLButtonElement | null {
+  return (
+    Array.from(
+      document.querySelectorAll<HTMLButtonElement>('button'),
+    ).find((element) => element.textContent?.trim() === label) ?? null
+  )
 }
 
-function selectOnline() {
-  fireEvent.click(screen.getByRole('radio', { name: 'Online' }))
+function getButtonByText(label: string): HTMLButtonElement {
+  const button = queryButtonByText(label)
+  if (!button) throw new Error(`Button not found: ${label}`)
+  return button
+}
+
+function clickButton(label: string): void {
+  const button = getButtonByText(label)
+  fireEvent.click(button)
+}
+
+function clickText(text: string): void {
+  const element = page.getByText(text)
+  fireEvent.click(element)
+}
+
+function selectCash(): void {
+  const radio = page.getByRole('radio', { name: 'Naqd' })
+  fireEvent.click(radio)
+}
+
+async function waitForText(text: string): Promise<void> {
+  await waitFor(() => {
+    expect(document.body).toHaveTextContent(text)
+  })
+}
+
+async function waitForButton(label: string): Promise<HTMLButtonElement> {
+  let button: HTMLButtonElement | null = null
+  await waitFor(() => {
+    button = queryButtonByText(label)
+    if (!button) throw new Error(`Button not found: ${label}`)
+  })
+  if (!button) throw new Error(`Button not found: ${label}`)
+  return button
 }
 
 describe('ExitCandidateModal', () => {
   beforeEach(() => {
-    confirmExitCandidateMock.mockReset().mockResolvedValue({
+    confirmExitCandidateMock.mockReset()
+    confirmExitCandidateMock.mockResolvedValue({
       session_id: 'session-1',
       plate: '01A777BA',
       amount: 12000,
       payment_method: 'cash',
       barrier_status: 'opened',
     })
-    forceOpenExitCandidateMock.mockReset().mockResolvedValue({
+    forceOpenExitCandidateMock.mockReset()
+    forceOpenExitCandidateMock.mockResolvedValue({
       barrier_status: 'opened',
     })
-    retryExitCandidateBarrierMock.mockReset().mockResolvedValue({
+    retryExitCandidateBarrierMock.mockReset()
+    retryExitCandidateBarrierMock.mockResolvedValue({
       barrier_status: 'opened',
     })
-    searchExitCandidateMock.mockReset().mockResolvedValue({
+    searchExitCandidateMock.mockReset()
+    searchExitCandidateMock.mockResolvedValue({
       results: [searchResult],
       active_sessions: [activeSession],
     })
@@ -145,11 +219,16 @@ describe('ExitCandidateModal', () => {
   it('faqat kirish va chiqish avtomobil rasmlarini ko‘rsatadi', () => {
     renderModal()
 
-    expect(screen.getByText('Kirish — avtomobil')).toBeInTheDocument()
-    expect(screen.getByText('Chiqish — avtomobil')).toBeInTheDocument()
-    expect(screen.getAllByTestId('authenticated-image')).toHaveLength(2)
-    expect(screen.queryByText(/davlat raqami rasmi/i)).not.toBeInTheDocument()
-    expect(screen.queryByText(/plate/i)).not.toBeInTheDocument()
+    const entryTitle = page.getByText('Kirish — avtomobil')
+    const exitTitle = page.getByText('Chiqish — avtomobil')
+    const images = page.getAllByTestId('authenticated-image')
+    const plateImageLabel = page.queryByText(/davlat raqami rasmi/i)
+    const rawPlateLabel = page.queryByText(/plate/i)
+    expect(entryTitle).toBeInTheDocument()
+    expect(exitTitle).toBeInTheDocument()
+    expect(images).toHaveLength(2)
+    expect(plateImageLabel).not.toBeInTheDocument()
+    expect(rawPlateLabel).not.toBeInTheDocument()
   })
 
   it('image_available false bo‘lsa xavfsiz bo‘sh holat ko‘rsatadi', () => {
@@ -165,8 +244,10 @@ describe('ExitCandidateModal', () => {
       },
     })
 
-    expect(screen.getAllByText('Rasm mavjud emas')).toHaveLength(2)
-    expect(screen.queryByTestId('authenticated-image')).not.toBeInTheDocument()
+    const emptyStates = page.getAllByText('Rasm mavjud emas')
+    const image = page.queryByTestId('authenticated-image')
+    expect(emptyStates).toHaveLength(2)
+    expect(image).not.toBeInTheDocument()
   })
 
   it('confirm mutation davomida ikkinchi submitni bloklaydi', async () => {
@@ -184,7 +265,7 @@ describe('ExitCandidateModal', () => {
     )
     renderModal()
     selectCash()
-    const button = screen.getByRole('button', {
+    const button = page.getByRole('button', {
       name: 'Tasdiqlash va ochish',
     })
 
@@ -207,9 +288,7 @@ describe('ExitCandidateModal', () => {
   it('matched sessiya confirmida session_id yubormaydi', async () => {
     const { onResolved } = renderModal()
     selectCash()
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Tasdiqlash va ochish' }),
-    )
+    clickButton('Tasdiqlash va ochish')
 
     await waitFor(() =>
       expect(confirmExitCandidateMock).toHaveBeenCalledWith('candidate-1', {
@@ -219,25 +298,52 @@ describe('ExitCandidateModal', () => {
     await waitFor(() => expect(onResolved).toHaveBeenCalled())
   })
 
-  it('regular sessiyada tanlovsiz, naqd va online holatlarida QR kodini doim ko‘rsatadi', () => {
+  it('Naqd va Online tanlovini mashina ma’lumotlari ustunida ko‘rsatadi', () => {
     renderModal()
 
-    expect(screen.getByAltText('To‘lov QR kodi')).toBeInTheDocument()
-    expect(
-      screen.queryByText('Onlayn to‘lov uchun mijozga ko‘rsating'),
-    ).not.toBeInTheDocument()
-    selectCash()
-    expect(screen.getByAltText('To‘lov QR kodi')).toBeInTheDocument()
-    selectOnline()
-
-    expect(screen.getByAltText('To‘lov QR kodi')).toHaveAttribute(
-      'loading',
-      'lazy',
+    const vehicleDetails = page.getByTestId(
+      'exit-candidate-vehicle-details',
     )
+    const qrColumn = page.getByTestId('exit-candidate-qr-column')
+    const cashRadio = scope(vehicleDetails).getByRole('radio', {
+      name: 'Naqd',
+    })
+    const onlineRadio = scope(vehicleDetails).getByRole('radio', {
+      name: 'Online',
+    })
+    const qrRadio = scope(qrColumn).queryByRole('radio')
+    expect(cashRadio).toBeInTheDocument()
+    expect(onlineRadio).toBeInTheDocument()
+    expect(qrRadio).not.toBeInTheDocument()
+  })
+
+  it('yakuniy summani chap ustunda faqat bir marta ko‘rsatadi', () => {
+    renderModal()
+
+    const vehicleDetails = page.getByTestId(
+      'exit-candidate-vehicle-details',
+    )
+    const amount = scope(vehicleDetails).getByText("12 000 so'm")
+    const amounts = page.getAllByText("12 000 so'm")
+    expect(amount).toBeInTheDocument()
+    expect(amounts).toHaveLength(1)
+  })
+
+  it('o‘ng ustunda faqat QR kodini ko‘rsatadi', () => {
+    renderModal()
+
+    const qrColumn = page.getByTestId('exit-candidate-qr-column')
+    const qrImage = scope(qrColumn).getByAltText('To‘lov QR kodi')
+    const button = scope(qrColumn).queryByRole('button')
+    const radio = scope(qrColumn).queryByRole('radio')
+    expect(qrImage).toHaveAttribute('loading', 'lazy')
+    expect(qrColumn).toHaveTextContent('')
+    expect(button).not.toBeInTheDocument()
+    expect(radio).not.toBeInTheDocument()
   })
 
   it.each(['vip', 'subscription'] as const)(
-    '%s sessiya uchun to‘lov tanlovini yashiradi, 0 so‘m va QR ko‘rsatadi',
+    '%s sessiya uchun to‘lov tanlovini yashiradi va summani chapda ko‘rsatadi',
     (source) => {
       renderModal({
         ...candidate,
@@ -248,35 +354,45 @@ describe('ExitCandidateModal', () => {
         },
       })
 
-      expect(screen.queryByRole('radio', { name: 'Naqd' })).not.toBeInTheDocument()
-      expect(screen.queryByRole('radio', { name: 'Online' })).not.toBeInTheDocument()
-      expect(screen.getByText('To‘lov talab qilinmaydi')).toBeInTheDocument()
-      expect(screen.getAllByText("0 so'm").length).toBeGreaterThan(0)
-      expect(screen.getByAltText('To‘lov QR kodi')).toBeInTheDocument()
+      const cashRadio = page.queryByRole('radio', { name: 'Naqd' })
+      const onlineRadio = page.queryByRole('radio', { name: 'Online' })
+      const amounts = page.getAllByText("0 so'm")
+      const vehicleDetails = page.getByTestId(
+        'exit-candidate-vehicle-details',
+      )
+      const qrColumn = page.getByTestId('exit-candidate-qr-column')
+      const amount = scope(vehicleDetails).getByText("0 so'm")
+      const qrImage = scope(qrColumn).getByAltText('To‘lov QR kodi')
+      expect(cashRadio).not.toBeInTheDocument()
+      expect(onlineRadio).not.toBeInTheDocument()
+      expect(amounts).toHaveLength(1)
+      expect(amount).toBeInTheDocument()
+      expect(qrImage).toBeInTheDocument()
     },
   )
 
   it('search natijasini tanlab confirmga faqat yangi session_id yuboradi', async () => {
     renderModal()
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Boshqa sessiyani tanlash' }),
+    clickButton('Boshqa sessiyani tanlash')
+    const searchInput = page.getByPlaceholderText(
+      'Chiqayotgan mashina raqamini kiriting',
     )
     fireEvent.change(
-      screen.getByPlaceholderText('Chiqayotgan mashina raqamini kiriting'),
+      searchInput,
       { target: { value: '01B555BB' } },
     )
-    fireEvent.click(screen.getByRole('button', { name: 'Qidirish' }))
+    clickButton('Qidirish')
 
-    const resultCard = await screen.findByRole('button', { name: /01B555BB/ })
+    await waitForText('01B555BB')
+    const resultCard = page.getByRole('button', { name: /01B555BB/ })
     fireEvent.click(resultCard)
-    expect(screen.getByAltText('Kirish — avtomobil')).toHaveAttribute(
+    const entryImage = page.getByAltText('Kirish — avtomobil')
+    expect(entryImage).toHaveAttribute(
       'src',
       '/api/sessions/session-2/entry-overview',
     )
     selectCash()
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Tasdiqlash va ochish' }),
-    )
+    clickButton('Tasdiqlash va ochish')
 
     await waitFor(() =>
       expect(confirmExitCandidateMock).toHaveBeenCalledWith('candidate-1', {
@@ -288,12 +404,11 @@ describe('ExitCandidateModal', () => {
 
   it('search natijasida davomiylik, taxminiy summa va foizni ko‘rsatadi', async () => {
     renderModal()
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Boshqa sessiyani tanlash' }),
-    )
-    fireEvent.click(screen.getByRole('button', { name: 'Qidirish' }))
+    clickButton('Boshqa sessiyani tanlash')
+    clickButton('Qidirish')
 
-    const resultCard = await screen.findByRole('button', { name: /01B555BB/ })
+    await waitForText('01B555BB')
+    const resultCard = page.getByRole('button', { name: /01B555BB/ })
     expect(resultCard).toHaveTextContent('2 soat 14 daqiqa')
     expect(resultCard).toHaveTextContent("15 000 so'm")
     expect(resultCard).toHaveTextContent(
@@ -302,19 +417,20 @@ describe('ExitCandidateModal', () => {
     expect(resultCard).toHaveTextContent('O‘xshashlik: 87.5%')
 
     fireEvent.click(resultCard)
-    expect(screen.getByText('Summa')).toBeInTheDocument()
-    expect(screen.getByText('2 soat 14 daqiqa')).toBeInTheDocument()
-    expect(screen.getAllByText("15 000 so'm").length).toBeGreaterThan(0)
+    const amountLabel = page.getByText('Summa')
+    const duration = page.getByText('2 soat 14 daqiqa')
+    const amounts = page.getAllByText("15 000 so'm")
+    expect(amountLabel).toBeInTheDocument()
+    expect(duration).toBeInTheDocument()
+    expect(amounts.length).toBeGreaterThan(0)
   })
 
   it('Barcha faol mashinalar tabida active_sessionsni ko‘rsatadi', async () => {
     renderModal()
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Boshqa sessiyani tanlash' }),
-    )
-    fireEvent.click(screen.getByText('Barcha faol mashinalar'))
+    clickButton('Boshqa sessiyani tanlash')
+    clickText('Barcha faol mashinalar')
 
-    expect(await screen.findByText('01C333CC')).toBeInTheDocument()
+    await waitForText('01C333CC')
     expect(searchExitCandidateMock).toHaveBeenCalledWith(
       'candidate-1',
       undefined,
@@ -323,33 +439,32 @@ describe('ExitCandidateModal', () => {
 
   it('Qidiruv va barcha faol mashinalar natijalarini bir vaqtda ko‘rsatmaydi', async () => {
     renderModal()
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Boshqa sessiyani tanlash' }),
-    )
-    fireEvent.click(screen.getByRole('button', { name: 'Qidirish' }))
-    expect(await screen.findByText('01B555BB')).toBeInTheDocument()
+    clickButton('Boshqa sessiyani tanlash')
+    clickButton('Qidirish')
+    await waitForText('01B555BB')
 
-    fireEvent.click(screen.getByText('Barcha faol mashinalar'))
-    expect(await screen.findByText('01C333CC')).toBeInTheDocument()
-    expect(screen.queryByText('01B555BB')).not.toBeInTheDocument()
+    clickText('Barcha faol mashinalar')
+    await waitForText('01C333CC')
+    const hiddenSearchResult = page.queryByText('01B555BB')
+    expect(hiddenSearchResult).not.toBeInTheDocument()
 
-    fireEvent.click(screen.getByText('Qidiruv'))
-    expect(screen.getByText('01B555BB')).toBeInTheDocument()
-    expect(screen.queryByText('01C333CC')).not.toBeInTheDocument()
+    clickText('Qidiruv')
+    const searchResultItem = page.getByText('01B555BB')
+    const hiddenActiveSession = page.queryByText('01C333CC')
+    expect(searchResultItem).toBeInTheDocument()
+    expect(hiddenActiveSession).not.toBeInTheDocument()
   })
 
   it('active_sessions tanlanganda confirmga session_id yuboradi', async () => {
     renderModal()
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Boshqa sessiyani tanlash' }),
-    )
-    fireEvent.click(screen.getByText('Barcha faol mashinalar'))
-    fireEvent.click(
-      await screen.findByRole('button', { name: /01C333CC/ }),
-    )
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Tasdiqlash va ochish' }),
-    )
+    clickButton('Boshqa sessiyani tanlash')
+    clickText('Barcha faol mashinalar')
+    await waitForText('01C333CC')
+    const activeSessionButton = page.getByRole('button', {
+      name: /01C333CC/,
+    })
+    fireEvent.click(activeSessionButton)
+    clickButton('Tasdiqlash va ochish')
 
     await waitFor(() =>
       expect(confirmExitCandidateMock).toHaveBeenCalledWith('candidate-1', {
@@ -361,57 +476,63 @@ describe('ExitCandidateModal', () => {
   it('matched session bo‘lmasa avtomatik search rejimini va tanlanmagan holatini ko‘rsatadi', () => {
     renderModal({ ...candidate, matched_session: null })
 
-    expect(
-      screen.getByPlaceholderText('Chiqayotgan mashina raqamini kiriting'),
-    ).toBeInTheDocument()
-    expect(screen.getAllByText('Mashina tanlanmagan').length).toBeGreaterThan(0)
-    expect(
-      screen.getByRole('button', { name: 'Tasdiqlash va ochish' }),
-    ).toBeDisabled()
+    const searchInput = page.getByPlaceholderText(
+      'Chiqayotgan mashina raqamini kiriting',
+    )
+    const emptyStates = page.getAllByText('Mashina tanlanmagan')
+    const confirmButton = getButtonByText('Tasdiqlash va ochish')
+    expect(searchInput).toBeInTheDocument()
+    expect(emptyStates.length).toBeGreaterThan(0)
+    expect(confirmButton).toBeDisabled()
   })
 
   it('detected_plate null bo‘lsa matched sessiya bilan xatosiz ochiladi', () => {
-    expect(() =>
-      renderModal({ ...candidate, detected_plate: null }),
-    ).not.toThrow()
-    expect(screen.getByText('01A777BA')).toBeInTheDocument()
+    renderModal({ ...candidate, detected_plate: null })
+    const plate = page.getByText('01A777BA')
+    expect(plate).toBeInTheDocument()
   })
 
   it('detected_plate va matched_session null bo‘lsa search va force qiymatlari bo‘sh satr bo‘ladi', () => {
-    expect(() =>
-      renderModal({
-        ...candidate,
-        detected_plate: null,
-        matched_session: null,
-      }),
-    ).not.toThrow()
+    renderModal({
+      ...candidate,
+      detected_plate: null,
+      matched_session: null,
+    })
 
-    const searchInput = screen.getByPlaceholderText(
+    const searchInput = page.getByPlaceholderText(
       'Chiqayotgan mashina raqamini kiriting',
     )
+    const plateNotDetected = page.getByText('Raqam aniqlanmadi')
+    const searchButton = getButtonByText('Qidirish')
     expect(searchInput).toHaveValue('')
-    expect(screen.getByText('Raqam aniqlanmadi')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'Qidirish' })).toBeDisabled()
+    expect(plateNotDetected).toBeInTheDocument()
+    expect(searchButton).toBeDisabled()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Majburiy ochish' }))
-    expect(screen.getByRole('combobox')).toHaveValue('')
-    expect(screen.getByPlaceholderText('Izoh (ixtiyoriy)')).toHaveValue('')
+    clickButton('Majburiy ochish')
+    const reasonSelect = page.getByRole('combobox')
+    const noteInput = page.getByPlaceholderText('Izoh (ixtiyoriy)')
+    expect(reasonSelect).toHaveValue('')
+    expect(noteInput).toHaveValue('')
   })
 
   it('force-open uchun other izohini validatsiya qiladi va payload yuboradi', async () => {
     renderModal()
-    fireEvent.click(screen.getByRole('button', { name: 'Majburiy ochish' }))
-    fireEvent.mouseDown(screen.getByRole('combobox'))
-    fireEvent.click(await screen.findByText('Boshqa'))
+    clickButton('Majburiy ochish')
+    const reasonSelect = page.getByRole('combobox')
+    fireEvent.mouseDown(reasonSelect)
+    await waitForText('Boshqa')
+    clickText('Boshqa')
 
-    const confirmButton = screen.getByRole('button', {
+    const confirmButton = page.getByRole('button', {
       name: 'Majburiy ochishni tasdiqlash',
     })
+    const requiredMessage = page.getByText(
+      '“Boshqa” sababi uchun izoh majburiy',
+    )
+    const noteInput = page.getByPlaceholderText('Izoh (ixtiyoriy)')
     expect(confirmButton).toBeDisabled()
-    expect(
-      screen.getByText('“Boshqa” sababi uchun izoh majburiy'),
-    ).toBeInTheDocument()
-    fireEvent.change(screen.getByPlaceholderText('Izoh (ixtiyoriy)'), {
+    expect(requiredMessage).toBeInTheDocument()
+    fireEvent.change(noteInput, {
       target: { value: 'Maxsus holat' },
     })
     fireEvent.click(confirmButton)
@@ -434,37 +555,29 @@ describe('ExitCandidateModal', () => {
     })
     const { onResolved } = renderModal()
     selectCash()
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Tasdiqlash va ochish' }),
-    )
+    clickButton('Tasdiqlash va ochish')
 
-    const retryButton = await screen.findByRole('button', {
-      name: 'Qayta ochish',
-    })
+    const retryButton = await waitForButton('Qayta ochish')
     fireEvent.click(retryButton)
 
     await waitFor(() =>
       expect(retryExitCandidateBarrierMock).toHaveBeenCalledWith('candidate-1'),
     )
-    expect(await screen.findByText('Shlagbaum ochildi')).toBeInTheDocument()
+    await waitForText('Shlagbaum ochildi')
     expect(onResolved).toHaveBeenCalled()
   })
 
   it('force-open barrier failed bo‘lsa retry tugmasini ko‘rsatadi', async () => {
     forceOpenExitCandidateMock.mockResolvedValue({ barrier_status: 'failed' })
     renderModal()
-    fireEvent.click(screen.getByRole('button', { name: 'Majburiy ochish' }))
-    fireEvent.mouseDown(screen.getByRole('combobox'))
-    fireEvent.click(await screen.findByText('Favqulodda holat'))
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: 'Majburiy ochishni tasdiqlash',
-      }),
-    )
+    clickButton('Majburiy ochish')
+    const reasonSelect = page.getByRole('combobox')
+    fireEvent.mouseDown(reasonSelect)
+    await waitForText('Favqulodda holat')
+    clickText('Favqulodda holat')
+    clickButton('Majburiy ochishni tasdiqlash')
 
-    expect(
-      await screen.findByRole('button', { name: 'Qayta ochish' }),
-    ).toBeInTheDocument()
+    await waitForButton('Qayta ochish')
   })
 
   it.each(['disabled', 'not_configured'] as const)(
@@ -479,18 +592,13 @@ describe('ExitCandidateModal', () => {
       })
       const { onResolved } = renderModal()
       selectCash()
-      fireEvent.click(
-        screen.getByRole('button', { name: 'Tasdiqlash va ochish' }),
-      )
+      clickButton('Tasdiqlash va ochish')
 
-      expect(
-        await screen.findByText(
-          'To‘lov saqlandi, lekin shlagbaum konfiguratsiya qilinmagan. Administrator bilan bog‘laning',
-        ),
-      ).toBeInTheDocument()
-      expect(
-        screen.queryByRole('button', { name: 'Qayta ochish' }),
-      ).not.toBeInTheDocument()
+      await waitForText(
+        'To‘lov saqlandi, lekin shlagbaum konfiguratsiya qilinmagan. Administrator bilan bog‘laning',
+      )
+      const retryButton = queryButtonByText('Qayta ochish')
+      expect(retryButton).not.toBeInTheDocument()
       expect(onResolved).not.toHaveBeenCalled()
     },
   )
@@ -508,14 +616,11 @@ describe('ExitCandidateModal', () => {
     })
     renderModal()
     selectCash()
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Tasdiqlash va ochish' }),
-    )
-    fireEvent.click(await screen.findByRole('button', { name: 'Qayta ochish' }))
+    clickButton('Tasdiqlash va ochish')
+    const retryButton = await waitForButton('Qayta ochish')
+    fireEvent.click(retryButton)
 
-    expect(
-      await screen.findByRole('button', { name: 'Qayta ochish' }),
-    ).toBeInTheDocument()
+    await waitForButton('Qayta ochish')
   })
 
   it('retry not_configured bo‘lsa retry tugmasini yashiradi', async () => {
@@ -531,19 +636,15 @@ describe('ExitCandidateModal', () => {
     })
     renderModal()
     selectCash()
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Tasdiqlash va ochish' }),
-    )
-    fireEvent.click(await screen.findByRole('button', { name: 'Qayta ochish' }))
+    clickButton('Tasdiqlash va ochish')
+    const retryButton = await waitForButton('Qayta ochish')
+    fireEvent.click(retryButton)
 
-    expect(
-      await screen.findByText(
-        'To‘lov saqlandi, lekin shlagbaum konfiguratsiya qilinmagan. Administrator bilan bog‘laning',
-      ),
-    ).toBeInTheDocument()
-    expect(
-      screen.queryByRole('button', { name: 'Qayta ochish' }),
-    ).not.toBeInTheDocument()
+    await waitForText(
+      'To‘lov saqlandi, lekin shlagbaum konfiguratsiya qilinmagan. Administrator bilan bog‘laning',
+    )
+    const hiddenRetryButton = queryButtonByText('Qayta ochish')
+    expect(hiddenRetryButton).not.toBeInTheDocument()
   })
 
   it('retry 400 bo‘lsa backend errorini ko‘rsatadi va tugmani yashiradi', async () => {
@@ -563,19 +664,15 @@ describe('ExitCandidateModal', () => {
     })
     renderModal()
     selectCash()
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Tasdiqlash va ochish' }),
-    )
-    fireEvent.click(await screen.findByRole('button', { name: 'Qayta ochish' }))
+    clickButton('Tasdiqlash va ochish')
+    const retryButton = await waitForButton('Qayta ochish')
+    fireEvent.click(retryButton)
 
-    expect(
-      await screen.findByText('Shlagbaum konfiguratsiya qilinmagan'),
-    ).toBeInTheDocument()
-    await waitFor(() =>
-      expect(
-        screen.queryByRole('button', { name: 'Qayta ochish' }),
-      ).not.toBeInTheDocument(),
-    )
+    await waitForText('Shlagbaum konfiguratsiya qilinmagan')
+    await waitFor(() => {
+      const hiddenRetryButton = queryButtonByText('Qayta ochish')
+      expect(hiddenRetryButton).not.toBeInTheDocument()
+    })
   })
 
   it('409 bo‘lsa xabar ko‘rsatadi va modalni queue callback orqali yopadi', async () => {
@@ -585,15 +682,11 @@ describe('ExitCandidateModal', () => {
     })
     const { onResolved, onPendingRefresh } = renderModal()
     selectCash()
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Tasdiqlash va ochish' }),
-    )
+    clickButton('Tasdiqlash va ochish')
 
-    expect(
-      await screen.findByText(
-        'Bu chiqish allaqachon boshqa operator tomonidan hal qilingan',
-      ),
-    ).toBeInTheDocument()
+    await waitForText(
+      'Bu chiqish allaqachon boshqa operator tomonidan hal qilingan',
+    )
     expect(onPendingRefresh).not.toHaveBeenCalled()
     expect(onResolved).toHaveBeenCalled()
   })

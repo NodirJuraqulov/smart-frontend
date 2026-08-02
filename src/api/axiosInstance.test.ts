@@ -23,6 +23,7 @@ const {
     Promise.resolve({ data: 'retried', config }),
   ) as unknown as {
     (config: unknown): Promise<unknown>
+    mockClear: () => void
     interceptors: {
       request: { use: (handler: (config: unknown) => unknown) => void }
       response: {

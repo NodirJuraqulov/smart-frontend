@@ -157,13 +157,13 @@ describe('SessionImagesModal', () => {
   })
 
   it('faqat plate rasmi mavjud sessiyada action ko‘rsatmaydi', () => {
+    const plateOnlySession = {
+      ...baseSession,
+      entryPlateImageUrl: '/api/sessions/90/entry-plate',
+    } as ParkingSession & { entryPlateImageUrl: string }
+
     render(
-      <SessionImagesAction
-        session={{
-          ...baseSession,
-          entryPlateImageUrl: '/api/sessions/90/entry-plate',
-        }}
-      />,
+      <SessionImagesAction session={plateOnlySession} />,
     )
 
     expect(screen.getByText('Rasm mavjud emas')).toBeInTheDocument()

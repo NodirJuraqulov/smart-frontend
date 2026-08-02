@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+interface OperatorSocketOptions {
+  auth: (callback: (credentials: { token: string | null }) => void) => void
+}
+
+type SocketOptions = OperatorSocketOptions | Record<string, unknown>
+
 const { ioMock, socketMock } = vi.hoisted(() => {
   const socketMock = {
     on: vi.fn(),
@@ -7,7 +13,10 @@ const { ioMock, socketMock } = vi.hoisted(() => {
     connect: vi.fn(),
     id: 'socket-id',
   }
-  return { ioMock: vi.fn(() => socketMock), socketMock }
+  return {
+    ioMock: vi.fn((_url: string, _options: SocketOptions) => socketMock),
+    socketMock,
+  }
 })
 
 vi.mock('socket.io-client', () => ({ io: ioMock }))
@@ -30,7 +39,7 @@ describe('Socket.IO runtime base', () => {
     expect(ioMock).toHaveBeenCalledWith(API_BASE_URL, {
       auth: expect.any(Function),
     })
-    const options = ioMock.mock.calls[0][1]
+    const options = ioMock.mock.calls[0][1] as OperatorSocketOptions
     const callback = vi.fn()
     options.auth(callback)
     expect(callback).toHaveBeenCalledWith({ token: 'access-token' })

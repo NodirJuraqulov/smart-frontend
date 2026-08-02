@@ -211,7 +211,7 @@ describe('EntryDisplayPage', () => {
   })
 
   it("unmount qilinganda status taymerini tozalaydi", async () => {
-    const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout')
+    const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout')
     const { unmount } = renderPage()
     await screen.findByText("5 000 so'm / soat")
 
