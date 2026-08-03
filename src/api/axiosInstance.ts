@@ -1,10 +1,15 @@
-import axios, { type InternalAxiosRequestConfig } from 'axios'
-import { store } from '@/store/store'
-import { logout, tokensRefreshed } from '@/store/authSlice'
+import axios, {
+  type AxiosRequestHeaders,
+  type InternalAxiosRequestConfig,
+} from 'axios'
 import i18n from '@/i18n'
 import { getMessageApi } from '@/utils/notifier'
-import type { RefreshResponse } from '@/types/auth'
-import { API_BASE_URL, joinRuntimeUrl } from '@/utils/runtimeBaseUrl'
+import { API_BASE_URL } from '@/utils/runtimeBaseUrl'
+import {
+  invalidateSession,
+  markSessionAuthenticated,
+  refreshAccessToken,
+} from '@/services/authSession'
 
 export const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -16,6 +21,7 @@ export const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use((config) => {
   const token = localStorage.getItem('accessToken')
   if (token) {
+    markSessionAuthenticated()
     config.headers.Authorization = `Bearer ${token}`
   }
   return config
@@ -27,35 +33,9 @@ interface RetryableRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean
 }
 
-function forceLogout() {
-  getMessageApi()?.warning(i18n.t('auth.sessionExpired'))
-  store.dispatch(logout())
-}
-
-function performRefresh(refreshToken: string) {
-  return axios
-    .post<RefreshResponse>(
-      joinRuntimeUrl('/api/auth/refresh'),
-      { refreshToken },
-    )
-    .then((res) => res.data)
-}
-
-let isRefreshing = false
-let refreshWaiters: Array<(token: string | null) => void> = []
-
-function subscribeTokenRefresh(callback: (token: string | null) => void) {
-  refreshWaiters.push(callback)
-}
-
-function notifyRefreshWaiters(token: string | null) {
-  refreshWaiters.forEach((callback) => callback(token))
-  refreshWaiters = []
-}
-
 axiosInstance.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
     if (!error.response) {
       getMessageApi()?.error(i18n.t('common.networkError'))
       return Promise.reject(error)
@@ -68,53 +48,23 @@ axiosInstance.interceptors.response.use(
 
     if (error.response.status !== 401 || isAuthEndpoint || !originalRequest) {
       if (error.response.status === 401 && !isAuthEndpoint) {
-        forceLogout()
+        invalidateSession()
       }
-      return Promise.reject(error)
+      throw error
     }
 
-    const refreshToken = store.getState().auth.refreshToken
-    if (!refreshToken || originalRequest._retry) {
-      forceLogout()
-      return Promise.reject(error)
+    if (originalRequest._retry) {
+      invalidateSession()
+      throw error
     }
 
     originalRequest._retry = true
 
-    if (isRefreshing) {
-      return new Promise((resolve, reject) => {
-        subscribeTokenRefresh((newToken) => {
-          if (!newToken) {
-            reject(error)
-            return
-          }
-          originalRequest.headers.Authorization = `Bearer ${newToken}`
-          resolve(axiosInstance(originalRequest))
-        })
-      })
+    const newToken = await refreshAccessToken()
+    if (!originalRequest.headers) {
+      originalRequest.headers = {} as AxiosRequestHeaders
     }
-
-    isRefreshing = true
-
-    return performRefresh(refreshToken)
-      .then((data) => {
-        store.dispatch(
-          tokensRefreshed({
-            accessToken: data.token,
-            refreshToken: data.refreshToken,
-          }),
-        )
-        notifyRefreshWaiters(data.token)
-        originalRequest.headers.Authorization = `Bearer ${data.token}`
-        return axiosInstance(originalRequest)
-      })
-      .catch((refreshError) => {
-        notifyRefreshWaiters(null)
-        forceLogout()
-        return Promise.reject(refreshError)
-      })
-      .finally(() => {
-        isRefreshing = false
-      })
+    originalRequest.headers.Authorization = `Bearer ${newToken}`
+    return axiosInstance(originalRequest)
   },
 )

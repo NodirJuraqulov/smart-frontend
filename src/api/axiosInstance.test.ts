@@ -82,6 +82,10 @@ vi.mock('@/utils/notifier', () => ({
 
 import '@/api/axiosInstance'
 import { API_BASE_URL } from '@/utils/runtimeBaseUrl'
+import {
+  AUTH_SESSION_EXPIRED_EVENT,
+  markSessionAuthenticated,
+} from '@/services/authSession'
 
 function makeError(status: number, url = '/api/sessions') {
   return {
@@ -97,6 +101,8 @@ describe('axiosInstance response interceptor', () => {
     dispatchMock.mockClear()
     warningMock.mockClear()
     getStateMock.mockReset()
+    localStorage.clear()
+    markSessionAuthenticated()
   })
 
   it('authenticated Axios resolved runtime bazadan foydalanadi', () => {
@@ -123,6 +129,7 @@ describe('axiosInstance response interceptor', () => {
       tokensRefreshed({ accessToken: 'new-access', refreshToken: 'new-refresh' }),
     )
     expect(mockInstance).toHaveBeenCalledTimes(1)
+    expect(error.config.headers.Authorization).toBe('Bearer new-access')
   })
 
   it('parallel sorovlarda faqat bitta refresh sorovi ketadi', async () => {
@@ -151,14 +158,23 @@ describe('axiosInstance response interceptor', () => {
     expect(mockInstance).toHaveBeenCalledTimes(2)
   })
 
-  it('refresh muvaffaqiyatsiz bolsa logout chaqiriladi', async () => {
+  it('refresh 401 bolsa sessiya tozalanib login yonaltirish hodisasi yuboriladi', async () => {
     getStateMock.mockReturnValue({ auth: { refreshToken: 'old-refresh' } })
-    axiosPostMock.mockRejectedValue(new Error('refresh failed'))
+    axiosPostMock.mockRejectedValue({ response: { status: 401 } })
+    const sessionExpiredHandler = vi.fn()
+    window.addEventListener(AUTH_SESSION_EXPIRED_EVENT, sessionExpiredHandler)
 
     const error = makeError(401)
-    await expect(responseErrorHandlerRef.current!(error)).rejects.toThrow()
+    await expect(responseErrorHandlerRef.current!(error)).rejects.toEqual({
+      response: { status: 401 },
+    })
 
     expect(dispatchMock).toHaveBeenCalledWith(logout())
     expect(warningMock).toHaveBeenCalledTimes(1)
+    expect(sessionExpiredHandler).toHaveBeenCalledTimes(1)
+    window.removeEventListener(
+      AUTH_SESSION_EXPIRED_EVENT,
+      sessionExpiredHandler,
+    )
   })
 })

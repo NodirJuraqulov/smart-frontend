@@ -40,13 +40,14 @@ interface UseParkingSocketCallbacks {
 
 export function useParkingSocket(callbacks: UseParkingSocketCallbacks) {
   const accessToken = useAppSelector((state) => state.auth.accessToken)
+  const isAuthenticated = Boolean(accessToken)
   const role = useAppSelector((state) => state.auth.user?.role)
 
   const callbacksRef = useRef(callbacks)
   callbacksRef.current = callbacks
 
   useEffect(() => {
-    if (!accessToken || (role !== 'operator' && role !== 'owner')) return
+    if (!isAuthenticated || (role !== 'operator' && role !== 'owner')) return
 
     const socket = connectSocket()
 
@@ -136,5 +137,5 @@ export function useParkingSocket(callbacks: UseParkingSocketCallbacks) {
       socket.off('webhook_parse_failed', handleWebhookParseFailed)
       disconnectSocket()
     }
-  }, [accessToken, role])
+  }, [isAuthenticated, role])
 }
