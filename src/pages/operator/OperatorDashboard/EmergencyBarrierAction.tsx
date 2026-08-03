@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
   App as AntdApp,
@@ -12,12 +12,27 @@ import {
   Typography,
 } from 'antd'
 import { WarningOutlined } from '@ant-design/icons'
-import { openEmergencyBarrier } from '@/api/organizations'
+import {
+  getCameraRelaySettings,
+  getOrganizationGateLayout,
+  openEmergencyBarrier,
+} from '@/api/organizations'
 import { getErrorMessage } from '@/utils/apiError'
-import type { EmergencyBarrierDirection } from '@/types/organization'
+import type {
+  CameraRelaySettings,
+  EmergencyBarrierDirection,
+} from '@/types/organization'
 
 interface Props {
   orgId: number
+}
+
+function getSharedDirection(
+  settings: CameraRelaySettings | undefined,
+): EmergencyBarrierDirection {
+  return settings?.entry.configured && !settings.exit.configured
+    ? 'entry'
+    : 'exit'
 }
 
 export default function EmergencyBarrierAction({ orgId }: Props) {
@@ -27,6 +42,22 @@ export default function EmergencyBarrierAction({ orgId }: Props) {
   const [direction, setDirection] =
     useState<EmergencyBarrierDirection>('entry')
   const [reason, setReason] = useState('')
+  const gateLayoutQuery = useQuery({
+    queryKey: ['organizations', orgId, 'gate-layout'],
+    queryFn: () => getOrganizationGateLayout(orgId),
+    retry: false,
+  })
+  const relaySettingsQuery = useQuery({
+    queryKey: ['organizations', orgId, 'camera-relay-settings'],
+    queryFn: () => getCameraRelaySettings(orgId),
+    retry: false,
+  })
+  const isShared = gateLayoutQuery.data?.gate_layout === 'shared'
+  const requestDirection = isShared
+    ? getSharedDirection(relaySettingsQuery.data)
+    : direction
+  const isConfigurationLoading =
+    gateLayoutQuery.isLoading || relaySettingsQuery.isLoading
 
   const resetAndClose = () => {
     setOpen(false)
@@ -38,8 +69,8 @@ export default function EmergencyBarrierAction({ orgId }: Props) {
     mutationFn: () =>
       openEmergencyBarrier({
         orgId,
-        direction,
-        ...(reason.trim() ? { reason: reason.trim() } : {}),
+        direction: requestDirection,
+        ...(!isShared && reason.trim() ? { reason: reason.trim() } : {}),
       }),
     onSuccess: ({ barrier_status }) => {
       if (barrier_status === 'opened') {
@@ -81,6 +112,8 @@ export default function EmergencyBarrierAction({ orgId }: Props) {
         type="primary"
         size="small"
         icon={<WarningOutlined />}
+        loading={isConfigurationLoading}
+        disabled={isConfigurationLoading}
         onClick={() => setOpen(true)}
       >
         {t('operatorDashboard.emergencyBarrierButton')}
@@ -105,48 +138,62 @@ export default function EmergencyBarrierAction({ orgId }: Props) {
               disabled={mutation.isPending}
               onClick={submit}
             >
-              {t('operatorDashboard.emergencyBarrierConfirm')}
+              {t(
+                isShared
+                  ? 'operatorDashboard.emergencyBarrierSharedConfirmButton'
+                  : 'operatorDashboard.emergencyBarrierConfirm',
+              )}
             </Button>
           </Space>
         }
       >
         <Space orientation="vertical" size="large" className="w-full">
-          <Alert
-            showIcon
-            type="warning"
-            title={t('operatorDashboard.emergencyBarrierWarning')}
-          />
-          <Space orientation="vertical" className="w-full">
-            <Typography.Text strong>
-              {t('operatorDashboard.emergencyBarrierDirection')}
+          {isShared ? (
+            <Typography.Text>
+              {t('operatorDashboard.emergencyBarrierSharedConfirm')}
             </Typography.Text>
-            <Radio.Group
-              block
-              optionType="button"
-              buttonStyle="solid"
-              value={direction}
+          ) : (
+            <>
+              <Alert
+                showIcon
+                type="warning"
+                title={t('operatorDashboard.emergencyBarrierWarning')}
+              />
+              <Space orientation="vertical" className="w-full">
+                <Typography.Text strong>
+                  {t('operatorDashboard.emergencyBarrierDirection')}
+                </Typography.Text>
+                <Radio.Group
+                  block
+                  optionType="button"
+                  buttonStyle="solid"
+                  value={direction}
+                  disabled={mutation.isPending}
+                  onChange={(event) => setDirection(event.target.value)}
+                  options={[
+                    {
+                      value: 'entry',
+                      label: t('operatorDashboard.directionEntryLabel'),
+                    },
+                    {
+                      value: 'exit',
+                      label: t('operatorDashboard.directionExitLabel'),
+                    },
+                  ]}
+                />
+              </Space>
+            </>
+          )}
+          {!isShared && (
+            <Input.TextArea
+              value={reason}
               disabled={mutation.isPending}
-              onChange={(event) => setDirection(event.target.value)}
-              options={[
-                {
-                  value: 'entry',
-                  label: t('operatorDashboard.directionEntryLabel'),
-                },
-                {
-                  value: 'exit',
-                  label: t('operatorDashboard.directionExitLabel'),
-                },
-              ]}
+              maxLength={500}
+              rows={3}
+              placeholder={t('operatorDashboard.emergencyBarrierReason')}
+              onChange={(event) => setReason(event.target.value)}
             />
-          </Space>
-          <Input.TextArea
-            value={reason}
-            disabled={mutation.isPending}
-            maxLength={500}
-            rows={3}
-            placeholder={t('operatorDashboard.emergencyBarrierReason')}
-            onChange={(event) => setReason(event.target.value)}
-          />
+          )}
         </Space>
       </Modal>
     </>

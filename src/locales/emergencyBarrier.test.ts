@@ -8,6 +8,8 @@ const keys = [
   'emergencyBarrierButton',
   'emergencyBarrierTitle',
   'emergencyBarrierWarning',
+  'emergencyBarrierSharedConfirm',
+  'emergencyBarrierSharedConfirmButton',
   'emergencyBarrierDirection',
   'emergencyBarrierReason',
   'emergencyBarrierConfirm',

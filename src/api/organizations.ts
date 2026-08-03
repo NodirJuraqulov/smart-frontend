@@ -12,6 +12,7 @@ import type {
   CreateOrganizationPayload,
   EmergencyBarrierOpenParams,
   EmergencyBarrierOpenResponse,
+  GateLayout,
   OrganizationStats,
   PricingMode,
   UpdateIntegrationSettingsPayload,
@@ -121,6 +122,13 @@ export const getCameraRelaySettings = (orgId: number) =>
   axiosInstance
     .get<CameraRelaySettings>(
       `/api/organizations/${orgId}/camera-relay-settings`,
+    )
+    .then((res) => res.data)
+
+export const getOrganizationGateLayout = (orgId: number) =>
+  axiosInstance
+    .get<{ gate_layout: GateLayout }>(
+      `/api/organizations/${orgId}/gate-layout`,
     )
     .then((res) => res.data)
 

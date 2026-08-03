@@ -29,6 +29,7 @@ import {
   deleteTariffIntervalAdmin,
   getCameraRelaySettings,
   getIntegrationSettings,
+  getOrganizationGateLayout,
   getOrganizations,
   getPermissions,
   getTariffIntervals,
@@ -171,7 +172,33 @@ describe('camera relay settings', () => {
   })
 })
 
+describe('organization gate layout', () => {
+  it.each(['operator', 'owner'])(
+    '%s uchun organization endpointini chaqiradi',
+    async () => {
+      const gateLayout = { gate_layout: 'shared' as const }
+      getMock.mockResolvedValue({ data: gateLayout, status: 200 })
+
+      const result = await getOrganizationGateLayout(7)
+
+      expect(getMock).toHaveBeenCalledWith('/api/organizations/7/gate-layout')
+      expect(result).toEqual(gateLayout)
+    },
+  )
+})
+
 describe('emergency barrier', () => {
+  it('reason berilmasa POST bodyga reason maydonini qo‘shmaydi', async () => {
+    postMock.mockResolvedValue({ data: { barrier_status: 'opened' } })
+
+    await openEmergencyBarrier({ orgId: 7, direction: 'entry' })
+
+    expect(postMock).toHaveBeenCalledWith(
+      '/api/organizations/7/emergency-barrier-open',
+      { direction: 'entry' },
+    )
+  })
+
   it('organization endpointiga direction va tozalangan reason yuboradi', async () => {
     postMock.mockResolvedValue({ data: { barrier_status: 'opened' } })
 

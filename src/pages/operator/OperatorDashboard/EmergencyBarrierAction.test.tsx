@@ -11,11 +11,19 @@ import { App as AntdApp } from 'antd'
 import EmergencyBarrierAction from './EmergencyBarrierAction'
 import type { EmergencyBarrierOpenResponse } from '@/types/organization'
 
-const { openEmergencyBarrierMock } = vi.hoisted(() => ({
+const {
+  getCameraRelaySettingsMock,
+  getOrganizationGateLayoutMock,
+  openEmergencyBarrierMock,
+} = vi.hoisted(() => ({
+  getCameraRelaySettingsMock: vi.fn(),
+  getOrganizationGateLayoutMock: vi.fn(),
   openEmergencyBarrierMock: vi.fn(),
 }))
 
 vi.mock('@/api/organizations', () => ({
+  getCameraRelaySettings: getCameraRelaySettingsMock,
+  getOrganizationGateLayout: getOrganizationGateLayoutMock,
   openEmergencyBarrier: openEmergencyBarrierMock,
 }))
 
@@ -55,15 +63,98 @@ function renderAction() {
 }
 
 async function openModal() {
-  fireEvent.click(
-    screen.getByRole('button', { name: /Shlagbaumni ochish/ }),
-  )
+  const button = screen.getByRole('button', { name: /Shlagbaumni ochish/ })
+  await waitFor(() => expect(button).toBeEnabled())
+  fireEvent.click(button)
   return screen.findByRole('dialog')
+}
+
+const gateLayout = {
+  gate_layout: 'separate' as const,
+}
+
+const relaySettings = {
+  entry: {
+    configured: true,
+    host: '192.168.1.10',
+    port: 80,
+    username: 'admin',
+    channel: 1,
+  },
+  exit: {
+    configured: true,
+    host: '192.168.1.11',
+    port: 80,
+    username: 'admin',
+    channel: 1,
+  },
 }
 
 describe('EmergencyBarrierAction', () => {
   beforeEach(() => {
+    getOrganizationGateLayoutMock.mockReset().mockResolvedValue(gateLayout)
+    getCameraRelaySettingsMock.mockReset().mockResolvedValue(relaySettings)
     openEmergencyBarrierMock.mockReset()
+  })
+
+  it('shared layoutda yo‘nalish tanlovisiz qisqa tasdiqlash modalini ko‘rsatadi', async () => {
+    getOrganizationGateLayoutMock.mockResolvedValue({ gate_layout: 'shared' })
+    renderAction()
+
+    const modal = await openModal()
+
+    expect(modal).toHaveTextContent('Shlagbaumni ochishni tasdiqlaysizmi?')
+    expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument()
+    expect(screen.queryByText("Yo'nalish")).not.toBeInTheDocument()
+    expect(
+      screen.queryByPlaceholderText('Sabab (ixtiyoriy)'),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: 'Ha, ochish' }),
+    ).toBeInTheDocument()
+  })
+
+  it('shared layoutda configured relay directionini APIga yuboradi', async () => {
+    getOrganizationGateLayoutMock.mockResolvedValue({ gate_layout: 'shared' })
+    getCameraRelaySettingsMock.mockResolvedValue({
+      ...relaySettings,
+      exit: { ...relaySettings.exit, configured: false },
+    })
+    openEmergencyBarrierMock.mockResolvedValue({ barrier_status: 'failed' })
+    renderAction()
+    await openModal()
+    fireEvent.click(screen.getByRole('button', { name: 'Ha, ochish' }))
+
+    await waitFor(() =>
+      expect(openEmergencyBarrierMock).toHaveBeenCalledWith({
+        orgId: 7,
+        direction: 'entry',
+      }),
+    )
+  })
+
+  it('separate layoutda kirish va chiqish yo‘nalishi tanlovini saqlaydi', async () => {
+    renderAction()
+
+    await openModal()
+
+    expect(screen.getByRole('radio', { name: 'Kirish' })).toBeChecked()
+    expect(screen.getByRole('radio', { name: 'Chiqish' })).toBeInTheDocument()
+  })
+
+  it('shared layoutda ikkala relay configured bo‘lsa exitni yuboradi', async () => {
+    getOrganizationGateLayoutMock.mockResolvedValue({ gate_layout: 'shared' })
+    openEmergencyBarrierMock.mockResolvedValue({ barrier_status: 'failed' })
+    renderAction()
+    await openModal()
+    fireEvent.click(screen.getByRole('button', { name: 'Ha, ochish' }))
+
+    await waitFor(() =>
+      expect(openEmergencyBarrierMock).toHaveBeenCalledWith({
+        orgId: 7,
+        direction: 'exit',
+      }),
+    )
   })
 
   it('tugma bosilganda tasdiqlash modalini ochadi', async () => {

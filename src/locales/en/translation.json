@@ -561,6 +561,8 @@
     "emergencyBarrierButton": "Open barrier",
     "emergencyBarrierTitle": "Emergency barrier opening",
     "emergencyBarrierWarning": "This function is for emergencies only. The barrier will open without being linked to any session or payment.",
+    "emergencyBarrierSharedConfirm": "Do you confirm opening the barrier?",
+    "emergencyBarrierSharedConfirmButton": "Yes, open",
     "emergencyBarrierDirection": "Direction",
     "emergencyBarrierReason": "Reason (optional)",
     "emergencyBarrierConfirm": "Open",

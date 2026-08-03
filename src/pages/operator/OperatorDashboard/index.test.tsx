@@ -121,6 +121,14 @@ vi.mock('./ManualParkingEntryModal', () => ({
     open ? <div role="dialog">Qo‘lda kirish qo‘shish</div> : null,
 }))
 
+vi.mock('./EmergencyBarrierAction', () => ({
+  default: ({ orgId }: { orgId: number }) => (
+    <button data-testid="emergency-barrier-action" data-org-id={orgId}>
+      Shlagbaumni ochish
+    </button>
+  ),
+}))
+
 function renderDashboard() {
   const queryClient = new QueryClient()
   render(
@@ -311,8 +319,22 @@ describe('OperatorDashboard exit candidate WebSocket va ruxsat oqimi', () => {
       screen.queryByTestId('exit-candidate-workflow'),
     ).not.toBeInTheDocument()
     expect(
-      screen.getByRole('button', { name: /Shlagbaumni ochish/ }),
-    ).toBeInTheDocument()
+      screen.getByTestId('emergency-barrier-action'),
+    ).toHaveAttribute('data-org-id', '3')
+  })
+
+  it('ownerga emergency actionni organization id bilan ko‘rsatadi', async () => {
+    useAppSelectorMock.mockReset().mockReturnValue({
+      role: 'owner',
+      org_id: 9,
+      org_name: 'Test parking',
+    })
+
+    renderDashboard()
+
+    expect(
+      await screen.findByTestId('emergency-barrier-action'),
+    ).toHaveAttribute('data-org-id', '9')
   })
 
   it('sessions ruxsati bor operatorga candidate bo‘limini ko‘rsatadi', async () => {

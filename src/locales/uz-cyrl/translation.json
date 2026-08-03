@@ -561,6 +561,8 @@
     "emergencyBarrierButton": "Шлагбаумни очиш",
     "emergencyBarrierTitle": "Фавқулодда шлагбаумни очиш",
     "emergencyBarrierWarning": "Бу функция фақат фавқулодда ҳолатлар учун. Шлагбаум ҳеч қандай сессия ёки тўловга боғланмасдан очилади.",
+    "emergencyBarrierSharedConfirm": "Шлагбаумни очишни тасдиқлайсизми?",
+    "emergencyBarrierSharedConfirmButton": "Ҳа, очиш",
     "emergencyBarrierDirection": "Йўналиш",
     "emergencyBarrierReason": "Сабаб (ихтиёрий)",
     "emergencyBarrierConfirm": "Очиш",
