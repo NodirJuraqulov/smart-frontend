@@ -299,6 +299,7 @@ describe('OperatorDashboard exit candidate WebSocket va ruxsat oqimi', () => {
   it('sessions ruxsati yo‘q operatorga candidate bo‘limini ko‘rsatmaydi', async () => {
     useAppSelectorMock.mockReset().mockReturnValue({
       role: 'operator',
+      org_id: 3,
       org_name: 'Test parking',
       permissions: { can_view_sessions: false },
     })
@@ -309,6 +310,9 @@ describe('OperatorDashboard exit candidate WebSocket va ruxsat oqimi', () => {
     expect(
       screen.queryByTestId('exit-candidate-workflow'),
     ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /Shlagbaumni ochish/ }),
+    ).toBeInTheDocument()
   })
 
   it('sessions ruxsati bor operatorga candidate bo‘limini ko‘rsatadi', async () => {

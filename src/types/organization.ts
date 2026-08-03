@@ -1,5 +1,21 @@
 export type PricingMode = 'hourly' | 'interval'
 export type GateLayout = 'shared' | 'separate'
+export type EmergencyBarrierDirection = 'entry' | 'exit'
+export type EmergencyBarrierStatus =
+  | 'opened'
+  | 'failed'
+  | 'disabled'
+  | 'not_configured'
+
+export interface EmergencyBarrierOpenParams {
+  orgId: number
+  direction: EmergencyBarrierDirection
+  reason?: string
+}
+
+export interface EmergencyBarrierOpenResponse {
+  barrier_status: EmergencyBarrierStatus
+}
 
 export interface Organization {
   id: number

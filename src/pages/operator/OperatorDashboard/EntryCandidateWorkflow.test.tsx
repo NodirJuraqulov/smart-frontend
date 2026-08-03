@@ -80,10 +80,13 @@ describe('EntryCandidateWorkflow', () => {
     getNextEntryCandidateMock.mockResolvedValue(null)
     renderWorkflow()
 
-    expect(
-      await screen.findByRole('button', { name: 'Kirishni tekshirish (0)' }),
-    ).toBeInTheDocument()
+    const button = await screen.findByRole('button', {
+      name: 'Kirishni tekshirish (0)',
+    })
+    expect(button).toBeDisabled()
+    fireEvent.click(button)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(getNextEntryCandidateMock).toHaveBeenCalledTimes(1)
   })
 
   it('GET next 200 bo‘lsa entry modalni avtomatik ochadi', async () => {
@@ -104,6 +107,20 @@ describe('EntryCandidateWorkflow', () => {
       await screen.findByRole('button', { name: 'Kirishni tekshirish (2)' }),
     ).toBeInTheDocument()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('N > 0 bo‘lsa tugma entry modalni ochadi', async () => {
+    getNextEntryCandidateMock.mockResolvedValue(firstCandidate)
+    renderWorkflow({ autoOpenBlocked: true })
+
+    const button = await screen.findByRole('button', {
+      name: 'Kirishni tekshirish (2)',
+    })
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    fireEvent.click(button)
+
+    expect(await screen.findByRole('dialog')).toHaveTextContent('1')
+    expect(getNextEntryCandidateMock).toHaveBeenCalledTimes(1)
   })
 
   it('candidate hal qilingach nextni chaqirib keyingi entry modalni ochadi', async () => {

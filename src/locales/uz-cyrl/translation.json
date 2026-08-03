@@ -557,7 +557,17 @@
     "webhookParseFailedTitle": "Камера сигнали танилмади",
     "webhookParseFailedDescription": "Камера сигнал юборди, лекин формат танилмади ({{direction}})",
     "directionEntryLabel": "Кириш",
-    "directionExitLabel": "Чиқиш"
+    "directionExitLabel": "Чиқиш",
+    "emergencyBarrierButton": "Шлагбаумни очиш",
+    "emergencyBarrierTitle": "Фавқулодда шлагбаумни очиш",
+    "emergencyBarrierWarning": "Бу функция фақат фавқулодда ҳолатлар учун. Шлагбаум ҳеч қандай сессия ёки тўловга боғланмасдан очилади.",
+    "emergencyBarrierDirection": "Йўналиш",
+    "emergencyBarrierReason": "Сабаб (ихтиёрий)",
+    "emergencyBarrierConfirm": "Очиш",
+    "emergencyBarrierOpened": "Шлагбаум очилди",
+    "emergencyBarrierFailed": "Шлагбаум очилмади, қайта уриниб кўринг",
+    "emergencyBarrierUnavailable": "Шлагбаум конфигурация қилинмаган, администратор билан боғланинг",
+    "emergencyBarrierRequestError": "Шлагбаумни очишда хатолик юз берди"
   },
   "sessions": {
     "title": "Сессиялар",

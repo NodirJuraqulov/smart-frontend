@@ -10,6 +10,8 @@ import {
 import type {
   CameraRelaySettings,
   CreateOrganizationPayload,
+  EmergencyBarrierOpenParams,
+  EmergencyBarrierOpenResponse,
   OrganizationStats,
   PricingMode,
   UpdateIntegrationSettingsPayload,
@@ -132,6 +134,23 @@ export const updateCameraRelaySettings = ({
       payload,
     )
     .then((res) => res.data)
+
+export const openEmergencyBarrier = ({
+  orgId,
+  direction,
+  reason,
+}: EmergencyBarrierOpenParams) => {
+  const normalizedReason = reason?.trim()
+  return axiosInstance
+    .post<EmergencyBarrierOpenResponse>(
+      `/api/organizations/${orgId}/emergency-barrier-open`,
+      {
+        direction,
+        ...(normalizedReason ? { reason: normalizedReason } : {}),
+      },
+    )
+    .then((res) => res.data)
+}
 
 export const createOrganizationOperator = ({
   id,

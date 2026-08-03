@@ -557,7 +557,17 @@
     "webhookParseFailedTitle": "Сигнал камеры не распознан",
     "webhookParseFailedDescription": "Камера отправила сигнал, но формат не распознан ({{direction}})",
     "directionEntryLabel": "Въезд",
-    "directionExitLabel": "Выезд"
+    "directionExitLabel": "Выезд",
+    "emergencyBarrierButton": "Открыть шлагбаум",
+    "emergencyBarrierTitle": "Аварийное открытие шлагбаума",
+    "emergencyBarrierWarning": "Эта функция предназначена только для экстренных случаев. Шлагбаум откроется без привязки к сессии или оплате.",
+    "emergencyBarrierDirection": "Направление",
+    "emergencyBarrierReason": "Причина (необязательно)",
+    "emergencyBarrierConfirm": "Открыть",
+    "emergencyBarrierOpened": "Шлагбаум открыт",
+    "emergencyBarrierFailed": "Шлагбаум не открылся, попробуйте ещё раз",
+    "emergencyBarrierUnavailable": "Шлагбаум не настроен, свяжитесь с администратором",
+    "emergencyBarrierRequestError": "Произошла ошибка при открытии шлагбаума"
   },
   "sessions": {
     "title": "Сессии",

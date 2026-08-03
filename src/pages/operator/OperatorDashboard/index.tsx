@@ -25,6 +25,7 @@ import ManualEntryModal, { type ManualFormValues } from './ManualEntryModal'
 import ExitCandidateWorkflow from './ExitCandidateWorkflow'
 import EntryCandidateWorkflow from './EntryCandidateWorkflow'
 import ManualParkingEntryModal from './ManualParkingEntryModal'
+import EmergencyBarrierAction from './EmergencyBarrierAction'
 
 interface DetectionFailedState {
   type: DetectionType
@@ -47,6 +48,10 @@ export default function OperatorDashboard() {
   const orgName = user?.org_name
   const canViewExitCandidates =
     user?.role === 'owner' || Boolean(user?.permissions?.can_view_sessions)
+  const canOpenEmergencyBarrier = Boolean(
+    user?.org_id != null &&
+      ['owner', 'super_admin', 'operator'].includes(user.role),
+  )
 
   const [detectionFailed, setDetectionFailed] =
     useState<DetectionFailedState | null>(null)
@@ -297,36 +302,45 @@ export default function OperatorDashboard() {
         <Typography.Title level={3} className="m-0!">
           {t('operatorDashboard.title')}
         </Typography.Title>
-        {canViewExitCandidates && (
+        {(canViewExitCandidates || canOpenEmergencyBarrier) && (
           <Space wrap>
-            <Button
-              size="small"
-              onClick={() => setManualParkingEntryOpen(true)}
-            >
-              {t('entryCandidates.manualButton')}
-            </Button>
-            <EntryCandidateWorkflow
-              newCandidateSignal={newEntryCandidateSignal}
-              statusRefreshSignal={entryStatusSignal}
-              resolvedCandidateId={resolvedEntryCandidateId}
-              autoOpenBlocked={
-                manualModalOpen || manualParkingEntryOpen || Boolean(receipt)
-              }
-              requestModalOpen={requestEntryModal}
-              releaseModal={releaseEntryModal}
-              onDataChanged={invalidateResolvedExitData}
-            />
-            <ExitCandidateWorkflow
-              newCandidateSignal={newCandidateSignal}
-              statusRefreshSignal={exitStatusSignal}
-              resolvedCandidateId={resolvedCandidateId}
-              autoOpenBlocked={
-                manualModalOpen || manualParkingEntryOpen || Boolean(receipt)
-              }
-              requestModalOpen={requestExitModal}
-              releaseModal={releaseExitModal}
-              onDataChanged={invalidateResolvedExitData}
-            />
+            {canViewExitCandidates && (
+              <Button
+                size="small"
+                onClick={() => setManualParkingEntryOpen(true)}
+              >
+                {t('entryCandidates.manualButton')}
+              </Button>
+            )}
+            {canViewExitCandidates && (
+              <EntryCandidateWorkflow
+                newCandidateSignal={newEntryCandidateSignal}
+                statusRefreshSignal={entryStatusSignal}
+                resolvedCandidateId={resolvedEntryCandidateId}
+                autoOpenBlocked={
+                  manualModalOpen || manualParkingEntryOpen || Boolean(receipt)
+                }
+                requestModalOpen={requestEntryModal}
+                releaseModal={releaseEntryModal}
+                onDataChanged={invalidateResolvedExitData}
+              />
+            )}
+            {canViewExitCandidates && (
+              <ExitCandidateWorkflow
+                newCandidateSignal={newCandidateSignal}
+                statusRefreshSignal={exitStatusSignal}
+                resolvedCandidateId={resolvedCandidateId}
+                autoOpenBlocked={
+                  manualModalOpen || manualParkingEntryOpen || Boolean(receipt)
+                }
+                requestModalOpen={requestExitModal}
+                releaseModal={releaseExitModal}
+                onDataChanged={invalidateResolvedExitData}
+              />
+            )}
+            {canOpenEmergencyBarrier && user?.org_id != null && (
+              <EmergencyBarrierAction orgId={user.org_id} />
+            )}
           </Space>
         )}
       </div>

@@ -87,10 +87,13 @@ describe('ExitCandidateWorkflow', () => {
     getNextExitCandidateMock.mockResolvedValue(null)
     renderWorkflow()
 
-    expect(
-      await screen.findByRole('button', { name: 'Chiqishni tekshirish (0)' }),
-    ).toBeInTheDocument()
+    const button = await screen.findByRole('button', {
+      name: 'Chiqishni tekshirish (0)',
+    })
+    expect(button).toBeDisabled()
+    fireEvent.click(button)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(getNextExitCandidateMock).toHaveBeenCalledTimes(1)
   })
 
   it('GET next 200 bo‘lsa modalni avtomatik ochadi va countni ko‘rsatadi', async () => {
@@ -163,5 +166,19 @@ describe('ExitCandidateWorkflow', () => {
       await screen.findByRole('button', { name: 'Chiqishni tekshirish (2)' }),
     ).toBeInTheDocument()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('N > 0 bo‘lsa tugma exit modalni ochadi', async () => {
+    getNextExitCandidateMock.mockResolvedValue(firstCandidate)
+    renderWorkflow({ autoOpenBlocked: true })
+
+    const button = await screen.findByRole('button', {
+      name: 'Chiqishni tekshirish (2)',
+    })
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    fireEvent.click(button)
+
+    expect(await screen.findByRole('dialog')).toHaveTextContent('candidate-1')
+    expect(getNextExitCandidateMock).toHaveBeenCalledTimes(1)
   })
 })

@@ -58,8 +58,10 @@ export default function ExitCandidateWorkflow({
   }, [])
 
   const openCandidate = useCallback(
-    (candidate: ExitCandidateNext) => {
-      if (autoOpenBlocked || currentCandidateRef.current) return false
+    (candidate: ExitCandidateNext, automatic = true) => {
+      if ((automatic && autoOpenBlocked) || currentCandidateRef.current) {
+        return false
+      }
       if (!requestModalOpen()) return false
       setCandidate(candidate)
       return true
@@ -132,14 +134,19 @@ export default function ExitCandidateWorkflow({
   const buttonLabel = t('exitCandidates.reviewButton', {
     count: pendingCount,
   })
+  const reviewCurrent = () => {
+    if (!nextCandidate || pendingCount === 0) return
+    openCandidate(nextCandidate, false)
+  }
 
   return (
     <>
       <Button
         size="small"
         loading={isLoading}
+        disabled={!nextCandidate || pendingCount === 0}
         aria-label={buttonLabel}
-        onClick={() => void loadNext(true)}
+        onClick={reviewCurrent}
       >
         {buttonLabel}
       </Button>

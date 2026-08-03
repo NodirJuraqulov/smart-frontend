@@ -557,7 +557,17 @@
     "webhookParseFailedTitle": "Kamera signali tanilmadi",
     "webhookParseFailedDescription": "Kamera signal yubordi, lekin format tanilmadi ({{direction}})",
     "directionEntryLabel": "Kirish",
-    "directionExitLabel": "Chiqish"
+    "directionExitLabel": "Chiqish",
+    "emergencyBarrierButton": "Shlagbaumni ochish",
+    "emergencyBarrierTitle": "Favqulodda shlagbaumni ochish",
+    "emergencyBarrierWarning": "Bu funksiya faqat favqulodda holatlar uchun. Shlagbaum hech qanday sessiya yoki to'lovga bog'lanmasdan ochiladi.",
+    "emergencyBarrierDirection": "Yo'nalish",
+    "emergencyBarrierReason": "Sabab (ixtiyoriy)",
+    "emergencyBarrierConfirm": "Ochish",
+    "emergencyBarrierOpened": "Shlagbaum ochildi",
+    "emergencyBarrierFailed": "Shlagbaum ochilmadi, qayta urinib ko'ring",
+    "emergencyBarrierUnavailable": "Shlagbaum konfiguratsiya qilinmagan, administrator bilan bog'laning",
+    "emergencyBarrierRequestError": "Shlagbaumni ochishda xatolik yuz berdi"
   },
   "sessions": {
     "title": "Sessiyalar",

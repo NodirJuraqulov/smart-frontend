@@ -33,6 +33,7 @@ import {
   getPermissions,
   getTariffIntervals,
   getTariffIntervalsAdmin,
+  openEmergencyBarrier,
   updateCapacity,
   updateCameraRelaySettings,
   updateIntegrationSettings,
@@ -167,6 +168,24 @@ describe('camera relay settings', () => {
         },
       },
     )
+  })
+})
+
+describe('emergency barrier', () => {
+  it('organization endpointiga direction va tozalangan reason yuboradi', async () => {
+    postMock.mockResolvedValue({ data: { barrier_status: 'opened' } })
+
+    const result = await openEmergencyBarrier({
+      orgId: 7,
+      direction: 'exit',
+      reason: '  Elektr uzildi  ',
+    })
+
+    expect(postMock).toHaveBeenCalledWith(
+      '/api/organizations/7/emergency-barrier-open',
+      { direction: 'exit', reason: 'Elektr uzildi' },
+    )
+    expect(result).toEqual({ barrier_status: 'opened' })
   })
 })
 

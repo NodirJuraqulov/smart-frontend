@@ -557,7 +557,17 @@
     "webhookParseFailedTitle": "Camera signal not recognized",
     "webhookParseFailedDescription": "The camera sent a signal, but its format wasn't recognized ({{direction}})",
     "directionEntryLabel": "Entry",
-    "directionExitLabel": "Exit"
+    "directionExitLabel": "Exit",
+    "emergencyBarrierButton": "Open barrier",
+    "emergencyBarrierTitle": "Emergency barrier opening",
+    "emergencyBarrierWarning": "This function is for emergencies only. The barrier will open without being linked to any session or payment.",
+    "emergencyBarrierDirection": "Direction",
+    "emergencyBarrierReason": "Reason (optional)",
+    "emergencyBarrierConfirm": "Open",
+    "emergencyBarrierOpened": "Barrier opened",
+    "emergencyBarrierFailed": "Barrier did not open, please try again",
+    "emergencyBarrierUnavailable": "The barrier is not configured. Contact the administrator",
+    "emergencyBarrierRequestError": "An error occurred while opening the barrier"
   },
   "sessions": {
     "title": "Sessions",
