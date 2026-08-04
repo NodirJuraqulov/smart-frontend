@@ -67,16 +67,12 @@ describe('exit candidates API', () => {
   })
 
   it('force-open va retry-barrier endpointlarini chaqiradi', async () => {
-    await forceOpenExitCandidate('candidate-1', {
-      reason: 'other',
-      note: 'Operator izohi',
-    })
+    await forceOpenExitCandidate('candidate-1')
     await retryExitCandidateBarrier('candidate-1')
 
     expect(postMock).toHaveBeenNthCalledWith(
       1,
       '/api/exit-candidates/candidate-1/force-open',
-      { reason: 'other', note: 'Operator izohi' },
     )
     expect(postMock).toHaveBeenNthCalledWith(
       2,

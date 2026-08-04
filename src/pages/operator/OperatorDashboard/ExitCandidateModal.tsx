@@ -4,7 +4,6 @@ import { isAxiosError } from 'axios'
 import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import {
-  Alert,
   App as AntdApp,
   Button,
   Card,
@@ -14,7 +13,6 @@ import {
   Modal,
   Radio,
   Segmented,
-  Select,
   Space,
   Typography,
 } from 'antd'
@@ -30,7 +28,6 @@ import PlateBadge from '@/components/PlateBadge'
 import { getErrorMessage } from '@/utils/apiError'
 import { formatDate, formatMoney } from '@/utils/format'
 import type {
-  ExitCandidateForceReason,
   ExitCandidateImages,
   ExitCandidateMatchedSession,
   ExitCandidateNext,
@@ -50,7 +47,7 @@ interface Props {
 }
 
 type SelectedSession = ExitCandidateMatchedSession | ExitCandidateSessionOption
-type ModalMode = 'view' | 'search' | 'force'
+type ModalMode = 'view' | 'search'
 type SearchListMode = 'search' | 'active'
 
 const sourceKey: Record<SessionSource, string> = {
@@ -58,19 +55,6 @@ const sourceKey: Record<SessionSource, string> = {
   subscription: 'exitCandidates.sourceSubscription',
   vip: 'exitCandidates.sourceVip',
 }
-
-const forceReasonKey: Record<ExitCandidateForceReason, string> = {
-  plate_not_found: 'exitCandidates.forceReasonPlateNotFound',
-  camera_misread: 'exitCandidates.forceReasonCameraMisread',
-  no_session: 'exitCandidates.forceReasonNoSession',
-  technical_issue: 'exitCandidates.forceReasonTechnicalIssue',
-  emergency: 'exitCandidates.forceReasonEmergency',
-  other: 'exitCandidates.forceReasonOther',
-}
-
-const forceReasons = Object.keys(
-  forceReasonKey,
-) as ExitCandidateForceReason[]
 
 function imageUrl(images: ExitCandidateImages | null | undefined) {
   if (!images?.image_available) return null
@@ -157,9 +141,6 @@ export default function ExitCandidateModal({
   >([])
   const [searchListMode, setSearchListMode] =
     useState<SearchListMode>('search')
-  const [forceReason, setForceReason] =
-    useState<ExitCandidateForceReason | null>(null)
-  const [forceNote, setForceNote] = useState('')
   const [barrierStatus, setBarrierStatus] =
     useState<Exclude<ExitCandidateBarrierStatus, 'opened'> | null>(null)
   const [retryUnavailable, setRetryUnavailable] = useState(false)
@@ -175,8 +156,6 @@ export default function ExitCandidateModal({
     setSearchResults([])
     setActiveSessionOptions([])
     setSearchListMode('search')
-    setForceReason(null)
-    setForceNote('')
     setBarrierStatus(null)
     setRetryUnavailable(false)
     submittingRef.current = false
@@ -272,11 +251,7 @@ export default function ExitCandidateModal({
   })
 
   const forceMutation = useMutation({
-    mutationFn: () =>
-      forceOpenExitCandidate(candidate.candidate_id, {
-        reason: forceReason!,
-        ...(forceNote.trim() ? { note: forceNote.trim() } : {}),
-      }),
+    mutationFn: () => forceOpenExitCandidate(candidate.candidate_id),
     onSuccess: (data) => {
       if (handleBarrierProblem(data.barrier_status)) return
       message.success(t('exitCandidates.forceOpenSuccess'))
@@ -317,10 +292,7 @@ export default function ExitCandidateModal({
     (!isRegular || Boolean(paymentMethod)) &&
     !isResolving &&
     !barrierStatus
-  const canForce =
-    Boolean(forceReason) &&
-    (forceReason !== 'other' || Boolean(forceNote.trim())) &&
-    !isResolving
+  const canForce = !isResolving && !barrierStatus
 
   const submitConfirm = () => {
     if (!canConfirm || submittingRef.current) return
@@ -600,52 +572,6 @@ export default function ExitCandidateModal({
           </Card>
         )}
 
-        {mode === 'force' && (
-          <Card size="small" title={t('exitCandidates.forceOpen')}>
-            <div className="flex flex-col gap-3">
-              <Alert
-                type="warning"
-                showIcon
-                title={t('exitCandidates.forceWarning')}
-              />
-              <Select
-                value={forceReason ?? undefined}
-                onChange={setForceReason}
-                placeholder={t('exitCandidates.forceReasonPlaceholder')}
-                options={forceReasons.map((reason) => ({
-                  value: reason,
-                  label: t(forceReasonKey[reason]),
-                }))}
-              />
-              <Input.TextArea
-                value={forceNote ?? ''}
-                onChange={(event) => setForceNote(event.target.value)}
-                placeholder={t('exitCandidates.forceNotePlaceholder')}
-                maxLength={500}
-              />
-              {forceReason === 'other' && !forceNote.trim() && (
-                <Typography.Text type="danger">
-                  {t('exitCandidates.forceNoteRequired')}
-                </Typography.Text>
-              )}
-              <Space wrap>
-                <Button onClick={() => setMode(candidate.matched_session ? 'view' : 'search')}>
-                  {t('common.cancel')}
-                </Button>
-                <Button
-                  danger
-                  type="primary"
-                  loading={forceMutation.isPending}
-                  disabled={!canForce}
-                  onClick={submitForce}
-                >
-                  {t('exitCandidates.confirmForceOpen')}
-                </Button>
-              </Space>
-            </div>
-          </Card>
-        )}
-
         <div className="flex flex-col gap-3">
           {barrierStatus === 'failed' && !retryUnavailable ? (
             <Button
@@ -682,8 +608,9 @@ export default function ExitCandidateModal({
             <Button
               block
               danger
-              disabled={isResolving || Boolean(barrierStatus)}
-              onClick={() => setMode('force')}
+              loading={forceMutation.isPending}
+              disabled={!canForce}
+              onClick={submitForce}
             >
               {t('exitCandidates.forceOpen')}
             </Button>

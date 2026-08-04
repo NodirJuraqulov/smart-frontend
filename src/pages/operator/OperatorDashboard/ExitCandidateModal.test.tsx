@@ -12,6 +12,7 @@ import ExitCandidateModal from './ExitCandidateModal'
 import type * as ExitCandidatesApi from '@/api/exitCandidates'
 import type {
   ExitCandidateActiveSession,
+  ExitCandidateBarrierResponse,
   ExitCandidateNext,
   ExitCandidateSearchResult,
 } from '@/types/exitCandidate'
@@ -492,7 +493,7 @@ describe('ExitCandidateModal', () => {
     expect(plate).toBeInTheDocument()
   })
 
-  it('detected_plate va matched_session null bo‘lsa search va force qiymatlari bo‘sh satr bo‘ladi', () => {
+  it('detected_plate va matched_session null bo‘lsa search qiymati bo‘sh satr bo‘ladi', () => {
     renderModal({
       ...candidate,
       detected_plate: null,
@@ -507,42 +508,51 @@ describe('ExitCandidateModal', () => {
     expect(searchInput).toHaveValue('')
     expect(plateNotDetected).toBeInTheDocument()
     expect(searchButton).toBeDisabled()
-
-    clickButton('Majburiy ochish')
-    const reasonSelect = page.getByRole('combobox')
-    const noteInput = page.getByPlaceholderText('Izoh (ixtiyoriy)')
-    expect(reasonSelect).toHaveValue('')
-    expect(noteInput).toHaveValue('')
   })
 
-  it('force-open uchun other izohini validatsiya qiladi va payload yuboradi', async () => {
+  it('Majburiy ochish bosilganda formasiz darhol bodysiz API chaqiradi', async () => {
     renderModal()
     clickButton('Majburiy ochish')
-    const reasonSelect = page.getByRole('combobox')
-    fireEvent.mouseDown(reasonSelect)
-    await waitForText('Boshqa')
-    clickText('Boshqa')
-
-    const confirmButton = page.getByRole('button', {
-      name: 'Majburiy ochishni tasdiqlash',
-    })
-    const requiredMessage = page.getByText(
-      '“Boshqa” sababi uchun izoh majburiy',
-    )
-    const noteInput = page.getByPlaceholderText('Izoh (ixtiyoriy)')
-    expect(confirmButton).toBeDisabled()
-    expect(requiredMessage).toBeInTheDocument()
-    fireEvent.change(noteInput, {
-      target: { value: 'Maxsus holat' },
-    })
-    fireEvent.click(confirmButton)
 
     await waitFor(() =>
-      expect(forceOpenExitCandidateMock).toHaveBeenCalledWith('candidate-1', {
-        reason: 'other',
-        note: 'Maxsus holat',
+      expect(forceOpenExitCandidateMock).toHaveBeenCalledWith('candidate-1'),
+    )
+    expect(page.queryByText('Sababni tanlang')).not.toBeInTheDocument()
+    expect(page.queryByText('Izoh (ixtiyoriy)')).not.toBeInTheDocument()
+    expect(
+      page.queryByRole('button', {
+        name: 'Majburiy ochishni tasdiqlash',
+      }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('Majburiy ochish so‘rovi davomida double-submitni bloklaydi', async () => {
+    let resolveRequest!: (value: ExitCandidateBarrierResponse) => void
+    forceOpenExitCandidateMock.mockReturnValue(
+      new Promise((resolve) => {
+        resolveRequest = resolve
       }),
     )
+    renderModal()
+    const button = getButtonByText('Majburiy ochish')
+
+    fireEvent.click(button)
+    fireEvent.click(button)
+
+    await waitFor(() =>
+      expect(forceOpenExitCandidateMock).toHaveBeenCalledTimes(1),
+    )
+    await waitFor(() => expect(button).toBeDisabled())
+    expect(button).toHaveClass('ant-btn-loading')
+    resolveRequest({ barrier_status: 'opened' })
+  })
+
+  it('Majburiy ochish muvaffaqiyatli bo‘lganda modalni yopish va ro‘yxatni yangilash callbackini chaqiradi', async () => {
+    const { onResolved } = renderModal()
+
+    clickButton('Majburiy ochish')
+
+    await waitFor(() => expect(onResolved).toHaveBeenCalledTimes(1))
   })
 
   it('barrier failed bo‘lsa retry tugmasini ko‘rsatadi va qayta ochadi', async () => {
@@ -571,11 +581,6 @@ describe('ExitCandidateModal', () => {
     forceOpenExitCandidateMock.mockResolvedValue({ barrier_status: 'failed' })
     renderModal()
     clickButton('Majburiy ochish')
-    const reasonSelect = page.getByRole('combobox')
-    fireEvent.mouseDown(reasonSelect)
-    await waitForText('Favqulodda holat')
-    clickText('Favqulodda holat')
-    clickButton('Majburiy ochishni tasdiqlash')
 
     await waitForButton('Qayta ochish')
   })

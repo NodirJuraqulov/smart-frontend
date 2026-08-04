@@ -61,20 +61,6 @@ export interface ExitCandidateConfirmResponse {
   barrier_status: ExitCandidateBarrierStatus
 }
 
-export type ExitCandidateForceReason =
-  | 'plate_not_found'
-  | 'camera_misread'
-  | 'no_session'
-  | 'technical_issue'
-  | 'emergency'
-  | 'other'
-
-export interface ExitCandidateForceOpenPayload {
-  reason: ExitCandidateForceReason
-  note?: string
-  entered_plate?: string
-}
-
 export interface ExitCandidateBarrierResponse {
   barrier_status: ExitCandidateBarrierStatus
 }
