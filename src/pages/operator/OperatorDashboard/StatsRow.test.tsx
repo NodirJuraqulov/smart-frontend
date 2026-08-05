@@ -152,4 +152,15 @@ describe('StatsRow', () => {
     ).toBeInTheDocument()
     expect(screen.queryByTestId('dashboard-stat-card')).not.toBeInTheDocument()
   })
+
+  it("capacity so'rovi xato qaytarsa react-query o'zicha qayta urinmaydi (regression)", async () => {
+    getCapacityMock.mockRejectedValue(new Error('401'))
+    renderRow()
+
+    await waitFor(() => expect(getCapacityMock).toHaveBeenCalledTimes(1))
+
+    await new Promise((resolve) => setTimeout(resolve, 1200))
+
+    expect(getCapacityMock).toHaveBeenCalledTimes(1)
+  })
 })

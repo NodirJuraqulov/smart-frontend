@@ -19,6 +19,7 @@ export default function StatsRow({ isLoading, isError, data }: StatsRowProps) {
     queryKey: ['parking', 'capacity'],
     queryFn: getCapacity,
     refetchInterval: 10000,
+    retry: false,
   })
 
   if (isLoading || capacityQuery.isLoading) {

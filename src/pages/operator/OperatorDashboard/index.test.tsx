@@ -236,6 +236,38 @@ describe('OperatorDashboard manual entry modal', () => {
   })
 })
 
+describe('OperatorDashboard 401 xatosida so‘rovlarni qayta urinmasligi (regression)', () => {
+  beforeEach(() => {
+    entryManualMock.mockReset()
+    exitManualMock.mockReset()
+    updateSessionPaymentMethodMock.mockReset()
+    openBarrierForSessionMock.mockReset()
+    getCapacityMock.mockReset().mockResolvedValue({
+      occupied: 0,
+      total: null,
+      available: null,
+    })
+    getSettingsMock.mockReset().mockResolvedValue({})
+    useAppSelectorMock.mockReset().mockReturnValue(undefined)
+    socketCallbacksRef.current = null
+  })
+
+  it("parking/active va reports/daily xato qaytarsa react-query o'zicha qayta urinmaydi", async () => {
+    getActiveSessionsMock.mockReset().mockRejectedValue(new Error('401'))
+    getDailyReportMock.mockReset().mockRejectedValue(new Error('401'))
+
+    renderDashboard()
+
+    await waitFor(() => expect(getActiveSessionsMock).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(getDailyReportMock).toHaveBeenCalledTimes(1))
+
+    await new Promise((resolve) => setTimeout(resolve, 1200))
+
+    expect(getActiveSessionsMock).toHaveBeenCalledTimes(1)
+    expect(getDailyReportMock).toHaveBeenCalledTimes(1)
+  })
+})
+
 describe('OperatorDashboard qurilma ogohlantirishlari', () => {
   beforeEach(() => {
     entryManualMock.mockReset()

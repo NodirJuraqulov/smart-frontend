@@ -84,12 +84,14 @@ export default function OperatorDashboard() {
     queryKey: ['reports', 'daily'],
     queryFn: () => getDailyReport(),
     refetchInterval: 30000,
+    retry: false,
   })
 
   const activeSessionsQuery = useQuery({
     queryKey: ['parking', 'active'],
     queryFn: getActiveSessions,
     refetchInterval: 10000,
+    retry: false,
   })
 
   const invalidateParkingData = () => {

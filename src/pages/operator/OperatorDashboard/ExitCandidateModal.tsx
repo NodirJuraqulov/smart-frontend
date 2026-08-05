@@ -166,12 +166,6 @@ export default function ExitCandidateModal({
     return () => window.clearInterval(interval)
   }, [])
 
-  useEffect(() => {
-    console.log(
-      `[FRONTEND_TIMING] modal rendered at ${Date.now()}, candidateId=${candidate.candidate_id}`,
-    )
-  }, [candidate.candidate_id])
-
   const session: SelectedSession | null =
     selectedSession ?? candidate.matched_session
   const isReassigned = selectedSession !== null
