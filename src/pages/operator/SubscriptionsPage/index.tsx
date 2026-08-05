@@ -4,7 +4,6 @@ import { Typography } from 'antd'
 import { getSubscriptionPlans } from '@/api/subscriptionPlans'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import PlansSection from './PlansSection'
-import VipSection from './VipSection'
 import SubscribersSection from './SubscribersSection'
 
 export default function SubscriptionsPage() {
@@ -23,7 +22,6 @@ export default function SubscriptionsPage() {
       </Typography.Title>
 
       <PlansSection />
-      <VipSection />
       <SubscribersSection plans={plansQuery.data ?? []} />
     </div>
   )

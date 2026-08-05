@@ -4,9 +4,11 @@ import { useTranslation } from 'react-i18next'
 import {
   BankOutlined,
   BarChartOutlined,
+  CarOutlined,
   CrownOutlined,
   DashboardOutlined,
   HistoryOutlined,
+  MedicineBoxOutlined,
   SettingOutlined,
   TagsOutlined,
   TeamOutlined,
@@ -32,6 +34,10 @@ const TariffsPage = lazy(() => import('@/pages/operator/TariffsPage'))
 const SubscriptionsPage = lazy(
   () => import('@/pages/operator/SubscriptionsPage'),
 )
+const VipVehiclesPage = lazy(() => import('@/pages/operator/VipVehiclesPage'))
+const ClinicDiscountPage = lazy(
+  () => import('@/pages/operator/ClinicDiscountPage'),
+)
 const OperatorSettingsPage = lazy(() => import('@/pages/operator/SettingsPage'))
 
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'))
@@ -49,7 +55,7 @@ interface OperatorMenuConfigItem {
   key: string
   icon: ReactNode
   label: string
-  permission: keyof OperatorPermissions
+  permission?: keyof OperatorPermissions
 }
 
 export default function AppRoutes() {
@@ -109,6 +115,17 @@ export default function AppRoutes() {
       permission: 'can_view_subscriptions',
     },
     {
+      key: '/operator/vip-vehicles',
+      icon: <CarOutlined />,
+      label: t('nav.vipVehicles'),
+      permission: 'can_view_subscriptions',
+    },
+    {
+      key: '/operator/clinic-discount',
+      icon: <MedicineBoxOutlined />,
+      label: t('nav.clinicDiscount'),
+    },
+    {
       key: '/operator/settings',
       icon: <SettingOutlined />,
       label: t('nav.settings'),
@@ -121,7 +138,10 @@ export default function AppRoutes() {
   const operatorMenuItems: MenuProps['items'] = operatorMenuConfig
     .filter(
       (item) =>
-        bypassPermissions || !permissions || permissions[item.permission],
+        !item.permission ||
+        bypassPermissions ||
+        !permissions ||
+        permissions[item.permission],
     )
     .map(({ key, icon, label }) => ({ key, icon, label }))
 
@@ -173,7 +193,9 @@ export default function AppRoutes() {
             element={<PermissionRoute permission="can_view_subscriptions" />}
           >
             <Route path="subscriptions" element={<SubscriptionsPage />} />
+            <Route path="vip-vehicles" element={<VipVehiclesPage />} />
           </Route>
+          <Route path="clinic-discount" element={<ClinicDiscountPage />} />
           <Route element={<PermissionRoute permission="can_view_settings" />}>
             <Route path="settings" element={<OperatorSettingsPage />} />
           </Route>

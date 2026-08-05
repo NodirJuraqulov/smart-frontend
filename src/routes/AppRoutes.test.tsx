@@ -68,6 +68,14 @@ describe('AppRoutes sidebar permission filtering', () => {
     expect(screen.queryByText('Sozlamalar')).not.toBeInTheDocument()
   })
 
+  it("VIP mashinalar Obunalar bilan bir xil ruxsatga bogliq, Klinika chegirmasi esa ruxsatsiz har doim korinadi (regression)", async () => {
+    renderAtPath('/operator/sessions')
+
+    expect(await screen.findByText('Dashboard')).toBeInTheDocument()
+    expect(screen.queryByText('VIP mashinalar')).not.toBeInTheDocument()
+    expect(screen.getByText('Klinika chegirmasi')).toBeInTheDocument()
+  })
+
   it("ruxsat false bolgan yolga kirishga urinilganda PermissionRoute /403 ga yonaltiradi (regression)", async () => {
     renderAtPath('/operator/tariffs')
 

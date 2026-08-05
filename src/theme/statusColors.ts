@@ -25,3 +25,22 @@ export function getWarningTagStyle(mode: ThemeMode): CSSProperties {
   const { bg, text } = palette.status.warning[mode]
   return { backgroundColor: bg, color: text, borderColor: 'transparent' }
 }
+
+export function getClinicDiscountStatusTagStyle(
+  status: 'pending' | 'used' | 'expired' | 'cancelled',
+  mode: ThemeMode,
+): CSSProperties | undefined {
+  if (status === 'pending') return getWarningTagStyle(mode)
+  if (status === 'used') return getStatusTagStyle(true, mode)
+  if (status === 'cancelled') return getStatusTagStyle(false, mode)
+  return undefined
+}
+
+export function getInpatientVehicleStatusTagStyle(
+  status: 'active' | 'expired' | 'cancelled',
+  mode: ThemeMode,
+): CSSProperties | undefined {
+  if (status === 'active') return getStatusTagStyle(true, mode)
+  if (status === 'cancelled') return getStatusTagStyle(false, mode)
+  return undefined
+}
