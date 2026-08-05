@@ -81,6 +81,9 @@ export function useParkingSocket(callbacks: UseParkingSocketCallbacks) {
 
     const handleExitCandidateCreated = (payload: unknown) => {
       if (!isExitCandidateCreatedEvent(payload)) return
+      console.log(
+        `[FRONTEND_TIMING] event received at ${Date.now()}, candidateId=${payload.candidateId}`,
+      )
       callbacksRef.current.onExitCandidateCreated?.(payload)
     }
 
