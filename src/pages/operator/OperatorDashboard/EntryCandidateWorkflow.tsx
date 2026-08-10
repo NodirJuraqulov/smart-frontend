@@ -11,7 +11,8 @@ import { ENTRY_CANDIDATE_NEXT_QUERY_KEY } from './entryCandidateQueryKeys'
 interface Props {
   newCandidateSignal: number
   statusRefreshSignal: number
-  resolvedCandidateId: number | null
+  resolvedCandidateIds: number[]
+  onResolvedIdsConsumed: (ids: number[]) => void
   autoOpenBlocked?: boolean
   requestModalOpen?: () => boolean
   releaseModal?: () => void
@@ -24,7 +25,8 @@ const releaseModalOpen = () => undefined
 export default function EntryCandidateWorkflow({
   newCandidateSignal,
   statusRefreshSignal,
-  resolvedCandidateId,
+  resolvedCandidateIds,
+  onResolvedIdsConsumed,
   autoOpenBlocked = false,
   requestModalOpen = allowModalOpen,
   releaseModal = releaseModalOpen,
@@ -38,7 +40,6 @@ export default function EntryCandidateWorkflow({
   const initialLoadHandledRef = useRef(false)
   const newCandidateSignalRef = useRef(newCandidateSignal)
   const statusRefreshSignalRef = useRef(statusRefreshSignal)
-  const resolvedCandidateIdRef = useRef<number | null>(resolvedCandidateId)
 
   const {
     data: nextCandidate,
@@ -100,21 +101,24 @@ export default function EntryCandidateWorkflow({
   }, [loadNext, statusRefreshSignal])
 
   useEffect(() => {
+    if (resolvedCandidateIds.length === 0) return
+    const openCandidateId = currentCandidateRef.current?.candidate_id
     if (
-      !resolvedCandidateId ||
-      resolvedCandidateIdRef.current === resolvedCandidateId
+      openCandidateId !== undefined &&
+      resolvedCandidateIds.includes(openCandidateId)
     ) {
-      return
-    }
-    resolvedCandidateIdRef.current = resolvedCandidateId
-    if (currentCandidateRef.current?.candidate_id === resolvedCandidateId) {
       setCandidate(null)
       releaseModal()
-      void loadNext(true)
-      return
     }
+    onResolvedIdsConsumed(resolvedCandidateIds)
     void loadNext(false)
-  }, [loadNext, releaseModal, resolvedCandidateId, setCandidate])
+  }, [
+    loadNext,
+    onResolvedIdsConsumed,
+    releaseModal,
+    resolvedCandidateIds,
+    setCandidate,
+  ])
 
   const closeCurrent = () => {
     setCandidate(null)

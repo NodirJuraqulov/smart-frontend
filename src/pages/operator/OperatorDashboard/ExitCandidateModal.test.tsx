@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -13,6 +14,7 @@ import type * as ExitCandidatesApi from '@/api/exitCandidates'
 import type {
   ExitCandidateActiveSession,
   ExitCandidateBarrierResponse,
+  ExitCandidateConfirmResponse,
   ExitCandidateNext,
   ExitCandidateSearchResult,
 } from '@/types/exitCandidate'
@@ -145,6 +147,35 @@ function renderModal(value: ExitCandidateNext = candidate) {
     </QueryClientProvider>,
   )
   return { onClose, onResolved, onPendingRefresh, onDataChanged }
+}
+
+function renderModalHost() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  })
+  const onResolved = vi.fn()
+  const onDataChanged = vi.fn()
+  const tree = (mounted: boolean) => (
+    <QueryClientProvider client={queryClient}>
+      <AntdApp>
+        {mounted && (
+          <ExitCandidateModal
+            candidate={candidate}
+            onClose={vi.fn()}
+            onResolved={onResolved}
+            onPendingRefresh={vi.fn()}
+            onDataChanged={onDataChanged}
+          />
+        )}
+      </AntdApp>
+    </QueryClientProvider>
+  )
+  const view = render(tree(true))
+  return {
+    onResolved,
+    onDataChanged,
+    unmountModal: () => view.rerender(tree(false)),
+  }
 }
 
 function queryButtonByText(label: string): HTMLButtonElement | null {
@@ -694,5 +725,76 @@ describe('ExitCandidateModal', () => {
     )
     expect(onPendingRefresh).not.toHaveBeenCalled()
     expect(onResolved).toHaveBeenCalled()
+  })
+
+  it('modal yopilgandan keyin kelgan confirm javobi e‘tiborsiz qoldiriladi', async () => {
+    let resolveConfirm: ((value: ExitCandidateConfirmResponse) => void) | null =
+      null
+    confirmExitCandidateMock.mockImplementation(
+      () =>
+        new Promise<ExitCandidateConfirmResponse>((resolve) => {
+          resolveConfirm = resolve
+        }),
+    )
+    const { onResolved, onDataChanged, unmountModal } = renderModalHost()
+    selectCash()
+    clickButton('Tasdiqlash va ochish')
+    await waitFor(() =>
+      expect(confirmExitCandidateMock).toHaveBeenCalledTimes(1),
+    )
+
+    unmountModal()
+    expect(queryButtonByText('Tasdiqlash va ochish')).toBeNull()
+
+    await act(async () => {
+      resolveConfirm?.({
+        session_id: 'session-1',
+        plate: '01A777BA',
+        amount: 12000,
+        payment_method: 'cash',
+        barrier_status: 'opened',
+      })
+      await Promise.resolve()
+    })
+
+    expect(onResolved).not.toHaveBeenCalled()
+    expect(onDataChanged).not.toHaveBeenCalled()
+    expect(document.body).not.toHaveTextContent(
+      'Chiqish tasdiqlandi va shlagbaum ochildi',
+    )
+  })
+
+  it('modal yopilgandan keyin kelgan confirm xatosi ko‘rsatilmaydi', async () => {
+    let rejectConfirm: ((reason: unknown) => void) | null = null
+    confirmExitCandidateMock.mockImplementation(
+      () =>
+        new Promise<ExitCandidateConfirmResponse>((_resolve, reject) => {
+          rejectConfirm = reject
+        }),
+    )
+    const { onResolved, unmountModal } = renderModalHost()
+    selectCash()
+    clickButton('Tasdiqlash va ochish')
+    await waitFor(() =>
+      expect(confirmExitCandidateMock).toHaveBeenCalledTimes(1),
+    )
+
+    unmountModal()
+
+    await act(async () => {
+      rejectConfirm?.(
+        Object.assign(new Error('conflict'), {
+          isAxiosError: true,
+          response: { status: 409, data: {} },
+        }),
+      )
+      await Promise.resolve()
+    })
+
+    expect(onResolved).not.toHaveBeenCalled()
+    expect(document.body).not.toHaveTextContent(
+      'Bu chiqish allaqachon boshqa operator tomonidan hal qilingan',
+    )
+    expect(document.body).not.toHaveTextContent('Chiqishni tasdiqlab bo‘lmadi')
   })
 })

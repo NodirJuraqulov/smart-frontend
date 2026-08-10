@@ -53,10 +53,13 @@ const secondCandidate: ExitCandidateNext = {
   pending_count_for_org: 1,
 }
 
+const noResolvedIds: string[] = []
+const noopConsumed = () => undefined
+
 function renderWorkflow(props?: {
   newCandidateSignal?: number
   statusRefreshSignal?: number
-  resolvedCandidateId?: string | null
+  resolvedCandidateIds?: string[]
   autoOpenBlocked?: boolean
 }) {
   const queryClient = new QueryClient({
@@ -68,7 +71,8 @@ function renderWorkflow(props?: {
         <ExitCandidateWorkflow
           newCandidateSignal={props?.newCandidateSignal ?? 0}
           statusRefreshSignal={props?.statusRefreshSignal ?? 0}
-          resolvedCandidateId={props?.resolvedCandidateId ?? null}
+          resolvedCandidateIds={props?.resolvedCandidateIds ?? noResolvedIds}
+          onResolvedIdsConsumed={noopConsumed}
           autoOpenBlocked={props?.autoOpenBlocked}
           onDataChanged={vi.fn()}
         />
@@ -76,6 +80,26 @@ function renderWorkflow(props?: {
     </QueryClientProvider>,
   )
   return { ...view, queryClient }
+}
+
+function workflowTree(
+  queryClient: QueryClient,
+  resolvedCandidateIds: string[],
+  onResolvedIdsConsumed: (ids: string[]) => void = noopConsumed,
+) {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AntdApp>
+        <ExitCandidateWorkflow
+          newCandidateSignal={0}
+          statusRefreshSignal={0}
+          resolvedCandidateIds={resolvedCandidateIds}
+          onResolvedIdsConsumed={onResolvedIdsConsumed}
+          onDataChanged={vi.fn()}
+        />
+      </AntdApp>
+    </QueryClientProvider>
+  )
 }
 
 describe('ExitCandidateWorkflow', () => {
@@ -148,7 +172,8 @@ describe('ExitCandidateWorkflow', () => {
           <ExitCandidateWorkflow
             newCandidateSignal={1}
             statusRefreshSignal={0}
-            resolvedCandidateId={null}
+            resolvedCandidateIds={noResolvedIds}
+            onResolvedIdsConsumed={noopConsumed}
             onDataChanged={vi.fn()}
           />
         </AntdApp>
@@ -180,5 +205,92 @@ describe('ExitCandidateWorkflow', () => {
 
     expect(await screen.findByRole('dialog')).toHaveTextContent('candidate-1')
     expect(getNextExitCandidateMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('ochiq candidate resolved eventi kelganda modal avtomatik yopiladi', async () => {
+    getNextExitCandidateMock.mockResolvedValue(firstCandidate)
+    const view = renderWorkflow()
+    expect(await screen.findByRole('dialog')).toHaveTextContent('candidate-1')
+
+    view.rerender(workflowTree(view.queryClient, ['candidate-1']))
+
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+    )
+  })
+
+  it('boshqa candidate resolved eventi kelganda modal ochiq qoladi', async () => {
+    getNextExitCandidateMock.mockResolvedValue(firstCandidate)
+    const view = renderWorkflow()
+    expect(await screen.findByRole('dialog')).toHaveTextContent('candidate-1')
+
+    view.rerender(workflowTree(view.queryClient, ['candidate-2']))
+
+    await waitFor(() =>
+      expect(getNextExitCandidateMock).toHaveBeenCalledTimes(2),
+    )
+    expect(screen.getByRole('dialog')).toHaveTextContent('candidate-1')
+  })
+
+  it('resolved eventidan keyin navbatdagi candidate avtomatik ochilmaydi', async () => {
+    getNextExitCandidateMock
+      .mockResolvedValueOnce(firstCandidate)
+      .mockResolvedValue(secondCandidate)
+    const view = renderWorkflow()
+    expect(await screen.findByRole('dialog')).toHaveTextContent('candidate-1')
+
+    view.rerender(workflowTree(view.queryClient, ['candidate-1']))
+
+    const reviewButton = await screen.findByRole('button', {
+      name: 'Chiqishni tekshirish (1)',
+    })
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+    fireEvent.click(reviewButton)
+
+    expect(await screen.findByRole('dialog')).toHaveTextContent('candidate-2')
+  })
+
+  it('bitta batchdagi bir nechta resolved id ichidan ochiq candidate yopiladi', async () => {
+    getNextExitCandidateMock.mockResolvedValue(firstCandidate)
+    const view = renderWorkflow()
+    expect(await screen.findByRole('dialog')).toHaveTextContent('candidate-1')
+
+    view.rerender(
+      workflowTree(view.queryClient, ['candidate-1', 'candidate-2']),
+    )
+
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+    )
+  })
+
+  it('ochiq candidate batchning oxirgi idsi bo‘lsa ham yopiladi', async () => {
+    getNextExitCandidateMock.mockResolvedValue(firstCandidate)
+    const view = renderWorkflow()
+    expect(await screen.findByRole('dialog')).toHaveTextContent('candidate-1')
+
+    view.rerender(
+      workflowTree(view.queryClient, ['candidate-9', 'candidate-1']),
+    )
+
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+    )
+  })
+
+  it('ishlatilgan resolved idlarni dashboardga qaytaradi', async () => {
+    getNextExitCandidateMock.mockResolvedValue(firstCandidate)
+    const onResolvedIdsConsumed = vi.fn()
+    const view = renderWorkflow()
+    await screen.findByRole('dialog')
+
+    const ids = ['candidate-1', 'candidate-2']
+    view.rerender(workflowTree(view.queryClient, ids, onResolvedIdsConsumed))
+
+    await waitFor(() =>
+      expect(onResolvedIdsConsumed).toHaveBeenCalledWith(ids),
+    )
+    expect(onResolvedIdsConsumed).toHaveBeenCalledTimes(1)
   })
 })

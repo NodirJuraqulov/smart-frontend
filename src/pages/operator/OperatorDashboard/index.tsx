@@ -61,14 +61,12 @@ export default function OperatorDashboard() {
   const [now, setNow] = useState(() => Date.now())
   const [newCandidateSignal, setNewCandidateSignal] = useState(0)
   const [exitStatusSignal, setExitStatusSignal] = useState(0)
-  const [resolvedCandidateId, setResolvedCandidateId] = useState<string | null>(
-    null,
-  )
+  const [resolvedCandidateIds, setResolvedCandidateIds] = useState<string[]>([])
   const [newEntryCandidateSignal, setNewEntryCandidateSignal] = useState(0)
   const [entryStatusSignal, setEntryStatusSignal] = useState(0)
-  const [resolvedEntryCandidateId, setResolvedEntryCandidateId] = useState<
-    number | null
-  >(null)
+  const [resolvedEntryCandidateIds, setResolvedEntryCandidateIds] = useState<
+    number[]
+  >([])
   const notifiedCandidateIdsRef = useRef(new Set<string>())
   const notifiedEntryCandidateIdsRef = useRef(new Set<string>())
   const activeReviewModalRef = useRef<'entry' | 'exit' | null>(null)
@@ -139,6 +137,18 @@ export default function OperatorDashboard() {
     }
   }, [])
 
+  const consumeResolvedCandidateIds = useCallback((ids: string[]) => {
+    setResolvedCandidateIds((current) =>
+      current.filter((id) => !ids.includes(id)),
+    )
+  }, [])
+
+  const consumeResolvedEntryCandidateIds = useCallback((ids: number[]) => {
+    setResolvedEntryCandidateIds((current) =>
+      current.filter((id) => !ids.includes(id)),
+    )
+  }, [])
+
   useParkingSocket({
     onEntry: (session, detected) => {
       if (detected) {
@@ -189,7 +199,10 @@ export default function OperatorDashboard() {
     },
     onExitCandidateResolved: (payload) => {
       if (!canViewExitCandidates) return
-      setResolvedCandidateId(String(payload.candidateId))
+      const candidateId = String(payload.candidateId)
+      setResolvedCandidateIds((current) =>
+        current.includes(candidateId) ? current : [...current, candidateId],
+      )
       setExitStatusSignal((current) => current + 1)
       invalidateResolvedExitData()
     },
@@ -212,7 +225,11 @@ export default function OperatorDashboard() {
     },
     onEntryCandidateResolved: (payload) => {
       if (!canViewExitCandidates) return
-      setResolvedEntryCandidateId(payload.candidateId)
+      setResolvedEntryCandidateIds((current) =>
+        current.includes(payload.candidateId)
+          ? current
+          : [...current, payload.candidateId],
+      )
       setEntryStatusSignal((current) => current + 1)
       invalidateResolvedExitData()
     },
@@ -318,7 +335,8 @@ export default function OperatorDashboard() {
               <EntryCandidateWorkflow
                 newCandidateSignal={newEntryCandidateSignal}
                 statusRefreshSignal={entryStatusSignal}
-                resolvedCandidateId={resolvedEntryCandidateId}
+                resolvedCandidateIds={resolvedEntryCandidateIds}
+                onResolvedIdsConsumed={consumeResolvedEntryCandidateIds}
                 autoOpenBlocked={
                   manualModalOpen || manualParkingEntryOpen || Boolean(receipt)
                 }
@@ -331,7 +349,8 @@ export default function OperatorDashboard() {
               <ExitCandidateWorkflow
                 newCandidateSignal={newCandidateSignal}
                 statusRefreshSignal={exitStatusSignal}
-                resolvedCandidateId={resolvedCandidateId}
+                resolvedCandidateIds={resolvedCandidateIds}
+                onResolvedIdsConsumed={consumeResolvedCandidateIds}
                 autoOpenBlocked={
                   manualModalOpen || manualParkingEntryOpen || Boolean(receipt)
                 }

@@ -48,6 +48,9 @@ const secondCandidate: EntryCandidateNext = {
   pending_count_for_org: 1,
 }
 
+const noResolvedIds: number[] = []
+const noopConsumed = () => undefined
+
 function renderWorkflow(options?: {
   autoOpenBlocked?: boolean
   requestModalOpen?: () => boolean
@@ -55,19 +58,41 @@ function renderWorkflow(options?: {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   })
-  render(
+  const view = render(
     <QueryClientProvider client={queryClient}>
       <AntdApp>
         <EntryCandidateWorkflow
           newCandidateSignal={0}
           statusRefreshSignal={0}
-          resolvedCandidateId={null}
+          resolvedCandidateIds={noResolvedIds}
+          onResolvedIdsConsumed={noopConsumed}
           autoOpenBlocked={options?.autoOpenBlocked}
           requestModalOpen={options?.requestModalOpen}
           onDataChanged={vi.fn()}
         />
       </AntdApp>
     </QueryClientProvider>,
+  )
+  return { ...view, queryClient }
+}
+
+function workflowTree(
+  queryClient: QueryClient,
+  resolvedCandidateIds: number[],
+  onResolvedIdsConsumed: (ids: number[]) => void = noopConsumed,
+) {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AntdApp>
+        <EntryCandidateWorkflow
+          newCandidateSignal={0}
+          statusRefreshSignal={0}
+          resolvedCandidateIds={resolvedCandidateIds}
+          onResolvedIdsConsumed={onResolvedIdsConsumed}
+          onDataChanged={vi.fn()}
+        />
+      </AntdApp>
+    </QueryClientProvider>
   )
 }
 
@@ -134,5 +159,88 @@ describe('EntryCandidateWorkflow', () => {
       expect(getNextEntryCandidateMock).toHaveBeenCalledTimes(2),
     )
     expect(await screen.findByRole('dialog')).toHaveTextContent('2')
+  })
+
+  it('ochiq candidate resolved eventi kelganda modal avtomatik yopiladi', async () => {
+    getNextEntryCandidateMock.mockResolvedValue(firstCandidate)
+    const view = renderWorkflow()
+    expect(await screen.findByRole('dialog')).toHaveTextContent('1')
+
+    view.rerender(workflowTree(view.queryClient, [1]))
+
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+    )
+  })
+
+  it('boshqa candidate resolved eventi kelganda modal ochiq qoladi', async () => {
+    getNextEntryCandidateMock.mockResolvedValue(firstCandidate)
+    const view = renderWorkflow()
+    expect(await screen.findByRole('dialog')).toHaveTextContent('1')
+
+    view.rerender(workflowTree(view.queryClient, [2]))
+
+    await waitFor(() =>
+      expect(getNextEntryCandidateMock).toHaveBeenCalledTimes(2),
+    )
+    expect(screen.getByRole('dialog')).toHaveTextContent('1')
+  })
+
+  it('resolved eventidan keyin navbatdagi candidate avtomatik ochilmaydi', async () => {
+    getNextEntryCandidateMock
+      .mockResolvedValueOnce(firstCandidate)
+      .mockResolvedValue(secondCandidate)
+    const view = renderWorkflow()
+    expect(await screen.findByRole('dialog')).toHaveTextContent('1')
+
+    view.rerender(workflowTree(view.queryClient, [1]))
+
+    const reviewButton = await screen.findByRole('button', {
+      name: 'Kirishni tekshirish (1)',
+    })
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+
+    fireEvent.click(reviewButton)
+
+    expect(await screen.findByRole('dialog')).toHaveTextContent('2')
+  })
+
+  it('bitta batchdagi bir nechta resolved id ichidan ochiq candidate yopiladi', async () => {
+    getNextEntryCandidateMock.mockResolvedValue(firstCandidate)
+    const view = renderWorkflow()
+    expect(await screen.findByRole('dialog')).toHaveTextContent('1')
+
+    view.rerender(workflowTree(view.queryClient, [1, 2]))
+
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+    )
+  })
+
+  it('ochiq candidate batchning oxirgi idsi bo‘lsa ham yopiladi', async () => {
+    getNextEntryCandidateMock.mockResolvedValue(firstCandidate)
+    const view = renderWorkflow()
+    expect(await screen.findByRole('dialog')).toHaveTextContent('1')
+
+    view.rerender(workflowTree(view.queryClient, [9, 1]))
+
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+    )
+  })
+
+  it('ishlatilgan resolved idlarni dashboardga qaytaradi', async () => {
+    getNextEntryCandidateMock.mockResolvedValue(firstCandidate)
+    const onResolvedIdsConsumed = vi.fn()
+    const view = renderWorkflow()
+    await screen.findByRole('dialog')
+
+    const ids = [1, 2]
+    view.rerender(workflowTree(view.queryClient, ids, onResolvedIdsConsumed))
+
+    await waitFor(() =>
+      expect(onResolvedIdsConsumed).toHaveBeenCalledWith(ids),
+    )
+    expect(onResolvedIdsConsumed).toHaveBeenCalledTimes(1)
   })
 })

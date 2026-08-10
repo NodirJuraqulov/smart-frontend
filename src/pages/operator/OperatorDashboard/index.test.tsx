@@ -82,18 +82,26 @@ vi.mock('./ExitCandidateWorkflow', () => ({
   default: ({
     newCandidateSignal,
     statusRefreshSignal,
-    resolvedCandidateId,
+    resolvedCandidateIds,
+    onResolvedIdsConsumed,
   }: {
     newCandidateSignal: number
     statusRefreshSignal: number
-    resolvedCandidateId: number | null
+    resolvedCandidateIds: string[]
+    onResolvedIdsConsumed: (ids: string[]) => void
   }) => (
     <div
       data-testid="exit-candidate-workflow"
       data-new-candidate-signal={newCandidateSignal}
       data-status-refresh-signal={statusRefreshSignal}
-      data-resolved-candidate={resolvedCandidateId ?? ''}
-    />
+      data-resolved-candidate={resolvedCandidateIds.join(',')}
+    >
+      <button
+        type="button"
+        aria-label="consume-exit-resolved"
+        onClick={() => onResolvedIdsConsumed(resolvedCandidateIds)}
+      />
+    </div>
   ),
 }))
 
@@ -101,18 +109,26 @@ vi.mock('./EntryCandidateWorkflow', () => ({
   default: ({
     newCandidateSignal,
     statusRefreshSignal,
-    resolvedCandidateId,
+    resolvedCandidateIds,
+    onResolvedIdsConsumed,
   }: {
     newCandidateSignal: number
     statusRefreshSignal: number
-    resolvedCandidateId: string | null
+    resolvedCandidateIds: number[]
+    onResolvedIdsConsumed: (ids: number[]) => void
   }) => (
     <div
       data-testid="entry-candidate-workflow"
       data-new-candidate-signal={newCandidateSignal}
       data-status-refresh-signal={statusRefreshSignal}
-      data-resolved-candidate={resolvedCandidateId ?? ''}
-    />
+      data-resolved-candidate={resolvedCandidateIds.join(',')}
+    >
+      <button
+        type="button"
+        aria-label="consume-entry-resolved"
+        onClick={() => onResolvedIdsConsumed(resolvedCandidateIds)}
+      />
+    </div>
   ),
 }))
 
@@ -501,6 +517,118 @@ describe('OperatorDashboard exit candidate WebSocket va ruxsat oqimi', () => {
     expect(screen.getByTestId('exit-candidate-workflow')).toHaveAttribute(
       'data-status-refresh-signal',
       '1',
+    )
+  })
+
+  it('bitta React batch ichidagi ikkita resolved hodisasini ham qayd etadi', async () => {
+    useAppSelectorMock.mockReset().mockReturnValue({
+      role: 'operator',
+      org_name: 'Test parking',
+      permissions: { can_view_sessions: true },
+    })
+    renderDashboard()
+    await waitFor(() => expect(socketCallbacksRef.current).not.toBeNull())
+
+    act(() => {
+      socketCallbacksRef.current!.onExitCandidateResolved?.({
+        candidateId: 7,
+        orgId: 3,
+        status: 'accepted',
+        resolutionType: 'exact',
+        sessionId: 44,
+        barrierStatus: 'opened',
+      })
+      socketCallbacksRef.current!.onExitCandidateResolved?.({
+        candidateId: 8,
+        orgId: 3,
+        status: 'dismissed',
+        resolutionType: 'dismissed',
+        sessionId: null,
+        barrierStatus: null,
+      })
+      socketCallbacksRef.current!.onEntryCandidateResolved?.({
+        candidateId: 17,
+        orgId: 3,
+        status: 'accepted',
+        sessionId: 101,
+        barrierStatus: 'opened',
+      })
+      socketCallbacksRef.current!.onEntryCandidateResolved?.({
+        candidateId: 18,
+        orgId: 3,
+        status: 'declined',
+        sessionId: null,
+        barrierStatus: null,
+      })
+    })
+
+    expect(screen.getByTestId('exit-candidate-workflow')).toHaveAttribute(
+      'data-resolved-candidate',
+      '7,8',
+    )
+    expect(screen.getByTestId('entry-candidate-workflow')).toHaveAttribute(
+      'data-resolved-candidate',
+      '17,18',
+    )
+  })
+
+  it('workflow ishlatgan resolved idlarni ro‘yxatdan olib tashlaydi', async () => {
+    useAppSelectorMock.mockReset().mockReturnValue({
+      role: 'operator',
+      org_name: 'Test parking',
+      permissions: { can_view_sessions: true },
+    })
+    renderDashboard()
+    await waitFor(() => expect(socketCallbacksRef.current).not.toBeNull())
+
+    act(() => {
+      socketCallbacksRef.current!.onExitCandidateResolved?.({
+        candidateId: 7,
+        orgId: 3,
+        status: 'accepted',
+        resolutionType: 'exact',
+        sessionId: 44,
+        barrierStatus: 'opened',
+      })
+      socketCallbacksRef.current!.onEntryCandidateResolved?.({
+        candidateId: 17,
+        orgId: 3,
+        status: 'accepted',
+        sessionId: 101,
+        barrierStatus: 'opened',
+      })
+    })
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'consume-exit-resolved' }),
+    )
+    fireEvent.click(
+      screen.getByRole('button', { name: 'consume-entry-resolved' }),
+    )
+
+    expect(screen.getByTestId('exit-candidate-workflow')).toHaveAttribute(
+      'data-resolved-candidate',
+      '',
+    )
+    expect(screen.getByTestId('entry-candidate-workflow')).toHaveAttribute(
+      'data-resolved-candidate',
+      '',
+    )
+
+    act(() => {
+      socketCallbacksRef.current!.onExitCandidateResolved?.({
+        candidateId: 9,
+        orgId: 3,
+        status: 'accepted',
+        resolutionType: 'exact',
+        sessionId: 45,
+        barrierStatus: 'opened',
+      })
+    })
+
+    expect(screen.getByTestId('exit-candidate-workflow')).toHaveAttribute(
+      'data-resolved-candidate',
+      '9',
     )
   })
 })

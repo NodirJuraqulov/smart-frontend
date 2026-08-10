@@ -18,6 +18,7 @@ import {
   retryEntryBarrier,
 } from '@/api/entryCandidates'
 import AuthenticatedImage from '@/components/AuthenticatedImage'
+import { useIsMountedRef } from '@/hooks/useIsMountedRef'
 import { getErrorMessage } from '@/utils/apiError'
 import { formatDate } from '@/utils/format'
 import type { ExitCandidateBarrierStatus } from '@/types/exitCandidate'
@@ -80,6 +81,7 @@ export default function EntryCandidateModal({
   const { message } = AntdApp.useApp()
   const inputRef = useRef<InputRef>(null)
   const submittingRef = useRef(false)
+  const isMountedRef = useIsMountedRef()
   const [plate, setPlate] = useState(candidate.detected_plate ?? '')
   const [declineConfirmOpen, setDeclineConfirmOpen] = useState(false)
   const [sessionId, setSessionId] = useState<number | null>(null)
@@ -133,12 +135,14 @@ export default function EntryCandidateModal({
         plate_number: plate.trim(),
       }),
     onSuccess: (data) => {
+      if (!isMountedRef.current) return
       onDataChanged()
       if (handleBarrierStatus(data.barrier_status, data.session_id)) return
       message.success(t('entryCandidates.acceptSuccess'))
       onResolved()
     },
     onError: (error) => {
+      if (!isMountedRef.current) return
       if (handleConflict(error)) return
       message.error(getErrorMessage(error, t('entryCandidates.acceptError')))
     },
@@ -150,10 +154,12 @@ export default function EntryCandidateModal({
   const declineMutation = useMutation({
     mutationFn: () => declineEntryCandidate(candidate.candidate_id),
     onSuccess: () => {
+      if (!isMountedRef.current) return
       message.success(t('entryCandidates.declineSuccess'))
       onResolved()
     },
     onError: (error) => {
+      if (!isMountedRef.current) return
       if (handleConflict(error)) return
       message.error(getErrorMessage(error, t('entryCandidates.declineError')))
     },
@@ -165,11 +171,13 @@ export default function EntryCandidateModal({
   const retryMutation = useMutation({
     mutationFn: () => retryEntryBarrier(sessionId!),
     onSuccess: (data) => {
+      if (!isMountedRef.current) return
       if (handleBarrierStatus(data.barrier_status, sessionId!)) return
       message.success(t('entryCandidates.retrySuccess'))
       onResolved()
     },
     onError: (error) => {
+      if (!isMountedRef.current) return
       if (isAxiosError(error) && error.response?.status === 400) {
         setRetryUnavailable(true)
       }

@@ -1,5 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { App as AntdApp } from 'antd'
 import EntryCandidateModal from './EntryCandidateModal'
@@ -66,6 +72,35 @@ function renderModal(value: EntryCandidateNext = candidate) {
     </QueryClientProvider>,
   )
   return { onClose, onResolved, onPendingRefresh, onDataChanged }
+}
+
+function renderModalHost() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  })
+  const onResolved = vi.fn()
+  const onDataChanged = vi.fn()
+  const tree = (mounted: boolean) => (
+    <QueryClientProvider client={queryClient}>
+      <AntdApp>
+        {mounted && (
+          <EntryCandidateModal
+            candidate={candidate}
+            onClose={vi.fn()}
+            onResolved={onResolved}
+            onPendingRefresh={vi.fn()}
+            onDataChanged={onDataChanged}
+          />
+        )}
+      </AntdApp>
+    </QueryClientProvider>
+  )
+  const view = render(tree(true))
+  return {
+    onResolved,
+    onDataChanged,
+    unmountModal: () => view.rerender(tree(false)),
+  }
 }
 
 describe('EntryCandidateModal', () => {
@@ -230,5 +265,73 @@ describe('EntryCandidateModal', () => {
       expect(declineEntryCandidateMock).toHaveBeenCalledWith(1),
     )
     expect(onResolved).toHaveBeenCalled()
+  })
+
+  it('modal yopilgandan keyin kelgan accept javobi e‘tiborsiz qoldiriladi', async () => {
+    let resolveAccept: ((value: unknown) => void) | null = null
+    acceptEntryCandidateMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveAccept = resolve
+        }),
+    )
+    const { onResolved, onDataChanged, unmountModal } = renderModalHost()
+    fireEvent.click(screen.getByRole('button', { name: 'Kiritish' }))
+    await waitFor(() =>
+      expect(acceptEntryCandidateMock).toHaveBeenCalledTimes(1),
+    )
+
+    unmountModal()
+    expect(
+      screen.queryByRole('button', { name: 'Kiritish' }),
+    ).not.toBeInTheDocument()
+
+    await act(async () => {
+      resolveAccept?.({
+        session_id: 1,
+        plate: '01A777BA',
+        barrier_status: 'opened',
+      })
+      await Promise.resolve()
+    })
+
+    expect(onResolved).not.toHaveBeenCalled()
+    expect(onDataChanged).not.toHaveBeenCalled()
+    expect(document.body).not.toHaveTextContent(
+      'Mashina kiritildi va shlagbaum ochildi',
+    )
+  })
+
+  it('modal yopilgandan keyin kelgan accept xatosi ko‘rsatilmaydi', async () => {
+    let rejectAccept: ((reason: unknown) => void) | null = null
+    acceptEntryCandidateMock.mockImplementation(
+      () =>
+        new Promise((_resolve, reject) => {
+          rejectAccept = reject
+        }),
+    )
+    const { onResolved, unmountModal } = renderModalHost()
+    fireEvent.click(screen.getByRole('button', { name: 'Kiritish' }))
+    await waitFor(() =>
+      expect(acceptEntryCandidateMock).toHaveBeenCalledTimes(1),
+    )
+
+    unmountModal()
+
+    await act(async () => {
+      rejectAccept?.(
+        Object.assign(new Error('conflict'), {
+          isAxiosError: true,
+          response: { status: 409, data: {} },
+        }),
+      )
+      await Promise.resolve()
+    })
+
+    expect(onResolved).not.toHaveBeenCalled()
+    expect(document.body).not.toHaveTextContent(
+      'Bu kirish allaqachon boshqa operator tomonidan hal qilingan',
+    )
+    expect(document.body).not.toHaveTextContent('Mashinani kiritib bo‘lmadi')
   })
 })

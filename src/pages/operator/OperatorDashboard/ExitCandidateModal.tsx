@@ -25,6 +25,7 @@ import {
 import AuthenticatedImage from '@/components/AuthenticatedImage'
 import PaymentQrCode from '@/components/PaymentQrCode'
 import PlateBadge from '@/components/PlateBadge'
+import { useIsMountedRef } from '@/hooks/useIsMountedRef'
 import { getErrorMessage } from '@/utils/apiError'
 import { formatDate, formatMoney } from '@/utils/format'
 import type {
@@ -146,6 +147,7 @@ export default function ExitCandidateModal({
   const [retryUnavailable, setRetryUnavailable] = useState(false)
   const [now, setNow] = useState(() => Date.now())
   const submittingRef = useRef(false)
+  const isMountedRef = useIsMountedRef()
 
   useEffect(() => {
     setMode(candidate.matched_session ? 'view' : 'search')
@@ -215,14 +217,17 @@ export default function ExitCandidateModal({
     mutationFn: (plate?: string) =>
       searchExitCandidate(candidate.candidate_id, plate),
     onSuccess: (data, plate) => {
+      if (!isMountedRef.current) return
       if (plate?.trim()) {
         setSearchResults(data.results)
         return
       }
       setActiveSessionOptions(data.active_sessions)
     },
-    onError: (error) =>
-      message.error(getErrorMessage(error, t('exitCandidates.searchError'))),
+    onError: (error) => {
+      if (!isMountedRef.current) return
+      message.error(getErrorMessage(error, t('exitCandidates.searchError')))
+    },
   })
 
   const confirmMutation = useMutation({
@@ -236,12 +241,14 @@ export default function ExitCandidateModal({
           : {}),
       }),
     onSuccess: (data) => {
+      if (!isMountedRef.current) return
       onDataChanged()
       if (handleBarrierProblem(data.barrier_status)) return
       message.success(t('exitCandidates.confirmSuccess'))
       onResolved()
     },
     onError: (error) => {
+      if (!isMountedRef.current) return
       if (handleConflict(error)) return
       message.error(getErrorMessage(error, t('exitCandidates.confirmError')))
     },
@@ -253,11 +260,13 @@ export default function ExitCandidateModal({
   const forceMutation = useMutation({
     mutationFn: () => forceOpenExitCandidate(candidate.candidate_id),
     onSuccess: (data) => {
+      if (!isMountedRef.current) return
       if (handleBarrierProblem(data.barrier_status)) return
       message.success(t('exitCandidates.forceOpenSuccess'))
       onResolved()
     },
     onError: (error) => {
+      if (!isMountedRef.current) return
       if (handleConflict(error)) return
       message.error(getErrorMessage(error, t('exitCandidates.forceOpenError')))
     },
@@ -269,11 +278,13 @@ export default function ExitCandidateModal({
   const retryMutation = useMutation({
     mutationFn: () => retryExitCandidateBarrier(candidate.candidate_id),
     onSuccess: (data) => {
+      if (!isMountedRef.current) return
       if (handleBarrierProblem(data.barrier_status)) return
       message.success(t('exitCandidates.retrySuccess'))
       onResolved()
     },
     onError: (error) => {
+      if (!isMountedRef.current) return
       if (isAxiosError(error) && error.response?.status === 400) {
         setRetryUnavailable(true)
       }
