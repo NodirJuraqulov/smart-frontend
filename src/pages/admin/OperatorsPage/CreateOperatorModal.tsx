@@ -1,5 +1,6 @@
 import { Form, Input, Modal, Select, type FormInstance } from 'antd'
 import { useTranslation } from 'react-i18next'
+import type { ManagedUserRole } from '@/types/user'
 
 const LOGIN_PATTERN = /^[a-zA-Z0-9_]+$/
 
@@ -8,6 +9,7 @@ export interface CreateOperatorFormValues {
   login: string
   password: string
   org_id: number
+  role: ManagedUserRole
 }
 
 interface CreateOperatorModalProps {
@@ -44,7 +46,12 @@ export default function CreateOperatorModal({
       width={{ xs: '90%', sm: '80%', md: 600 }}
       destroyOnHidden
     >
-      <Form form={form} layout="vertical" onFinish={onSubmit}>
+      <Form
+        form={form}
+        layout="vertical"
+        initialValues={{ role: 'operator' }}
+        onFinish={onSubmit}
+      >
         <Form.Item
           label={t('operators.nameLabel')}
           name="name"
@@ -85,6 +92,18 @@ export default function CreateOperatorModal({
             placeholder={t('operators.orgPlaceholder')}
             options={orgOptions}
             loading={orgsLoading}
+          />
+        </Form.Item>
+        <Form.Item
+          label={t('operators.roleLabel')}
+          name="role"
+          rules={[{ required: true, message: t('operators.roleRequired') }]}
+        >
+          <Select
+            options={[
+              { label: t('common.roleOperator'), value: 'operator' },
+              { label: t('common.roleKassir'), value: 'kassir' },
+            ]}
           />
         </Form.Item>
       </Form>

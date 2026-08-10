@@ -238,6 +238,7 @@ export default function OperatorsPage() {
 
       <EditOperatorModal
         open={!!editingOperator}
+        role={editingOperator?.role ?? null}
         form={editForm}
         orgOptions={orgOptions}
         orgsLoading={organizationsQuery.isLoading}

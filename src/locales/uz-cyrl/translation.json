@@ -17,7 +17,8 @@
     "justNow": "Ҳозиргина",
     "minutesAgo": "{{minutes}} дақиқа олдин",
     "hoursAgo": "{{hours}} соат олдин",
-    "daysAgo": "{{days}} кун олдин"
+    "daysAgo": "{{days}} кун олдин",
+    "roleKassir": "Кассир"
   },
   "nav": {
     "dashboard": "Дашборд",
@@ -114,7 +115,11 @@
     "newPasswordPlaceholder": "Янги парол",
     "newPasswordRequired": "Янги паролни киритинг",
     "searchPlaceholder": "Исм ёки логин бўйича қидириш",
-    "emptyState": "Ҳали оператор йўқ"
+    "emptyState": "Ҳали оператор йўқ",
+    "roleLabel": "Рол",
+    "roleRequired": "Ролни танланг",
+    "roleNotEditable": "Ролни яратилгандан кейин ўзгартириб бўлмайди",
+    "columnRole": "Рол"
   },
   "organizations": {
     "title": "Стоянкалар",
@@ -180,7 +185,9 @@
     "tariffPricePlaceholder": "Масалан: 5000",
     "tariffPriceRequired": "Нархни киритинг",
     "tariffGracePeriodLabel": "Бепул кириш вақти (дақиқа)",
-    "tariffGracePeriodPlaceholder": "Масалан: 15"
+    "tariffGracePeriodPlaceholder": "Масалан: 15",
+    "currentPeriodRevenue": "Жорий давр даромади",
+    "currentPeriodSince": "{{date}} дан бери"
   },
   "orgDetail": {
     "basicInfoTitle": "Асосий маълумотлар",
@@ -883,5 +890,33 @@
     "loadErrorMessage": "Маълумот юкланмади. Қайта уланилмоқда",
     "parkedDurationLabel": "Турган вақт: {{duration}}",
     "enteredAtLabel": "Кирган вақт: {{time}}"
+  },
+  "cashCollections": {
+    "actionButton": "Инкассация",
+    "modalTitle": "Инкассация қилиш",
+    "expectedCash": "Кутилаётган нақд",
+    "onlineAmount": "Жорий давр онлайн",
+    "period": "Давр",
+    "periodValue": "{{from}} — ҳозир",
+    "collectedAmount": "Қабул қилинган сумма",
+    "amountPlaceholder": "Суммани киритинг",
+    "amountRequired": "Суммани киритинг",
+    "amountPositive": "Сумма 0 дан катта бўлиши керак",
+    "note": "Изоҳ",
+    "notePlaceholder": "Изоҳ (ихтиёрий)",
+    "noteMaxLength": "Изоҳ 500 белгидан ошмаслиги керак",
+    "confirmButton": "Тасдиқлаш",
+    "createSuccess": "Инкассация сақланди",
+    "createError": "Инкассацияни сақлаб бўлмади",
+    "historyTab": "Инкассация тарихи",
+    "columnDate": "Сана",
+    "columnCollectedBy": "Ким қилди",
+    "columnExpected": "Кутилган сумма",
+    "columnCollected": "Қабул қилинган сумма",
+    "columnDifference": "Фарқ",
+    "columnOnline": "Онлайн сумма",
+    "columnNote": "Изоҳ",
+    "emptyState": "Ҳозирча инкассация йўқ",
+    "unknownCollector": "Номаълум"
   }
 }

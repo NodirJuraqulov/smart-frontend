@@ -17,7 +17,8 @@
     "justNow": "Hozirgina",
     "minutesAgo": "{{minutes}} daqiqa oldin",
     "hoursAgo": "{{hours}} soat oldin",
-    "daysAgo": "{{days}} kun oldin"
+    "daysAgo": "{{days}} kun oldin",
+    "roleKassir": "Kassir"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -114,7 +115,11 @@
     "newPasswordPlaceholder": "Yangi parol",
     "newPasswordRequired": "Yangi parolni kiriting",
     "searchPlaceholder": "Ism yoki login bo'yicha qidirish",
-    "emptyState": "Hali operator yo'q"
+    "emptyState": "Hali operator yo'q",
+    "roleLabel": "Rol",
+    "roleRequired": "Rolni tanlang",
+    "roleNotEditable": "Rolni yaratilgandan keyin o'zgartirib bo'lmaydi",
+    "columnRole": "Rol"
   },
   "organizations": {
     "title": "Stoyanakalar",
@@ -180,7 +185,9 @@
     "tariffPricePlaceholder": "Masalan: 5000",
     "tariffPriceRequired": "Narxni kiriting",
     "tariffGracePeriodLabel": "Bepul kirish vaqti (daqiqa)",
-    "tariffGracePeriodPlaceholder": "Masalan: 15"
+    "tariffGracePeriodPlaceholder": "Masalan: 15",
+    "currentPeriodRevenue": "Joriy davr daromadi",
+    "currentPeriodSince": "{{date}} dan beri"
   },
   "orgDetail": {
     "basicInfoTitle": "Asosiy ma'lumotlar",
@@ -883,5 +890,33 @@
     "loadErrorMessage": "Ma'lumot yuklanmadi. Qayta ulanilmoqda",
     "parkedDurationLabel": "Turgan vaqt: {{duration}}",
     "enteredAtLabel": "Kirgan vaqt: {{time}}"
+  },
+  "cashCollections": {
+    "actionButton": "Inkassatsiya",
+    "modalTitle": "Inkassatsiya qilish",
+    "expectedCash": "Kutilayotgan naqd",
+    "onlineAmount": "Joriy davr onlayn",
+    "period": "Davr",
+    "periodValue": "{{from}} — hozir",
+    "collectedAmount": "Qabul qilingan summa",
+    "amountPlaceholder": "Summani kiriting",
+    "amountRequired": "Summani kiriting",
+    "amountPositive": "Summa 0 dan katta bo'lishi kerak",
+    "note": "Izoh",
+    "notePlaceholder": "Izoh (ixtiyoriy)",
+    "noteMaxLength": "Izoh 500 belgidan oshmasligi kerak",
+    "confirmButton": "Tasdiqlash",
+    "createSuccess": "Inkassatsiya saqlandi",
+    "createError": "Inkassatsiyani saqlab bo'lmadi",
+    "historyTab": "Inkassatsiya tarixi",
+    "columnDate": "Sana",
+    "columnCollectedBy": "Kim qildi",
+    "columnExpected": "Kutilgan summa",
+    "columnCollected": "Qabul qilingan summa",
+    "columnDifference": "Farq",
+    "columnOnline": "Onlayn summa",
+    "columnNote": "Izoh",
+    "emptyState": "Hozircha inkassatsiya yo'q",
+    "unknownCollector": "Noma'lum"
   }
 }

@@ -17,7 +17,8 @@
     "justNow": "Just now",
     "minutesAgo": "{{minutes}} min ago",
     "hoursAgo": "{{hours}} h ago",
-    "daysAgo": "{{days}} d ago"
+    "daysAgo": "{{days}} d ago",
+    "roleKassir": "Cashier"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -114,7 +115,11 @@
     "newPasswordPlaceholder": "New password",
     "newPasswordRequired": "Please enter a new password",
     "searchPlaceholder": "Search by name or login",
-    "emptyState": "No operators yet"
+    "emptyState": "No operators yet",
+    "roleLabel": "Role",
+    "roleRequired": "Select a role",
+    "roleNotEditable": "Role cannot be changed after creation",
+    "columnRole": "Role"
   },
   "organizations": {
     "title": "Parking lots",
@@ -180,7 +185,9 @@
     "tariffPricePlaceholder": "E.g. 5000",
     "tariffPriceRequired": "Please enter a price",
     "tariffGracePeriodLabel": "Free entry time (minutes)",
-    "tariffGracePeriodPlaceholder": "E.g. 15"
+    "tariffGracePeriodPlaceholder": "E.g. 15",
+    "currentPeriodRevenue": "Current period revenue",
+    "currentPeriodSince": "since {{date}}"
   },
   "orgDetail": {
     "basicInfoTitle": "Basic information",
@@ -883,5 +890,33 @@
     "loadErrorMessage": "Failed to load data. Reconnecting",
     "parkedDurationLabel": "Parked time: {{duration}}",
     "enteredAtLabel": "Entered at: {{time}}"
+  },
+  "cashCollections": {
+    "actionButton": "Cash collection",
+    "modalTitle": "Record cash collection",
+    "expectedCash": "Expected cash",
+    "onlineAmount": "Online this period",
+    "period": "Period",
+    "periodValue": "{{from}} — now",
+    "collectedAmount": "Collected amount",
+    "amountPlaceholder": "Enter amount",
+    "amountRequired": "Enter the amount",
+    "amountPositive": "Amount must be greater than 0",
+    "note": "Note",
+    "notePlaceholder": "Note (optional)",
+    "noteMaxLength": "Note must not exceed 500 characters",
+    "confirmButton": "Confirm",
+    "createSuccess": "Cash collection saved",
+    "createError": "Could not save the cash collection",
+    "historyTab": "Collection history",
+    "columnDate": "Date",
+    "columnCollectedBy": "Collected by",
+    "columnExpected": "Expected amount",
+    "columnCollected": "Collected amount",
+    "columnDifference": "Difference",
+    "columnOnline": "Online amount",
+    "columnNote": "Note",
+    "emptyState": "No cash collections yet",
+    "unknownCollector": "Unknown"
   }
 }

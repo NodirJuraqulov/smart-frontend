@@ -57,6 +57,7 @@ export interface OrganizationStats {
   today_entries: number
   today_exits: number
   today_revenue: number
+  current_period_start: string | null
   currently_parked: number
   total_sessions: number
   total_revenue: number

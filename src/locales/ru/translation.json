@@ -17,7 +17,8 @@
     "justNow": "Только что",
     "minutesAgo": "{{minutes}} мин назад",
     "hoursAgo": "{{hours}} ч назад",
-    "daysAgo": "{{days}} дн назад"
+    "daysAgo": "{{days}} дн назад",
+    "roleKassir": "Кассир"
   },
   "nav": {
     "dashboard": "Панель управления",
@@ -114,7 +115,11 @@
     "newPasswordPlaceholder": "Новый пароль",
     "newPasswordRequired": "Введите новый пароль",
     "searchPlaceholder": "Поиск по имени или логину",
-    "emptyState": "Пока нет операторов"
+    "emptyState": "Пока нет операторов",
+    "roleLabel": "Роль",
+    "roleRequired": "Выберите роль",
+    "roleNotEditable": "Роль нельзя изменить после создания",
+    "columnRole": "Роль"
   },
   "organizations": {
     "title": "Автостоянки",
@@ -180,7 +185,9 @@
     "tariffPricePlaceholder": "Например: 5000",
     "tariffPriceRequired": "Введите цену",
     "tariffGracePeriodLabel": "Бесплатное время въезда (мин)",
-    "tariffGracePeriodPlaceholder": "Например: 15"
+    "tariffGracePeriodPlaceholder": "Например: 15",
+    "currentPeriodRevenue": "Доход за текущий период",
+    "currentPeriodSince": "с {{date}}"
   },
   "orgDetail": {
     "basicInfoTitle": "Основная информация",
@@ -883,5 +890,33 @@
     "loadErrorMessage": "Не удалось загрузить данные. Выполняется повторное подключение",
     "parkedDurationLabel": "Время стоянки: {{duration}}",
     "enteredAtLabel": "Время въезда: {{time}}"
+  },
+  "cashCollections": {
+    "actionButton": "Инкассация",
+    "modalTitle": "Провести инкассацию",
+    "expectedCash": "Ожидаемая наличность",
+    "onlineAmount": "Онлайн за текущий период",
+    "period": "Период",
+    "periodValue": "{{from}} — сейчас",
+    "collectedAmount": "Принятая сумма",
+    "amountPlaceholder": "Введите сумму",
+    "amountRequired": "Введите сумму",
+    "amountPositive": "Сумма должна быть больше 0",
+    "note": "Примечание",
+    "notePlaceholder": "Примечание (необязательно)",
+    "noteMaxLength": "Примечание не должно превышать 500 символов",
+    "confirmButton": "Подтвердить",
+    "createSuccess": "Инкассация сохранена",
+    "createError": "Не удалось сохранить инкассацию",
+    "historyTab": "История инкассаций",
+    "columnDate": "Дата",
+    "columnCollectedBy": "Кто провёл",
+    "columnExpected": "Ожидаемая сумма",
+    "columnCollected": "Принятая сумма",
+    "columnDifference": "Разница",
+    "columnOnline": "Сумма онлайн",
+    "columnNote": "Примечание",
+    "emptyState": "Инкассаций пока нет",
+    "unknownCollector": "Неизвестно"
   }
 }

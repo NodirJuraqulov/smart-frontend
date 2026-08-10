@@ -1,7 +1,7 @@
 import type { OperatorPermissions } from './permissions'
 import type { PricingMode } from './organization'
 
-export type UserRole = 'operator' | 'owner' | 'super_admin'
+export type UserRole = 'operator' | 'owner' | 'kassir' | 'super_admin'
 
 export interface AuthUser {
   id: string

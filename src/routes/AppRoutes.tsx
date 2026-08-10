@@ -63,7 +63,11 @@ export default function AppRoutes() {
   const user = useAppSelector((state) => state.auth.user)
 
   const operatorRoleText =
-    user?.role === 'owner' ? t('common.roleOwner') : t('common.roleOperator')
+    user?.role === 'owner'
+      ? t('common.roleOwner')
+      : user?.role === 'kassir'
+        ? t('common.roleKassir')
+        : t('common.roleOperator')
   const operatorRoleLabel = user?.org_name
     ? `${user.org_name} (${operatorRoleText})`
     : operatorRoleText
@@ -135,14 +139,19 @@ export default function AppRoutes() {
 
   const permissions = user?.permissions
   const bypassPermissions = user?.role === 'owner'
+  const isKassir = user?.role === 'kassir'
   const operatorMenuItems: MenuProps['items'] = operatorMenuConfig
-    .filter(
-      (item) =>
+    .filter((item) => {
+      if (isKassir) {
+        return Boolean(item.permission && permissions?.[item.permission])
+      }
+      return (
         !item.permission ||
         bypassPermissions ||
         !permissions ||
-        permissions[item.permission],
-    )
+        permissions[item.permission]
+      )
+    })
     .map(({ key, icon, label }) => ({ key, icon, label }))
 
   return (
@@ -167,7 +176,11 @@ export default function AppRoutes() {
         }
       />
 
-      <Route element={<ProtectedRoute allowedRoles={['operator', 'owner']} />}>
+      <Route
+        element={
+          <ProtectedRoute allowedRoles={['operator', 'owner', 'kassir']} />
+        }
+      >
         <Route
           path="/operator"
           element={

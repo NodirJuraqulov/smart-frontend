@@ -1,6 +1,6 @@
-import { Card, Col, Row, Skeleton, Statistic } from 'antd'
+import { Card, Col, Row, Skeleton, Statistic, Typography } from 'antd'
 import { useTranslation } from 'react-i18next'
-import { formatMoney } from '@/utils/format'
+import { formatDate, formatMoney } from '@/utils/format'
 import type { OrganizationStats } from '@/types/organization'
 
 interface StatsCardProps {
@@ -31,10 +31,17 @@ export default function StatsCard({ isLoading, stats }: StatsCardProps) {
           </Col>
           <Col xs={12} md={8}>
             <Statistic
-              title={t('organizations.todayRevenue')}
+              title={t('organizations.currentPeriodRevenue')}
               value={stats?.today_revenue ?? 0}
               formatter={(value) => formatMoney(Number(value))}
             />
+            {stats?.current_period_start && (
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                {t('organizations.currentPeriodSince', {
+                  date: formatDate(stats.current_period_start),
+                })}
+              </Typography.Text>
+            )}
           </Col>
           <Col xs={12} md={8}>
             <Statistic

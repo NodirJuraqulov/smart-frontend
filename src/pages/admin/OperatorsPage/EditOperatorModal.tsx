@@ -1,5 +1,6 @@
 import { Form, Input, Modal, Select, type FormInstance } from 'antd'
 import { useTranslation } from 'react-i18next'
+import type { UserRole } from '@/types/auth'
 
 const LOGIN_PATTERN = /^[a-zA-Z0-9_]+$/
 
@@ -11,6 +12,7 @@ export interface EditOperatorFormValues {
 
 interface EditOperatorModalProps {
   open: boolean
+  role: UserRole | null
   form: FormInstance<EditOperatorFormValues>
   orgOptions: { label: string; value: number }[]
   orgsLoading: boolean
@@ -21,6 +23,7 @@ interface EditOperatorModalProps {
 
 export default function EditOperatorModal({
   open,
+  role,
   form,
   orgOptions,
   orgsLoading,
@@ -29,6 +32,12 @@ export default function EditOperatorModal({
   onSubmit,
 }: EditOperatorModalProps) {
   const { t } = useTranslation()
+  const roleLabelKey =
+    role === 'owner'
+      ? 'common.roleOwner'
+      : role === 'kassir'
+        ? 'common.roleKassir'
+        : 'common.roleOperator'
 
   return (
     <Modal
@@ -71,6 +80,16 @@ export default function EditOperatorModal({
             placeholder={t('operators.orgPlaceholder')}
             options={orgOptions}
             loading={orgsLoading}
+          />
+        </Form.Item>
+        <Form.Item
+          label={t('operators.roleLabel')}
+          extra={t('operators.roleNotEditable')}
+        >
+          <Select
+            disabled
+            value={role ?? 'operator'}
+            options={[{ label: t(roleLabelKey), value: role ?? 'operator' }]}
           />
         </Form.Item>
       </Form>

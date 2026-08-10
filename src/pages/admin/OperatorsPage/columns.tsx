@@ -32,6 +32,18 @@ export function buildColumns(
         record.org_id ? (orgNameById.get(record.org_id) ?? '—') : '—',
     },
     {
+      title: t('operators.columnRole'),
+      key: 'role',
+      render: (_, record) =>
+        t(
+          record.role === 'owner'
+            ? 'common.roleOwner'
+            : record.role === 'kassir'
+              ? 'common.roleKassir'
+              : 'common.roleOperator',
+        ),
+    },
+    {
       title: t('operators.columnStatus'),
       key: 'status',
       render: (_, record) => (
