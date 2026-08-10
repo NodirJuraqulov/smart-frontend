@@ -359,7 +359,12 @@
     "updateError": "Рухсатларни сақлашда хатолик юз берди",
     "editButton": "Таҳрирлаш",
     "visible": "Кўринади",
-    "hidden": "Яширилган"
+    "hidden": "Яширилган",
+    "operatorTitle": "Оператор рухсатлари",
+    "kassirTitle": "Кассир рухсатлари",
+    "emptyWarningTitle": "Ҳеч қандай бўлим танланмаган",
+    "emptyWarningContent": "{{role}} ҳеч нарсани кўра олмайди. Давом этасизми?",
+    "emptyWarningConfirm": "Давом этиш"
   },
   "reports": {
     "title": "Ҳисоботлар",

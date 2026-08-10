@@ -12,3 +12,5 @@ export interface PermissionItem {
   section_key: string
   can_view: boolean
 }
+
+export type PermissionRole = 'operator' | 'kassir'

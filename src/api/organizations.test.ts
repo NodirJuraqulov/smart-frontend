@@ -386,10 +386,11 @@ describe('getPermissions / updatePermissions', () => {
   it("getPermissions backend'dan kelgan MASSIVNI OperatorPermissions obyektiga aylantiradi (regression)", async () => {
     getMock.mockResolvedValue({ data: { permissions: permissionItems } })
 
-    const result = await getPermissions(1)
+    const result = await getPermissions(1, 'operator')
 
     expect(getMock).toHaveBeenCalledWith(
       '/api/admin/organizations/1/permissions',
+      { params: { role: 'operator' } },
     )
     expect(result).toEqual(permissions)
   })
@@ -401,19 +402,27 @@ describe('getPermissions / updatePermissions', () => {
       },
     })
 
-    const result = await getPermissions(1)
+    const result = await getPermissions(1, 'kassir')
 
+    expect(getMock).toHaveBeenCalledWith(
+      '/api/admin/organizations/1/permissions',
+      { params: { role: 'kassir' } },
+    )
     expect(result).toEqual(permissions)
   })
 
   it("updatePermissions OperatorPermissions obyektini backend kutgan MASSIVGA aylantirib PUT qiladi (regression)", async () => {
     putMock.mockResolvedValue({ data: { permissions: permissionItems } })
 
-    const result = await updatePermissions({ id: 1, permissions })
+    const result = await updatePermissions({
+      id: 1,
+      role: 'kassir',
+      permissions,
+    })
 
     expect(putMock).toHaveBeenCalledWith(
       '/api/admin/organizations/1/permissions',
-      { permissions: permissionItems },
+      { role: 'kassir', permissions: permissionItems },
     )
     expect(result).toEqual(permissions)
   })

@@ -359,7 +359,12 @@
     "updateError": "Ошибка при сохранении прав доступа",
     "editButton": "Редактировать",
     "visible": "Видно",
-    "hidden": "Скрыто"
+    "hidden": "Скрыто",
+    "operatorTitle": "Права оператора",
+    "kassirTitle": "Права кассира",
+    "emptyWarningTitle": "Ни один раздел не выбран",
+    "emptyWarningContent": "{{role}} не сможет видеть ничего. Продолжить?",
+    "emptyWarningConfirm": "Продолжить"
   },
   "reports": {
     "title": "Отчёты",

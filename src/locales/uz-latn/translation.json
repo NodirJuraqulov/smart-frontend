@@ -359,7 +359,12 @@
     "updateError": "Ruxsatlarni saqlashda xatolik yuz berdi",
     "editButton": "Tahrirlash",
     "visible": "Ko'rinadi",
-    "hidden": "Yashirilgan"
+    "hidden": "Yashirilgan",
+    "operatorTitle": "Operator ruxsatlari",
+    "kassirTitle": "Kassir ruxsatlari",
+    "emptyWarningTitle": "Hech qanday boʻlim tanlanmagan",
+    "emptyWarningContent": "{{role}} hech narsani ko'ra olmaydi. Davom etasizmi?",
+    "emptyWarningConfirm": "Davom etish"
   },
   "reports": {
     "title": "Hisobotlar",

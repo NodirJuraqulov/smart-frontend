@@ -24,7 +24,11 @@ import type {
   TariffInterval,
   UpdateTariffIntervalPayload,
 } from '@/types/tariffInterval'
-import type { OperatorPermissions, PermissionItem } from '@/types/permissions'
+import type {
+  OperatorPermissions,
+  PermissionItem,
+  PermissionRole,
+} from '@/types/permissions'
 
 export const getOrganizations = () =>
   axiosInstance
@@ -237,24 +241,27 @@ export const mapPermissionsToDto = (
     can_view: permissions[key],
   }))
 
-export const getPermissions = (id: number) =>
+export const getPermissions = (id: number, role: PermissionRole) =>
   axiosInstance
     .get<{ permissions: PermissionItem[] }>(
       `/api/admin/organizations/${id}/permissions`,
+      { params: { role } },
     )
     .then((res) => mapPermissionsFromDto(res.data.permissions))
 
 export const updatePermissions = ({
   id,
+  role,
   permissions,
 }: {
   id: number
+  role: PermissionRole
   permissions: OperatorPermissions
 }) =>
   axiosInstance
     .put<{ permissions: PermissionItem[] }>(
       `/api/admin/organizations/${id}/permissions`,
-      { permissions: mapPermissionsToDto(permissions) },
+      { role, permissions: mapPermissionsToDto(permissions) },
     )
     .then((res) => mapPermissionsFromDto(res.data.permissions))
 

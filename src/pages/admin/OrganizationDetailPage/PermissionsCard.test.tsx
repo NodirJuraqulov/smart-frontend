@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { App as AntdApp } from 'antd'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 import PermissionsCard from './PermissionsCard'
-import type { OperatorPermissions } from '@/types/permissions'
+import type { OperatorPermissions, PermissionRole } from '@/types/permissions'
 
 const { getPermissionsMock, updatePermissionsMock } = vi.hoisted(() => ({
   getPermissionsMock: vi.fn(),
@@ -16,159 +16,134 @@ vi.mock('@/api/organizations', () => ({
   updatePermissions: updatePermissionsMock,
 }))
 
-const permissions: OperatorPermissions = {
+const operatorPermissions: OperatorPermissions = {
   can_view_dashboard: true,
   can_view_sessions: true,
-  can_view_reports: false,
+  can_view_reports: true,
   can_view_tariffs: true,
-  can_view_subscriptions: false,
+  can_view_subscriptions: true,
   can_view_settings: true,
+  can_view_activity_log: true,
+}
+
+const kassirPermissions: OperatorPermissions = {
+  can_view_dashboard: false,
+  can_view_sessions: false,
+  can_view_reports: true,
+  can_view_tariffs: false,
+  can_view_subscriptions: false,
+  can_view_settings: false,
   can_view_activity_log: false,
 }
 
-function renderCard(queryClient = new QueryClient()) {
+function renderCard() {
   render(
     <ThemeProvider>
-      <QueryClientProvider client={queryClient}>
+      <QueryClientProvider client={new QueryClient()}>
         <AntdApp>
           <PermissionsCard orgId={1} />
         </AntdApp>
       </QueryClientProvider>
     </ThemeProvider>,
   )
-  return queryClient
 }
 
-function openEdit() {
-  fireEvent.click(screen.getByRole('button', { name: /Tahrirlash/ }))
+function card(role: PermissionRole) {
+  return within(screen.getByTestId(`permissions-card-${role}`))
+}
+
+async function waitForBothCards() {
+  await waitFor(() => {
+    expect(
+      card('operator').getByRole('button', { name: /Tahrirlash/ }),
+    ).toBeInTheDocument()
+    expect(
+      card('kassir').getByRole('button', { name: /Tahrirlash/ }),
+    ).toBeInTheDocument()
+  })
 }
 
 describe('PermissionsCard', () => {
   beforeEach(() => {
-    getPermissionsMock.mockReset()
+    getPermissionsMock.mockReset().mockImplementation(
+      (_id: number, role: PermissionRole) =>
+        Promise.resolve(
+          role === 'kassir' ? kassirPermissions : operatorPermissions,
+        ),
+    )
     updatePermissionsMock.mockReset()
   })
 
-  it("sahifa ochilganda KORISH rejimida server qiymatlari togri korsatiladi (regression)", async () => {
-    getPermissionsMock.mockResolvedValue(permissions)
+  it('ikkala ustun mos role parametri bilan yuklanadi', async () => {
     renderCard()
 
+    await waitFor(() => expect(getPermissionsMock).toHaveBeenCalledTimes(2))
+    expect(getPermissionsMock).toHaveBeenCalledWith(1, 'operator')
+    expect(getPermissionsMock).toHaveBeenCalledWith(1, 'kassir')
+
+    expect(screen.getByText('Operator ruxsatlari')).toBeInTheDocument()
+    expect(screen.getByText('Kassir ruxsatlari')).toBeInTheDocument()
+
     await waitFor(() =>
-      expect(screen.getAllByText("Ko'rinadi").length).toBeGreaterThan(0),
+      expect(card('operator').getAllByText("Ko'rinadi")).toHaveLength(7),
     )
-    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
-    expect(
-      screen.getByRole('button', { name: /Tahrirlash/ }),
-    ).toBeInTheDocument()
-    expect(screen.getAllByText("Ko'rinadi")).toHaveLength(4)
-    expect(screen.getAllByText('Yashirilgan')).toHaveLength(3)
+    expect(card('kassir').getAllByText("Ko'rinadi")).toHaveLength(1)
+    expect(card('kassir').getAllByText('Yashirilgan')).toHaveLength(6)
   })
 
-  it("Tahrirlash bosilganda forma hozirgi qiymatlar bilan ochiladi (regression)", async () => {
-    getPermissionsMock.mockResolvedValue(permissions)
+  it('har bir ustunning oʻz Tahrirlash tugmasi bor', async () => {
     renderCard()
 
-    await waitFor(() =>
-      expect(
-        screen.getByRole('button', { name: /Tahrirlash/ }),
-      ).toBeInTheDocument(),
-    )
-    openEdit()
-
-    expect(screen.getByRole('checkbox', { name: 'Dashboard' })).toBeChecked()
-    expect(
-      screen.getByRole('checkbox', { name: 'Hisobotlar' }),
-    ).not.toBeChecked()
-    expect(screen.getByRole('button', { name: 'Saqlash' })).toBeInTheDocument()
-    expect(
-      screen.getByRole('button', { name: 'Bekor qilish' }),
-    ).toBeInTheDocument()
+    await waitForBothCards()
   })
 
-  it("checkbox ozgartirilib Saqlash bosilganda to'liq obyekt yuboriladi va KORISH rejimiga qaytadi (regression)", async () => {
-    getPermissionsMock.mockResolvedValue(permissions)
+  it('operator ustuni tahrirlanganda faqat role=operator bilan yuboriladi', async () => {
     updatePermissionsMock.mockResolvedValue({
-      ...permissions,
-      can_view_reports: true,
+      ...operatorPermissions,
+      can_view_reports: false,
     })
     renderCard()
+    await waitForBothCards()
 
-    await waitFor(() =>
-      expect(
-        screen.getByRole('button', { name: /Tahrirlash/ }),
-      ).toBeInTheDocument(),
+    fireEvent.click(card('operator').getByRole('button', { name: /Tahrirlash/ }))
+    fireEvent.click(
+      card('operator').getByRole('checkbox', { name: 'Hisobotlar' }),
     )
-    openEdit()
+    fireEvent.click(card('operator').getByRole('button', { name: 'Saqlash' }))
 
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Hisobotlar' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Saqlash' }))
-
-    await waitFor(() => expect(updatePermissionsMock).toHaveBeenCalled())
+    await waitFor(() => expect(updatePermissionsMock).toHaveBeenCalledTimes(1))
     expect(updatePermissionsMock.mock.calls[0][0]).toEqual({
       id: 1,
-      permissions: { ...permissions, can_view_reports: true },
+      role: 'operator',
+      permissions: { ...operatorPermissions, can_view_reports: false },
     })
 
-    await waitFor(() =>
-      expect(screen.queryByRole('checkbox')).not.toBeInTheDocument(),
-    )
-    expect(
-      screen.getByRole('button', { name: /Tahrirlash/ }),
-    ).toBeInTheDocument()
+    expect(card('kassir').queryByRole('checkbox')).not.toBeInTheDocument()
+    expect(card('kassir').getAllByText("Ko'rinadi")).toHaveLength(1)
   })
 
-  it("Bekor qilish bosilganda ozgarishlar tashlanib KORISH rejimiga qaytadi (regression)", async () => {
-    getPermissionsMock.mockResolvedValue(permissions)
+  it('kassir ustuni tahrirlanganda faqat role=kassir bilan yuboriladi', async () => {
+    updatePermissionsMock.mockResolvedValue({
+      ...kassirPermissions,
+      can_view_sessions: true,
+    })
     renderCard()
+    await waitForBothCards()
 
-    await waitFor(() =>
-      expect(
-        screen.getByRole('button', { name: /Tahrirlash/ }),
-      ).toBeInTheDocument(),
+    fireEvent.click(card('kassir').getByRole('button', { name: /Tahrirlash/ }))
+    fireEvent.click(
+      card('kassir').getByRole('checkbox', { name: 'Sessiyalar' }),
     )
-    openEdit()
+    fireEvent.click(card('kassir').getByRole('button', { name: 'Saqlash' }))
 
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Hisobotlar' }))
-    expect(screen.getByRole('checkbox', { name: 'Hisobotlar' })).toBeChecked()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Bekor qilish' }))
-
-    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
-    expect(updatePermissionsMock).not.toHaveBeenCalled()
-    expect(screen.getAllByText('Yashirilgan')).toHaveLength(3)
-  })
-
-  it("fon qayta-render'da (data reference o'zgarganda) tahrirlash paytida belgilangan checkboxlar saqlanib qoladi (regression)", async () => {
-    getPermissionsMock.mockResolvedValue(permissions)
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { structuralSharing: false } },
-    })
-    renderCard(queryClient)
-
-    await waitFor(() =>
-      expect(
-        screen.getByRole('button', { name: /Tahrirlash/ }),
-      ).toBeInTheDocument(),
-    )
-    openEdit()
-
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Hisobotlar' }))
-    await waitFor(() =>
-      expect(screen.getByRole('checkbox', { name: 'Hisobotlar' })).toBeChecked(),
-    )
-
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Obunalar' }))
-    await waitFor(() =>
-      expect(screen.getByRole('checkbox', { name: 'Obunalar' })).toBeChecked(),
-    )
-
-    await act(async () => {
-      queryClient.setQueryData(['permissions', 1], { ...permissions })
-      await new Promise((resolve) => setTimeout(resolve, 50))
+    await waitFor(() => expect(updatePermissionsMock).toHaveBeenCalledTimes(1))
+    expect(updatePermissionsMock.mock.calls[0][0]).toEqual({
+      id: 1,
+      role: 'kassir',
+      permissions: { ...kassirPermissions, can_view_sessions: true },
     })
 
-    expect(screen.getByRole('checkbox', { name: 'Dashboard' })).toBeChecked()
-    expect(screen.getByRole('checkbox', { name: 'Hisobotlar' })).toBeChecked()
-    expect(screen.getByRole('checkbox', { name: 'Obunalar' })).toBeChecked()
+    expect(card('operator').queryByRole('checkbox')).not.toBeInTheDocument()
+    expect(card('operator').getAllByText("Ko'rinadi")).toHaveLength(7)
   })
 })

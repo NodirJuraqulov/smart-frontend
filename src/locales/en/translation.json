@@ -359,7 +359,12 @@
     "updateError": "Failed to save permissions",
     "editButton": "Edit",
     "visible": "Visible",
-    "hidden": "Hidden"
+    "hidden": "Hidden",
+    "operatorTitle": "Operator permissions",
+    "kassirTitle": "Cashier permissions",
+    "emptyWarningTitle": "No section selected",
+    "emptyWarningContent": "{{role}} will not be able to see anything. Continue?",
+    "emptyWarningConfirm": "Continue"
   },
   "reports": {
     "title": "Reports",
