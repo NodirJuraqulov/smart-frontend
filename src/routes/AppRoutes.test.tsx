@@ -28,12 +28,12 @@ const operatorUser: AuthUser = {
   },
 }
 
-function renderAtPath(path: string) {
+function renderAtPath(path: string, user: AuthUser = operatorUser) {
   const store = configureStore({
     reducer: { auth: authReducer },
     preloadedState: {
       auth: {
-        user: operatorUser,
+        user,
         accessToken: 'access-token',
         refreshToken: 'refresh-token',
       },
@@ -89,5 +89,33 @@ describe('AppRoutes sidebar permission filtering', () => {
     expect(
       screen.queryByText('Yo‘lak va kamera himoyasi'),
     ).not.toBeInTheDocument()
+  })
+})
+
+describe('AppRoutes header label', () => {
+  it('sarlavhada rol emas, foydalanuvchi ismi koʻrsatiladi', async () => {
+    renderAtPath('/operator/sessions')
+
+    expect(await screen.findByText('Chorsu (Bekzod)')).toBeInTheDocument()
+    expect(screen.queryByText('Chorsu (Operator)')).not.toBeInTheDocument()
+  })
+
+  it('kassir uchun ham ism koʻrsatiladi', async () => {
+    renderAtPath('/operator/reports', {
+      ...operatorUser,
+      role: 'kassir',
+      name: 'Alisher Karimov',
+    })
+
+    expect(
+      await screen.findByText('Chorsu (Alisher Karimov)'),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('Chorsu (Kassir)')).not.toBeInTheDocument()
+  })
+
+  it('ism boʻsh boʻlsa rol nomiga qaytadi', async () => {
+    renderAtPath('/operator/sessions', { ...operatorUser, name: '   ' })
+
+    expect(await screen.findByText('Chorsu (Operator)')).toBeInTheDocument()
   })
 })

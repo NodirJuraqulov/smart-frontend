@@ -922,6 +922,13 @@
     "columnOnline": "Сумма онлайн",
     "columnNote": "Примечание",
     "emptyState": "Инкассаций пока нет",
-    "unknownCollector": "Неизвестно"
+    "unknownCollector": "Неизвестно",
+    "operator": "Оператор",
+    "operatorPlaceholder": "Выберите оператора",
+    "operatorRequired": "Выберите оператора",
+    "selectOperatorHint": "Выберите оператора, чтобы увидеть сумму",
+    "noOperators": "В этой парковке ещё нет операторов",
+    "columnOperator": "Оператор",
+    "legacyAllOperators": "Все операторы (старое)"
   }
 }

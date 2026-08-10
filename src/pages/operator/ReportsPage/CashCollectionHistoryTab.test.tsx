@@ -18,6 +18,8 @@ vi.mock('@/api/cashCollections', () => ({
 const baseCollection: CashCollection = {
   id: 1,
   org_id: 5,
+  operator_id: 11,
+  operator_id_name: 'Bekzod Tursunov',
   collected_by: 7,
   collected_by_name: 'Alisher Karimov',
   expected_amount: 450000,
@@ -32,6 +34,8 @@ const baseCollection: CashCollection = {
 const shortfallCollection: CashCollection = {
   ...baseCollection,
   id: 2,
+  operator_id: null,
+  operator_id_name: null,
   collected_by: null,
   collected_by_name: null,
   expected_amount: 300000,
@@ -53,6 +57,11 @@ function renderTab() {
     </QueryClientProvider>,
   )
 }
+
+const AMOUNT_450 = /450[\s\u00a0]000/
+const AMOUNT_120 = /120[\s\u00a0]000/
+const AMOUNT_20 = /20[\s\u00a0]000/
+const ZERO_START = /^0[\s\u00a0]/
 
 function hexToRgb(hex: string): string {
   const value = Number.parseInt(hex.replace('#', ''), 16)
@@ -93,16 +102,18 @@ describe('CashCollectionHistoryTab', () => {
 
     const firstRow = cellTexts(0)
     expect(firstRow[1]).toBe('Alisher Karimov')
-    expect(firstRow[2]).toMatch(/450[\s ]000/)
-    expect(firstRow[3]).toMatch(/450[\s ]000/)
-    expect(firstRow[4]).toMatch(/^0[\s ]/)
-    expect(firstRow[5]).toMatch(/120[\s ]000/)
-    expect(firstRow[6]).toBe('Toʻliq topshirildi')
+    expect(firstRow[2]).toBe('Bekzod Tursunov')
+    expect(firstRow[3]).toMatch(AMOUNT_450)
+    expect(firstRow[4]).toMatch(AMOUNT_450)
+    expect(firstRow[5]).toMatch(ZERO_START)
+    expect(firstRow[6]).toMatch(AMOUNT_120)
+    expect(firstRow[7]).toBe('Toʻliq topshirildi')
 
     const secondRow = cellTexts(1)
     expect(secondRow[1]).toMatch(/Noma/)
-    expect(secondRow[4]).toMatch(/20[\s ]000/)
-    expect(secondRow[6]).toBe('—')
+    expect(secondRow[2]).toBe('Barcha operatorlar (eski)')
+    expect(secondRow[5]).toMatch(AMOUNT_20)
+    expect(secondRow[7]).toBe('—')
   })
 
   it('farq 0 boʻlsa neytral, 0 dan farqli boʻlsa ogohlantiruvchi rangda', async () => {
@@ -110,10 +121,10 @@ describe('CashCollectionHistoryTab', () => {
     await screen.findByText('Toʻliq topshirildi')
 
     const neutral = document.querySelectorAll('tbody .ant-table-row')[0]
-      .querySelectorAll('td')[4]
+      .querySelectorAll('td')[5]
       .querySelector('span') as HTMLElement
     const warning = document.querySelectorAll('tbody .ant-table-row')[1]
-      .querySelectorAll('td')[4]
+      .querySelectorAll('td')[5]
       .querySelector('span') as HTMLElement
 
     expect(neutral.style.color).toBe('')
@@ -158,5 +169,23 @@ describe('CashCollectionHistoryTab', () => {
     renderTab()
 
     expect(await screen.findByText(/Noma/)).toBeInTheDocument()
+  })
+
+  it('operator ustuni operator_id_name qiymatini koʻrsatadi', async () => {
+    renderTab()
+
+    expect(await screen.findByText('Bekzod Tursunov')).toBeInTheDocument()
+  })
+
+  it('operator_id_name null boʻlsa "Barcha operatorlar (eski)" koʻrsatiladi', async () => {
+    getCashCollectionsMock.mockResolvedValue({
+      collections: [shortfallCollection],
+      pagination: { page: 1, limit: 10, total: 1, total_pages: 1 },
+    })
+    renderTab()
+
+    expect(
+      await screen.findByText('Barcha operatorlar (eski)'),
+    ).toBeInTheDocument()
   })
 })

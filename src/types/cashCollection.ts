@@ -1,4 +1,10 @@
+export interface CashCollectionOperator {
+  id: number
+  name: string
+}
+
 export interface CashCollectionPendingSummary {
+  operator_id: number
   expected_cash_amount: number
   online_amount: number
   period_start: string
@@ -8,6 +14,8 @@ export interface CashCollectionPendingSummary {
 export interface CashCollection {
   id: number
   org_id: number
+  operator_id: number | null
+  operator_id_name?: string | null
   collected_by: number | null
   collected_by_name?: string | null
   expected_amount: number
@@ -32,6 +40,7 @@ export interface CashCollectionsResponse {
 }
 
 export interface CreateCashCollectionPayload {
+  operator_id: number
   collected_amount: number
   note?: string
 }

@@ -922,6 +922,13 @@
     "columnOnline": "Online amount",
     "columnNote": "Note",
     "emptyState": "No cash collections yet",
-    "unknownCollector": "Unknown"
+    "unknownCollector": "Unknown",
+    "operator": "Operator",
+    "operatorPlaceholder": "Select an operator",
+    "operatorRequired": "Select an operator",
+    "selectOperatorHint": "Select an operator to see the amount",
+    "noOperators": "No operators have been added to this parking yet",
+    "columnOperator": "Operator",
+    "legacyAllOperators": "All operators (legacy)"
   }
 }

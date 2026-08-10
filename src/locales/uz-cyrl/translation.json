@@ -922,6 +922,13 @@
     "columnOnline": "Онлайн сумма",
     "columnNote": "Изоҳ",
     "emptyState": "Ҳозирча инкассация йўқ",
-    "unknownCollector": "Номаълум"
+    "unknownCollector": "Номаълум",
+    "operator": "Оператор",
+    "operatorPlaceholder": "Операторни танланг",
+    "operatorRequired": "Операторни танланг",
+    "selectOperatorHint": "Суммани кўриш учун операторни танланг",
+    "noOperators": "Бу стоянкада ҳали оператор қўшилмаган",
+    "columnOperator": "Оператор",
+    "legacyAllOperators": "Барча операторлар (эски)"
   }
 }

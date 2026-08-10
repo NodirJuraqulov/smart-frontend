@@ -35,6 +35,12 @@ export default function CashCollectionHistoryTab({ orgId }: Props) {
         record.collected_by_name || t('cashCollections.unknownCollector'),
     },
     {
+      title: t('cashCollections.columnOperator'),
+      key: 'operator_id_name',
+      render: (_, record) =>
+        record.operator_id_name || t('cashCollections.legacyAllOperators'),
+    },
+    {
       title: t('cashCollections.columnExpected'),
       key: 'expected_amount',
       render: (_, record) => formatMoney(record.expected_amount),

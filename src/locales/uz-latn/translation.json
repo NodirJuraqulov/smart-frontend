@@ -922,6 +922,13 @@
     "columnOnline": "Onlayn summa",
     "columnNote": "Izoh",
     "emptyState": "Hozircha inkassatsiya yo'q",
-    "unknownCollector": "Noma'lum"
+    "unknownCollector": "Noma'lum",
+    "operator": "Operator",
+    "operatorPlaceholder": "Operatorni tanlang",
+    "operatorRequired": "Operatorni tanlang",
+    "selectOperatorHint": "Summani koʻrish uchun operatorni tanlang",
+    "noOperators": "Bu stoyankada hali operator qo'shilmagan",
+    "columnOperator": "Operator",
+    "legacyAllOperators": "Barcha operatorlar (eski)"
   }
 }

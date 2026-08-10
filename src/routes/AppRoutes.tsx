@@ -68,9 +68,10 @@ export default function AppRoutes() {
       : user?.role === 'kassir'
         ? t('common.roleKassir')
         : t('common.roleOperator')
+  const operatorDisplayName = user?.name?.trim() || operatorRoleText
   const operatorRoleLabel = user?.org_name
-    ? `${user.org_name} (${operatorRoleText})`
-    : operatorRoleText
+    ? `${user.org_name} (${operatorDisplayName})`
+    : operatorDisplayName
 
   const adminMenuItems: MenuProps['items'] = [
     { key: '/admin', icon: <DashboardOutlined />, label: t('nav.dashboard') },
