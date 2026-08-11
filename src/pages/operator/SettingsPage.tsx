@@ -6,6 +6,7 @@ import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useAppSelector } from '@/hooks/redux'
 import CameraRelaySettingsCard from '@/pages/admin/OrganizationDetailPage/CameraRelaySettingsCard'
 import ClinicDiscountSettingsCard from './ClinicDiscountSettingsCard'
+import EmergencyBarrierSettingsCard from './EmergencyBarrierSettingsCard'
 
 export default function OperatorSettingsPage() {
   const { t } = useTranslation()
@@ -49,6 +50,10 @@ export default function OperatorSettingsPage() {
 
       {user?.role === 'owner' && user.org_id ? (
         <ClinicDiscountSettingsCard orgId={user.org_id} />
+      ) : null}
+
+      {user?.role === 'owner' && user.org_id ? (
+        <EmergencyBarrierSettingsCard orgId={user.org_id} />
       ) : null}
     </div>
   )

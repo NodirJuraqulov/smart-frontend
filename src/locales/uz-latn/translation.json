@@ -933,5 +933,11 @@
     "noOperators": "Bu stoyankada hali operator qo'shilmagan",
     "columnOperator": "Operator",
     "legacyAllOperators": "Barcha operatorlar (eski)"
+  },
+  "emergencyBarrierSettings": {
+    "title": "Favqulodda shlagbaum tugmasi",
+    "toggleLabel": "Favqulodda shlagbaum tugmasini koʻrsatish",
+    "saveSuccess": "Sozlama saqlandi",
+    "saveError": "Sozlamani saqlab bo'lmadi"
   }
 }

@@ -933,5 +933,11 @@
     "noOperators": "В этой парковке ещё нет операторов",
     "columnOperator": "Оператор",
     "legacyAllOperators": "Все операторы (старое)"
+  },
+  "emergencyBarrierSettings": {
+    "title": "Аварийная кнопка шлагбаума",
+    "toggleLabel": "Показывать аварийную кнопку шлагбаума",
+    "saveSuccess": "Настройка сохранена",
+    "saveError": "Не удалось сохранить настройку"
   }
 }

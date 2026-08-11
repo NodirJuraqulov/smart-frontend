@@ -933,5 +933,11 @@
     "noOperators": "Бу стоянкада ҳали оператор қўшилмаган",
     "columnOperator": "Оператор",
     "legacyAllOperators": "Барча операторлар (эски)"
+  },
+  "emergencyBarrierSettings": {
+    "title": "Фавқулодда шлагбаум тугмаси",
+    "toggleLabel": "Фавқулодда шлагбаум тугмасини кўрсатиш",
+    "saveSuccess": "Созлама сақланди",
+    "saveError": "Созламани сақлаб бўлмади"
   }
 }

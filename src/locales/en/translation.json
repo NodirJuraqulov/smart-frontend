@@ -933,5 +933,11 @@
     "noOperators": "No operators have been added to this parking yet",
     "columnOperator": "Operator",
     "legacyAllOperators": "All operators (legacy)"
+  },
+  "emergencyBarrierSettings": {
+    "title": "Emergency barrier button",
+    "toggleLabel": "Show the emergency barrier button",
+    "saveSuccess": "Setting saved",
+    "saveError": "Could not save the setting"
   }
 }

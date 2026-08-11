@@ -17,6 +17,10 @@ export interface EmergencyBarrierOpenResponse {
   barrier_status: EmergencyBarrierStatus
 }
 
+export interface EmergencyBarrierSettings {
+  emergency_barrier_button_enabled: boolean
+}
+
 export interface Organization {
   id: number
   name: string

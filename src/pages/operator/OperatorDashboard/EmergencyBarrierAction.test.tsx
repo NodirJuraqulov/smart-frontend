@@ -14,16 +14,19 @@ import type { EmergencyBarrierOpenResponse } from '@/types/organization'
 const {
   getCameraRelaySettingsMock,
   getOrganizationGateLayoutMock,
+  getEmergencyBarrierSettingsMock,
   openEmergencyBarrierMock,
 } = vi.hoisted(() => ({
   getCameraRelaySettingsMock: vi.fn(),
   getOrganizationGateLayoutMock: vi.fn(),
+  getEmergencyBarrierSettingsMock: vi.fn(),
   openEmergencyBarrierMock: vi.fn(),
 }))
 
 vi.mock('@/api/organizations', () => ({
   getCameraRelaySettings: getCameraRelaySettingsMock,
   getOrganizationGateLayout: getOrganizationGateLayoutMock,
+  getEmergencyBarrierSettings: getEmergencyBarrierSettingsMock,
   openEmergencyBarrier: openEmergencyBarrierMock,
 }))
 
@@ -63,7 +66,9 @@ function renderAction() {
 }
 
 async function openModal() {
-  const button = screen.getByRole('button', { name: /Shlagbaumni ochish/ })
+  const button = await screen.findByRole('button', {
+    name: /Shlagbaumni ochish/,
+  })
   await waitFor(() => expect(button).toBeEnabled())
   fireEvent.click(button)
   return screen.findByRole('dialog')
@@ -94,6 +99,9 @@ describe('EmergencyBarrierAction', () => {
   beforeEach(() => {
     getOrganizationGateLayoutMock.mockReset().mockResolvedValue(gateLayout)
     getCameraRelaySettingsMock.mockReset().mockResolvedValue(relaySettings)
+    getEmergencyBarrierSettingsMock
+      .mockReset()
+      .mockResolvedValue({ emergency_barrier_button_enabled: true })
     openEmergencyBarrierMock.mockReset()
   })
 
@@ -252,5 +260,30 @@ describe('EmergencyBarrierAction', () => {
     await act(async () => {
       resolveRequest({ barrier_status: 'opened' })
     })
+  })
+
+  it('sozlama yoqilgan boʻlsa favqulodda tugma koʻrinadi', async () => {
+    renderAction()
+
+    expect(
+      await screen.findByRole('button', { name: /Shlagbaumni ochish/ }),
+    ).toBeInTheDocument()
+    expect(getEmergencyBarrierSettingsMock).toHaveBeenCalledWith(7)
+  })
+
+  it('sozlama oʻchirilgan boʻlsa tugma umuman render qilinmaydi', async () => {
+    getEmergencyBarrierSettingsMock.mockResolvedValue({
+      emergency_barrier_button_enabled: false,
+    })
+    renderAction()
+
+    await waitFor(() =>
+      expect(getEmergencyBarrierSettingsMock).toHaveBeenCalledWith(7),
+    )
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('button', { name: /Shlagbaumni ochish/ }),
+      ).not.toBeInTheDocument(),
+    )
   })
 })

@@ -9,6 +9,7 @@ import {
 } from './mappers'
 import type {
   CameraRelaySettings,
+  EmergencyBarrierSettings,
   CreateOrganizationPayload,
   EmergencyBarrierOpenParams,
   EmergencyBarrierOpenResponse,
@@ -163,6 +164,27 @@ export const openEmergencyBarrier = ({
     )
     .then((res) => res.data)
 }
+
+export const getEmergencyBarrierSettings = (orgId: number) =>
+  axiosInstance
+    .get<EmergencyBarrierSettings>(
+      `/api/organizations/${orgId}/emergency-barrier-settings`,
+    )
+    .then((res) => res.data)
+
+export const updateEmergencyBarrierSettings = ({
+  orgId,
+  enabled,
+}: {
+  orgId: number
+  enabled: boolean
+}) =>
+  axiosInstance
+    .patch<EmergencyBarrierSettings>(
+      `/api/organizations/${orgId}/emergency-barrier-settings`,
+      { emergency_barrier_button_enabled: enabled },
+    )
+    .then((res) => res.data)
 
 export const createOrganizationOperator = ({
   id,

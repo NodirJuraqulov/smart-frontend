@@ -303,6 +303,10 @@ export default function ExitCandidateModal({
     (!isRegular || Boolean(paymentMethod)) &&
     !isResolving &&
     !barrierStatus
+  const hasLinkedSession =
+    candidate.matched_session_id != null ||
+    candidate.resolved_session_id != null ||
+    candidate.matched_session != null
   const canForce = !isResolving && !barrierStatus
 
   const submitConfirm = () => {
@@ -608,7 +612,11 @@ export default function ExitCandidateModal({
               {t('exitCandidates.confirmAndOpen')}
             </Button>
           ) : null}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div
+            className={`grid grid-cols-1 gap-3 ${
+              hasLinkedSession ? '' : 'sm:grid-cols-2'
+            }`}
+          >
             <Button
               block
               disabled={isResolving || Boolean(barrierStatus)}
@@ -616,15 +624,17 @@ export default function ExitCandidateModal({
             >
               {t('exitCandidates.chooseAnotherSession')}
             </Button>
-            <Button
-              block
-              danger
-              loading={forceMutation.isPending}
-              disabled={!canForce}
-              onClick={submitForce}
-            >
-              {t('exitCandidates.forceOpen')}
-            </Button>
+            {!hasLinkedSession && (
+              <Button
+                block
+                danger
+                loading={forceMutation.isPending}
+                disabled={!canForce}
+                onClick={submitForce}
+              >
+                {t('exitCandidates.forceOpen')}
+              </Button>
+            )}
           </div>
         </div>
       </div>

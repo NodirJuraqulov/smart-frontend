@@ -14,9 +14,11 @@ import {
 import { WarningOutlined } from '@ant-design/icons'
 import {
   getCameraRelaySettings,
+  getEmergencyBarrierSettings,
   getOrganizationGateLayout,
   openEmergencyBarrier,
 } from '@/api/organizations'
+import { emergencyBarrierSettingsQueryKey } from '../emergencyBarrierSettingsKey'
 import { getErrorMessage } from '@/utils/apiError'
 import type {
   CameraRelaySettings,
@@ -42,6 +44,11 @@ export default function EmergencyBarrierAction({ orgId }: Props) {
   const [direction, setDirection] =
     useState<EmergencyBarrierDirection>('entry')
   const [reason, setReason] = useState('')
+  const buttonSettingsQuery = useQuery({
+    queryKey: emergencyBarrierSettingsQueryKey(orgId),
+    queryFn: () => getEmergencyBarrierSettings(orgId),
+    retry: false,
+  })
   const gateLayoutQuery = useQuery({
     queryKey: ['organizations', orgId, 'gate-layout'],
     queryFn: () => getOrganizationGateLayout(orgId),
@@ -104,6 +111,8 @@ export default function EmergencyBarrierAction({ orgId }: Props) {
     if (mutation.isPending) return
     resetAndClose()
   }
+
+  if (!buttonSettingsQuery.data?.emergency_barrier_button_enabled) return null
 
   return (
     <>

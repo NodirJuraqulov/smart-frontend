@@ -74,6 +74,12 @@ const candidate: ExitCandidateNext = {
   pending_count_for_org: 1,
 }
 
+const unmatchedCandidate: ExitCandidateNext = {
+  ...candidate,
+  detected_plate: null,
+  matched_session: null,
+}
+
 const searchResult: ExitCandidateSearchResult = {
   session_id: 'session-2',
   plate_number: '01B555BB',
@@ -542,7 +548,7 @@ describe('ExitCandidateModal', () => {
   })
 
   it('Majburiy ochish bosilganda formasiz darhol bodysiz API chaqiradi', async () => {
-    renderModal()
+    renderModal(unmatchedCandidate)
     clickButton('Majburiy ochish')
 
     await waitFor(() =>
@@ -564,7 +570,7 @@ describe('ExitCandidateModal', () => {
         resolveRequest = resolve
       }),
     )
-    renderModal()
+    renderModal(unmatchedCandidate)
     const button = getButtonByText('Majburiy ochish')
 
     fireEvent.click(button)
@@ -579,7 +585,7 @@ describe('ExitCandidateModal', () => {
   })
 
   it('Majburiy ochish muvaffaqiyatli bo‘lganda modalni yopish va ro‘yxatni yangilash callbackini chaqiradi', async () => {
-    const { onResolved } = renderModal()
+    const { onResolved } = renderModal(unmatchedCandidate)
 
     clickButton('Majburiy ochish')
 
@@ -610,7 +616,7 @@ describe('ExitCandidateModal', () => {
 
   it('force-open barrier failed bo‘lsa retry tugmasini ko‘rsatadi', async () => {
     forceOpenExitCandidateMock.mockResolvedValue({ barrier_status: 'failed' })
-    renderModal()
+    renderModal(unmatchedCandidate)
     clickButton('Majburiy ochish')
 
     await waitForButton('Qayta ochish')
@@ -796,5 +802,36 @@ describe('ExitCandidateModal', () => {
       'Bu chiqish allaqachon boshqa operator tomonidan hal qilingan',
     )
     expect(document.body).not.toHaveTextContent('Chiqishni tasdiqlab bo‘lmadi')
+  })
+
+  it('matched_session_id mavjud boʻlsa Majburiy ochish koʻrsatilmaydi', () => {
+    renderModal({
+      ...unmatchedCandidate,
+      matched_session_id: 501,
+    })
+
+    expect(queryButtonByText('Majburiy ochish')).toBeNull()
+    expect(getButtonByText('Boshqa sessiyani tanlash')).toBeInTheDocument()
+  })
+
+  it('resolved_session_id orqali bogʻlansa Majburiy ochish yashiriladi', () => {
+    renderModal({
+      ...unmatchedCandidate,
+      resolved_session_id: 777,
+    })
+
+    expect(queryButtonByText('Majburiy ochish')).toBeNull()
+  })
+
+  it('matched_session obyekti mavjud boʻlsa ham Majburiy ochish yashiriladi', () => {
+    renderModal()
+
+    expect(queryButtonByText('Majburiy ochish')).toBeNull()
+  })
+
+  it('sessiya bogʻlanmagan boʻlsa Majburiy ochish koʻrsatiladi', () => {
+    renderModal(unmatchedCandidate)
+
+    expect(getButtonByText('Majburiy ochish')).toBeInTheDocument()
   })
 })

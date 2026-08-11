@@ -21,6 +21,8 @@ export interface ExitCandidateNext {
   status: 'pending'
   webhook_event_id: string
   detected_plate: string | null
+  matched_session_id?: string | number | null
+  resolved_session_id?: string | number | null
   camera_event_at: string
   exit_images: ExitCandidateImages
   matched_session: ExitCandidateMatchedSession | null
