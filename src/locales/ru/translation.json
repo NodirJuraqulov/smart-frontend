@@ -18,7 +18,8 @@
     "minutesAgo": "{{minutes}} мин назад",
     "hoursAgo": "{{hours}} ч назад",
     "daysAgo": "{{days}} дн назад",
-    "roleKassir": "Кассир"
+    "roleKassir": "Кассир",
+    "edit": "Редактировать"
   },
   "nav": {
     "dashboard": "Панель управления",
@@ -344,7 +345,9 @@
     "saveSuccess": "Настройки реле «{{camera}}» сохранены",
     "saveError": "Не удалось сохранить настройки реле камер",
     "loadError": "Не удалось загрузить настройки реле камер",
-    "retry": "Повторить"
+    "retry": "Повторить",
+    "passwordSet": "Установлен",
+    "passwordNotSet": "Не установлен"
   },
   "permissions": {
     "title": "Права доступа",

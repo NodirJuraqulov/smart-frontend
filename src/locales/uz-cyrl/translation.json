@@ -18,7 +18,8 @@
     "minutesAgo": "{{minutes}} дақиқа олдин",
     "hoursAgo": "{{hours}} соат олдин",
     "daysAgo": "{{days}} кун олдин",
-    "roleKassir": "Кассир"
+    "roleKassir": "Кассир",
+    "edit": "Таҳрирлаш"
   },
   "nav": {
     "dashboard": "Дашборд",
@@ -344,7 +345,9 @@
     "saveSuccess": "{{camera}} relay созламалари сақланди",
     "saveError": "Камера relay созламаларини сақлаб бўлмади",
     "loadError": "Камера relay созламаларини юклаб бўлмади",
-    "retry": "Қайта уриниш"
+    "retry": "Қайта уриниш",
+    "passwordSet": "Ўрнатилган",
+    "passwordNotSet": "Ўрнатилмаган"
   },
   "permissions": {
     "title": "Рухсатлар",

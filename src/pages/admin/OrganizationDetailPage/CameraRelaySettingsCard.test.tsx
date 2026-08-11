@@ -93,6 +93,17 @@ async function waitForEntryForm(): Promise<HTMLElement> {
   return page.getByTestId('camera-relay-entry-form')
 }
 
+function openEdit(form: HTMLElement): void {
+  fireEvent.click(scope(form).getByRole('button', { name: /Tahrirlash/ }))
+}
+
+async function waitForExitForm(): Promise<HTMLElement> {
+  await waitFor(() => {
+    expect(page.getByTestId('camera-relay-exit-form')).toBeInTheDocument()
+  })
+  return page.getByTestId('camera-relay-exit-form')
+}
+
 function saveButton(form: HTMLElement): HTMLButtonElement {
   return scope(form).getByRole('button', {
     name: 'Saqlash',
@@ -125,11 +136,8 @@ describe('CameraRelaySettingsCard', () => {
   it('host yoki username bo‘sh bo‘lsa Saqlash disabled bo‘ladi', async () => {
     renderCard()
 
-    const exitForm = await waitFor(() => {
-      const form = page.getByTestId('camera-relay-exit-form')
-      expect(form).toBeInTheDocument()
-      return form
-    })
+    const exitForm = await waitForExitForm()
+    openEdit(exitForm)
     const queries = scope(exitForm)
     const password = queries.getByLabelText('Parol')
     fireEvent.change(password, { target: { value: 'secret' } })
@@ -148,11 +156,8 @@ describe('CameraRelaySettingsCard', () => {
     })
     renderCard()
 
-    const exitForm = await waitFor(() => {
-      const form = page.getByTestId('camera-relay-exit-form')
-      expect(form).toBeInTheDocument()
-      return form
-    })
+    const exitForm = await waitForExitForm()
+    openEdit(exitForm)
     const queries = scope(exitForm)
     const password = queries.getByLabelText('Parol')
     expect(saveButton(exitForm)).toBeDisabled()
@@ -166,6 +171,7 @@ describe('CameraRelaySettingsCard', () => {
     renderCard()
 
     const entryForm = await waitForEntryForm()
+    openEdit(entryForm)
     const button = saveButton(entryForm)
     await waitFor(() => expect(button).toBeEnabled())
     fireEvent.click(button)
@@ -203,6 +209,7 @@ describe('CameraRelaySettingsCard', () => {
     renderCard()
 
     const entryForm = await waitForEntryForm()
+    openEdit(entryForm)
     const password = scope(entryForm).getByLabelText('Parol')
     fireEvent.change(password, { target: { value: 'new-secret' } })
     const button = saveButton(entryForm)
@@ -215,7 +222,6 @@ describe('CameraRelaySettingsCard', () => {
     expect(
       page.getByText('Kirish kamerasi relay sozlamalari saqlandi'),
     ).toBeInTheDocument()
-    expect(password).toHaveValue('')
   })
 
   it('PATCH backend xatosini aniq ko‘rsatadi', async () => {
@@ -229,6 +235,7 @@ describe('CameraRelaySettingsCard', () => {
     renderCard()
 
     const entryForm = await waitForEntryForm()
+    openEdit(entryForm)
     const button = saveButton(entryForm)
     await waitFor(() => expect(button).toBeEnabled())
     fireEvent.click(button)
@@ -244,5 +251,116 @@ describe('CameraRelaySettingsCard', () => {
 
     expect(page.queryByText('Kamera relay sozlamalari')).not.toBeInTheDocument()
     expect(getCameraRelaySettingsMock).not.toHaveBeenCalled()
+  })
+
+  it('boshlangʻich holatda koʻrish rejimi, Tahrirlash bosilganda forma ochiladi', async () => {
+    renderCard()
+
+    const entryForm = await waitForEntryForm()
+    const queries = scope(entryForm)
+
+    expect(queries.getByText('192.168.1.10')).toBeInTheDocument()
+    expect(queries.getByText('admin')).toBeInTheDocument()
+    expect(entryForm.querySelector('input')).toBeNull()
+
+    openEdit(entryForm)
+
+    expect(queries.getByLabelText('IP/Host manzili')).toHaveValue('192.168.1.10')
+    expect(queries.getByLabelText('Foydalanuvchi nomi')).toHaveValue('admin')
+    expect(saveButton(entryForm)).toBeInTheDocument()
+    expect(
+      queries.getByRole('button', { name: 'Bekor qilish' }),
+    ).toBeInTheDocument()
+  })
+
+  it('Saqlashdan keyin koʻrish rejimiga qaytadi va yangi qiymat koʻrinadi', async () => {
+    const savedSettings: CameraRelaySettings = {
+      ...settings,
+      entry: { ...configuredDirection, host: '10.0.0.5' },
+    }
+    getCameraRelaySettingsMock
+      .mockResolvedValueOnce(settings)
+      .mockResolvedValue(savedSettings)
+    updateCameraRelaySettingsMock.mockResolvedValue(savedSettings)
+    renderCard()
+
+    const entryForm = await waitForEntryForm()
+    openEdit(entryForm)
+    fireEvent.change(scope(entryForm).getByLabelText('IP/Host manzili'), {
+      target: { value: '10.0.0.5' },
+    })
+    const button = saveButton(entryForm)
+    await waitFor(() => expect(button).toBeEnabled())
+    fireEvent.click(button)
+
+    await waitFor(() =>
+      expect(scope(entryForm).getByText('10.0.0.5')).toBeInTheDocument(),
+    )
+    expect(entryForm.querySelector('input')).toBeNull()
+    expect(
+      scope(entryForm).getByRole('button', { name: /Tahrirlash/ }),
+    ).toBeInTheDocument()
+  })
+
+  it('Bekor qilish oʻzgarishlarni saqlamasdan koʻrish rejimiga qaytaradi', async () => {
+    renderCard()
+
+    const entryForm = await waitForEntryForm()
+    openEdit(entryForm)
+    fireEvent.change(scope(entryForm).getByLabelText('IP/Host manzili'), {
+      target: { value: '10.0.0.9' },
+    })
+    fireEvent.click(
+      scope(entryForm).getByRole('button', { name: 'Bekor qilish' }),
+    )
+
+    expect(entryForm.querySelector('input')).toBeNull()
+    expect(scope(entryForm).getByText('192.168.1.10')).toBeInTheDocument()
+    expect(scope(entryForm).queryByText('10.0.0.9')).not.toBeInTheDocument()
+    expect(updateCameraRelaySettingsMock).not.toHaveBeenCalled()
+  })
+
+  it('Entry va Exit formalari mustaqil tahrirlanadi', async () => {
+    renderCard()
+
+    const entryForm = await waitForEntryForm()
+    const exitForm = await waitForExitForm()
+
+    openEdit(entryForm)
+
+    expect(entryForm.querySelector('input')).not.toBeNull()
+    expect(exitForm.querySelector('input')).toBeNull()
+    expect(
+      scope(exitForm).getByRole('button', { name: /Tahrirlash/ }),
+    ).toBeInTheDocument()
+
+    openEdit(exitForm)
+
+    expect(exitForm.querySelector('input')).not.toBeNull()
+    expect(entryForm.querySelector('input')).not.toBeNull()
+
+    fireEvent.click(
+      scope(entryForm).getByRole('button', { name: 'Bekor qilish' }),
+    )
+
+    expect(entryForm.querySelector('input')).toBeNull()
+    expect(exitForm.querySelector('input')).not.toBeNull()
+  })
+
+  it('koʻrish rejimida parol ochiq koʻrsatilmaydi', async () => {
+    renderCard()
+
+    const entryForm = await waitForEntryForm()
+    const exitForm = await waitForExitForm()
+
+    expect(scope(entryForm).getByText("O'rnatilgan")).toBeInTheDocument()
+    expect(scope(exitForm).getByText("O'rnatilmagan")).toBeInTheDocument()
+    expect(
+      entryForm.querySelector('input[type="password"]'),
+    ).toBeNull()
+
+    openEdit(entryForm)
+
+    expect(scope(entryForm).getByLabelText('Parol')).toHaveValue('')
   })
 })

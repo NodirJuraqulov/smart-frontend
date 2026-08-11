@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
@@ -6,12 +6,15 @@ import {
   App as AntdApp,
   Button,
   Card,
+  Descriptions,
   Form,
   Input,
   InputNumber,
   Skeleton,
+  Space,
   Tag,
 } from 'antd'
+import { EditOutlined } from '@ant-design/icons'
 import {
   getCameraRelaySettings,
   updateCameraRelaySettings,
@@ -70,30 +73,13 @@ function CameraRelayDirectionForm({
   const { message } = AntdApp.useApp()
   const queryClient = useQueryClient()
   const [form] = Form.useForm<CameraRelayFormValues>()
+  const [isEditing, setIsEditing] = useState(false)
   const values = Form.useWatch([], form)
   const cameraLabel = t(
     direction === 'entry'
       ? 'cameraRelaySettings.entryCameraTitle'
       : 'cameraRelaySettings.exitCameraTitle',
   )
-
-  useEffect(() => {
-    form.setFieldsValue({
-      host: settings.host ?? '',
-      port: settings.port || 80,
-      username: settings.username ?? '',
-      password: '',
-      channel: settings.channel || 1,
-    })
-  }, [
-    form,
-    orgId,
-    settings.channel,
-    settings.configured,
-    settings.host,
-    settings.port,
-    settings.username,
-  ])
 
   const password = values?.password ?? ''
   const canSave =
@@ -123,7 +109,7 @@ function CameraRelayDirectionForm({
     },
     onSuccess: (savedSettings) => {
       queryClient.setQueryData(queryKey, savedSettings)
-      form.setFieldsValue(formValuesFromSettings(savedSettings[direction]))
+      setIsEditing(false)
       message.success(
         t('cameraRelaySettings.saveSuccess', { camera: cameraLabel }),
       )
@@ -136,21 +122,56 @@ function CameraRelayDirectionForm({
     },
   })
 
+  const openEdit = () => {
+    form.setFieldsValue(formValuesFromSettings(settings))
+    setIsEditing(true)
+  }
+
   return (
     <Card
       size="small"
       data-testid={`camera-relay-${direction}-form`}
       title={cameraLabel}
       extra={
-        <Tag color={settings.configured ? 'success' : 'default'}>
-          {t(
-            settings.configured
-              ? 'cameraRelaySettings.configured'
-              : 'cameraRelaySettings.notConfigured',
+        <Space>
+          <Tag color={settings.configured ? 'success' : 'default'}>
+            {t(
+              settings.configured
+                ? 'cameraRelaySettings.configured'
+                : 'cameraRelaySettings.notConfigured',
+            )}
+          </Tag>
+          {!isEditing && (
+            <Button size="small" icon={<EditOutlined />} onClick={openEdit}>
+              {t('common.edit')}
+            </Button>
           )}
-        </Tag>
+        </Space>
       }
     >
+      {!isEditing ? (
+        <Descriptions column={1} size="small">
+          <Descriptions.Item label={t('cameraRelaySettings.hostLabel')}>
+            {settings.host || '—'}
+          </Descriptions.Item>
+          <Descriptions.Item label={t('cameraRelaySettings.portLabel')}>
+            {settings.port || '—'}
+          </Descriptions.Item>
+          <Descriptions.Item label={t('cameraRelaySettings.channelLabel')}>
+            {settings.channel || '—'}
+          </Descriptions.Item>
+          <Descriptions.Item label={t('cameraRelaySettings.usernameLabel')}>
+            {settings.username || '—'}
+          </Descriptions.Item>
+          <Descriptions.Item label={t('cameraRelaySettings.passwordLabel')}>
+            {t(
+              settings.configured
+                ? 'cameraRelaySettings.passwordSet'
+                : 'cameraRelaySettings.passwordNotSet',
+            )}
+          </Descriptions.Item>
+        </Descriptions>
+      ) : (
       <Form<CameraRelayFormValues>
         form={form}
         name={`camera-relay-${direction}`}
@@ -259,15 +280,24 @@ function CameraRelayDirectionForm({
           />
         </Form.Item>
 
-        <Button
-          type="primary"
-          htmlType="submit"
-          loading={mutation.isPending}
-          disabled={!canSave || mutation.isPending}
-        >
-          {t('common.save')}
-        </Button>
+        <Space>
+          <Button
+            type="primary"
+            htmlType="submit"
+            loading={mutation.isPending}
+            disabled={!canSave || mutation.isPending}
+          >
+            {t('common.save')}
+          </Button>
+          <Button
+            onClick={() => setIsEditing(false)}
+            disabled={mutation.isPending}
+          >
+            {t('common.cancel')}
+          </Button>
+        </Space>
       </Form>
+      )}
     </Card>
   )
 }

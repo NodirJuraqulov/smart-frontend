@@ -18,7 +18,8 @@
     "minutesAgo": "{{minutes}} daqiqa oldin",
     "hoursAgo": "{{hours}} soat oldin",
     "daysAgo": "{{days}} kun oldin",
-    "roleKassir": "Kassir"
+    "roleKassir": "Kassir",
+    "edit": "Tahrirlash"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -344,7 +345,9 @@
     "saveSuccess": "{{camera}} relay sozlamalari saqlandi",
     "saveError": "Kamera relay sozlamalarini saqlab bo‘lmadi",
     "loadError": "Kamera relay sozlamalarini yuklab bo‘lmadi",
-    "retry": "Qayta urinish"
+    "retry": "Qayta urinish",
+    "passwordSet": "O'rnatilgan",
+    "passwordNotSet": "O'rnatilmagan"
   },
   "permissions": {
     "title": "Ruxsatlar",

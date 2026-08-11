@@ -26,6 +26,11 @@ function renderCard() {
   )
 }
 
+async function openEdit() {
+  const button = await screen.findByRole('button', { name: /Tahrirlash/ })
+  fireEvent.click(button)
+}
+
 describe('ClinicDiscountSettingsCard', () => {
   beforeEach(() => {
     getClinicDiscountSettingsMock.mockReset()
@@ -41,6 +46,7 @@ describe('ClinicDiscountSettingsCard', () => {
     })
 
     renderCard()
+    await openEdit()
 
     const input = await screen.findByRole('spinbutton')
     await waitFor(() => expect(input).toHaveValue('10'))
@@ -66,6 +72,7 @@ describe('ClinicDiscountSettingsCard', () => {
     })
 
     renderCard()
+    await openEdit()
 
     const input = await screen.findByRole('spinbutton')
     fireEvent.change(input, { target: { value: '150' } })
@@ -75,5 +82,56 @@ describe('ClinicDiscountSettingsCard', () => {
     await waitFor(() => expect(updateClinicDiscountSettingsMock).toHaveBeenCalled())
     const [payload] = updateClinicDiscountSettingsMock.mock.calls[0]
     expect(payload.clinic_discount_percent).toBeLessThanOrEqual(100)
+  })
+
+  it('boshlangʻich holatda koʻrish rejimi koʻrsatiladi', async () => {
+    getClinicDiscountSettingsMock.mockResolvedValue({
+      clinic_discount_percent: 10,
+    })
+    renderCard()
+
+    expect(await screen.findByText('10%')).toBeInTheDocument()
+    expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: 'Saqlash' }),
+    ).not.toBeInTheDocument()
+    expect(
+      await screen.findByRole('button', { name: /Tahrirlash/ }),
+    ).toBeInTheDocument()
+  })
+
+  it('Saqlashdan keyin koʻrish rejimiga qaytadi va yangi qiymat koʻrinadi', async () => {
+    getClinicDiscountSettingsMock.mockResolvedValue({
+      clinic_discount_percent: 10,
+    })
+    updateClinicDiscountSettingsMock.mockResolvedValue({
+      clinic_discount_percent: 25,
+    })
+    renderCard()
+    await openEdit()
+
+    const input = await screen.findByRole('spinbutton')
+    fireEvent.change(input, { target: { value: '25' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Saqlash' }))
+
+    expect(await screen.findByText('25%')).toBeInTheDocument()
+    expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument()
+  })
+
+  it('Bekor qilish oʻzgarishlarni saqlamasdan koʻrish rejimiga qaytaradi', async () => {
+    getClinicDiscountSettingsMock.mockResolvedValue({
+      clinic_discount_percent: 10,
+    })
+    renderCard()
+    await openEdit()
+
+    const input = await screen.findByRole('spinbutton')
+    fireEvent.change(input, { target: { value: '77' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Bekor qilish' }))
+
+    expect(await screen.findByText('10%')).toBeInTheDocument()
+    expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument()
+    expect(screen.queryByText('77%')).not.toBeInTheDocument()
+    expect(updateClinicDiscountSettingsMock).not.toHaveBeenCalled()
   })
 })

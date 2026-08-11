@@ -1,7 +1,17 @@
-import { useEffect } from 'react'
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { App as AntdApp, Button, Card, Form, InputNumber, Skeleton } from 'antd'
+import {
+  App as AntdApp,
+  Button,
+  Card,
+  Descriptions,
+  Form,
+  InputNumber,
+  Skeleton,
+  Space,
+} from 'antd'
+import { EditOutlined } from '@ant-design/icons'
 import {
   getClinicDiscountSettings,
   updateClinicDiscountSettings,
@@ -20,6 +30,7 @@ export default function ClinicDiscountSettingsCard({
   const { message } = AntdApp.useApp()
   const queryClient = useQueryClient()
   const [form] = Form.useForm<ClinicDiscountSettings>()
+  const [isEditing, setIsEditing] = useState(false)
   const queryKey = ['clinic-discount-settings', orgId]
 
   const settingsQuery = useQuery({
@@ -27,17 +38,12 @@ export default function ClinicDiscountSettingsCard({
     queryFn: () => getClinicDiscountSettings(orgId),
   })
 
-  useEffect(() => {
-    if (settingsQuery.data) {
-      form.setFieldsValue(settingsQuery.data)
-    }
-  }, [settingsQuery.data, form])
-
   const mutation = useMutation({
     mutationFn: (values: ClinicDiscountSettings) =>
       updateClinicDiscountSettings({ orgId, ...values }),
     onSuccess: (savedSettings) => {
       queryClient.setQueryData(queryKey, savedSettings)
+      setIsEditing(false)
       message.success(t('clinicDiscountSettings.saveSuccess'))
     },
     onError: (error) => {
@@ -47,15 +53,33 @@ export default function ClinicDiscountSettingsCard({
     },
   })
 
+  const data = settingsQuery.data
+
+  const openEdit = () => {
+    if (data) form.setFieldsValue(data)
+    setIsEditing(true)
+  }
+
   return (
-    <Card variant="borderless" title={t('clinicDiscountSettings.title')}>
+    <Card
+      variant="borderless"
+      title={t('clinicDiscountSettings.title')}
+      extra={
+        !isEditing &&
+        data && (
+          <Button icon={<EditOutlined />} onClick={openEdit}>
+            {t('common.edit')}
+          </Button>
+        )
+      }
+    >
       {settingsQuery.isLoading ? (
         <Skeleton active paragraph={{ rows: 1 }} />
-      ) : (
+      ) : isEditing ? (
         <Form<ClinicDiscountSettings>
           form={form}
           layout="vertical"
-          initialValues={settingsQuery.data}
+          initialValues={data}
           onFinish={(values) => mutation.mutate(values)}
         >
           <Form.Item
@@ -77,10 +101,29 @@ export default function ClinicDiscountSettingsCard({
             <InputNumber min={0} max={100} style={{ width: 160 }} />
           </Form.Item>
 
-          <Button type="primary" htmlType="submit" loading={mutation.isPending}>
-            {t('common.save')}
-          </Button>
+          <Space>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={mutation.isPending}
+              disabled={mutation.isPending}
+            >
+              {t('common.save')}
+            </Button>
+            <Button
+              onClick={() => setIsEditing(false)}
+              disabled={mutation.isPending}
+            >
+              {t('common.cancel')}
+            </Button>
+          </Space>
         </Form>
+      ) : (
+        <Descriptions column={1} size="small">
+          <Descriptions.Item label={t('clinicDiscountSettings.percentLabel')}>
+            {data ? `${data.clinic_discount_percent}%` : '—'}
+          </Descriptions.Item>
+        </Descriptions>
       )}
     </Card>
   )

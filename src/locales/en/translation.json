@@ -18,7 +18,8 @@
     "minutesAgo": "{{minutes}} min ago",
     "hoursAgo": "{{hours}} h ago",
     "daysAgo": "{{days}} d ago",
-    "roleKassir": "Cashier"
+    "roleKassir": "Cashier",
+    "edit": "Edit"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -344,7 +345,9 @@
     "saveSuccess": "{{camera}} relay settings saved",
     "saveError": "Failed to save camera relay settings",
     "loadError": "Failed to load camera relay settings",
-    "retry": "Retry"
+    "retry": "Retry",
+    "passwordSet": "Set",
+    "passwordNotSet": "Not set"
   },
   "permissions": {
     "title": "Permissions",
