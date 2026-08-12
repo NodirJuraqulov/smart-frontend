@@ -334,4 +334,26 @@ describe('EntryCandidateModal', () => {
     )
     expect(document.body).not.toHaveTextContent('Mashinani kiritib bo‘lmadi')
   })
+
+  it('suggested_plate mavjud boʻlsa input shu qiymat bilan toʻldiriladi', () => {
+    renderModal({ ...candidate, suggested_plate: '01B555BB' })
+
+    expect(screen.getByPlaceholderText('Davlat raqamini kiriting')).toHaveValue('01B555BB')
+  })
+
+  it('suggested_plate boʻlmasa detected_plate ishlatiladi (regression)', () => {
+    renderModal(candidate)
+
+    expect(screen.getByPlaceholderText('Davlat raqamini kiriting')).toHaveValue('01A777BA')
+  })
+
+  it('suggested_plate ham, detected_plate ham boʻlmasa input boʻsh qoladi (regression)', () => {
+    renderModal({
+      ...candidate,
+      detected_plate: null,
+      suggested_plate: null,
+    })
+
+    expect(screen.getByPlaceholderText('Davlat raqamini kiriting')).toHaveValue('')
+  })
 })

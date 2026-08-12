@@ -14,6 +14,7 @@ export interface EntryCandidateImages {
 export interface EntryCandidateNext {
   candidate_id: number
   detected_plate: string | null
+  suggested_plate?: string | null
   camera_event_at: string
   confidence: number | null
   reason: EntryCandidateReason

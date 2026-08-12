@@ -32,7 +32,8 @@
     "vipVehicles": "VIP машиналар",
     "clinicDiscount": "Клиника чегирмаси",
     "settings": "Созламалар",
-    "activityLog": "Фаолият журнали"
+    "activityLog": "Фаолият журнали",
+    "plateFormats": "Рақам форматлари"
   },
   "auth": {
     "pageTitle": "Кириш",
@@ -939,5 +940,42 @@
     "toggleLabel": "Фавқулодда шлагбаум тугмасини кўрсатиш",
     "saveSuccess": "Созлама сақланди",
     "saveError": "Созламани сақлаб бўлмади"
+  },
+  "plateFormats": {
+    "title": "Рақам форматлари",
+    "organizationLabel": "Стоянка",
+    "organizationPlaceholder": "Стоянкани танланг",
+    "settingLabel": "Рақам формат текшируви",
+    "settingSaveSuccess": "Созлама сақланди",
+    "settingSaveError": "Созламани сақлаб бўлмади",
+    "createButton": "Янги формат қўшиш",
+    "createModalTitle": "Янги формат қўшиш",
+    "editModalTitle": "Форматни таҳрирлаш",
+    "patternLabel": "Формат",
+    "patternPlaceholder": "Масалан: NNLNNNLL",
+    "patternHint": "N — рақам, L — ҳарф",
+    "patternRequired": "Форматни киритинг",
+    "patternInvalid": "Формат фақат N ва L белгиларидан иборат, 1-20 узунликда бўлиши керак",
+    "descriptionLabel": "Тавсиф",
+    "descriptionPlaceholder": "Масалан: Оддий автомобил рақами",
+    "descriptionMaxLength": "Тавсиф 255 белгидан ошмаслиги керак",
+    "columnPattern": "Формат",
+    "columnDescription": "Тавсиф",
+    "columnStatus": "Ҳолат",
+    "columnActions": "Амаллар",
+    "statusActive": "Актив",
+    "statusInactive": "Нофаол",
+    "toggleActiveAria": "{{pattern}} форматини актив/нофаол қилиш",
+    "deleteButton": "Ўчириш",
+    "deleteConfirm": "Бу форматни ўчирасизми?",
+    "deleteConfirmOk": "Ўчириш",
+    "createSuccess": "Формат қўшилди",
+    "createError": "Форматни қўшиб бўлмади",
+    "updateSuccess": "Формат янгиланди",
+    "updateError": "Форматни янгилаб бўлмади",
+    "deleteSuccess": "Формат ўчирилди",
+    "deleteError": "Форматни ўчириб бўлмади",
+    "duplicateError": "Бу формат аллақачон мавжуд",
+    "emptyState": "Ҳозирча формат қўшилмаган"
   }
 }

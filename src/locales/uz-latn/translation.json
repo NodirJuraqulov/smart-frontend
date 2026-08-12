@@ -32,7 +32,8 @@
     "vipVehicles": "VIP mashinalar",
     "clinicDiscount": "Klinika chegirmasi",
     "settings": "Sozlamalar",
-    "activityLog": "Faoliyat jurnali"
+    "activityLog": "Faoliyat jurnali",
+    "plateFormats": "Raqam formatlari"
   },
   "auth": {
     "pageTitle": "Kirish",
@@ -939,5 +940,42 @@
     "toggleLabel": "Favqulodda shlagbaum tugmasini koʻrsatish",
     "saveSuccess": "Sozlama saqlandi",
     "saveError": "Sozlamani saqlab bo'lmadi"
+  },
+  "plateFormats": {
+    "title": "Raqam formatlari",
+    "organizationLabel": "Stoyanka",
+    "organizationPlaceholder": "Stoyankani tanlang",
+    "settingLabel": "Raqam format tekshiruvi",
+    "settingSaveSuccess": "Sozlama saqlandi",
+    "settingSaveError": "Sozlamani saqlab bo'lmadi",
+    "createButton": "Yangi format qo'shish",
+    "createModalTitle": "Yangi format qo'shish",
+    "editModalTitle": "Formatni tahrirlash",
+    "patternLabel": "Format",
+    "patternPlaceholder": "Masalan: NNLNNNLL",
+    "patternHint": "N — raqam, L — harf",
+    "patternRequired": "Formatni kiriting",
+    "patternInvalid": "Format faqat N va L belgilaridan iborat, 1-20 uzunlikda boʻlishi kerak",
+    "descriptionLabel": "Tavsif",
+    "descriptionPlaceholder": "Masalan: Oddiy avtomobil raqami",
+    "descriptionMaxLength": "Tavsif 255 belgidan oshmasligi kerak",
+    "columnPattern": "Format",
+    "columnDescription": "Tavsif",
+    "columnStatus": "Holat",
+    "columnActions": "Amallar",
+    "statusActive": "Aktiv",
+    "statusInactive": "Nofaol",
+    "toggleActiveAria": "{{pattern}} formatini aktiv/nofaol qilish",
+    "deleteButton": "O'chirish",
+    "deleteConfirm": "Bu formatni o'chirasizmi?",
+    "deleteConfirmOk": "O'chirish",
+    "createSuccess": "Format qo'shildi",
+    "createError": "Formatni qo'shib bo'lmadi",
+    "updateSuccess": "Format yangilandi",
+    "updateError": "Formatni yangilab bo'lmadi",
+    "deleteSuccess": "Format o'chirildi",
+    "deleteError": "Formatni o'chirib bo'lmadi",
+    "duplicateError": "Bu format allaqachon mavjud",
+    "emptyState": "Hozircha format qo'shilmagan"
   }
 }

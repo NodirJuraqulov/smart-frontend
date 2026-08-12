@@ -82,7 +82,9 @@ export default function EntryCandidateModal({
   const inputRef = useRef<InputRef>(null)
   const submittingRef = useRef(false)
   const isMountedRef = useIsMountedRef()
-  const [plate, setPlate] = useState(candidate.detected_plate ?? '')
+  const [plate, setPlate] = useState(
+    candidate.suggested_plate ?? candidate.detected_plate ?? '',
+  )
   const [declineConfirmOpen, setDeclineConfirmOpen] = useState(false)
   const [sessionId, setSessionId] = useState<number | null>(null)
   const [barrierStatus, setBarrierStatus] =
@@ -90,7 +92,7 @@ export default function EntryCandidateModal({
   const [retryUnavailable, setRetryUnavailable] = useState(false)
 
   useEffect(() => {
-    setPlate(candidate.detected_plate ?? '')
+    setPlate(candidate.suggested_plate ?? candidate.detected_plate ?? '')
     setDeclineConfirmOpen(false)
     setSessionId(null)
     setBarrierStatus(null)

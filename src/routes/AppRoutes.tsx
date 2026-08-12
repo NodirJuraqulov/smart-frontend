@@ -9,6 +9,7 @@ import {
   DashboardOutlined,
   HistoryOutlined,
   MedicineBoxOutlined,
+  NumberOutlined,
   SettingOutlined,
   TagsOutlined,
   TeamOutlined,
@@ -47,6 +48,7 @@ const OrganizationDetailPage = lazy(
   () => import('@/pages/admin/OrganizationDetailPage'),
 )
 const ActivityLogPage = lazy(() => import('@/pages/admin/ActivityLogPage'))
+const PlateFormatsPage = lazy(() => import('@/pages/admin/PlateFormatsPage'))
 
 const EntryDisplayPage = lazy(() => import('@/pages/public/EntryDisplayPage'))
 const ExitDisplayPage = lazy(() => import('@/pages/public/ExitDisplayPage'))
@@ -81,6 +83,11 @@ export default function AppRoutes() {
       label: t('nav.organizations'),
     },
     { key: '/admin/users', icon: <TeamOutlined />, label: t('nav.operators') },
+    {
+      key: '/admin/plate-formats',
+      icon: <NumberOutlined />,
+      label: t('nav.plateFormats'),
+    },
     {
       key: '/admin/activity-logs',
       icon: <HistoryOutlined />,
@@ -233,6 +240,7 @@ export default function AppRoutes() {
             path="organizations/:id"
             element={<OrganizationDetailPage />}
           />
+          <Route path="plate-formats" element={<PlateFormatsPage />} />
           <Route path="activity-logs" element={<ActivityLogPage />} />
         </Route>
       </Route>

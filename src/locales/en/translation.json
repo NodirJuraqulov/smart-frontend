@@ -32,7 +32,8 @@
     "vipVehicles": "VIP vehicles",
     "clinicDiscount": "Clinic discount",
     "settings": "Settings",
-    "activityLog": "Activity Log"
+    "activityLog": "Activity Log",
+    "plateFormats": "Plate formats"
   },
   "auth": {
     "pageTitle": "Sign in",
@@ -939,5 +940,42 @@
     "toggleLabel": "Show the emergency barrier button",
     "saveSuccess": "Setting saved",
     "saveError": "Could not save the setting"
+  },
+  "plateFormats": {
+    "title": "Plate formats",
+    "organizationLabel": "Parking",
+    "organizationPlaceholder": "Select a parking",
+    "settingLabel": "Plate format validation",
+    "settingSaveSuccess": "Setting saved",
+    "settingSaveError": "Could not save the setting",
+    "createButton": "Add format",
+    "createModalTitle": "Add format",
+    "editModalTitle": "Edit format",
+    "patternLabel": "Pattern",
+    "patternPlaceholder": "For example: NNLNNNLL",
+    "patternHint": "N — digit, L — letter",
+    "patternRequired": "Enter the pattern",
+    "patternInvalid": "Pattern must contain only N and L, 1-20 characters long",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "For example: Standard car plate",
+    "descriptionMaxLength": "Description must not exceed 255 characters",
+    "columnPattern": "Pattern",
+    "columnDescription": "Description",
+    "columnStatus": "Status",
+    "columnActions": "Actions",
+    "statusActive": "Active",
+    "statusInactive": "Inactive",
+    "toggleActiveAria": "Activate or deactivate the {{pattern}} format",
+    "deleteButton": "Delete",
+    "deleteConfirm": "Delete this format?",
+    "deleteConfirmOk": "Delete",
+    "createSuccess": "Format added",
+    "createError": "Could not add the format",
+    "updateSuccess": "Format updated",
+    "updateError": "Could not update the format",
+    "deleteSuccess": "Format deleted",
+    "deleteError": "Could not delete the format",
+    "duplicateError": "This format already exists",
+    "emptyState": "No formats yet"
   }
 }

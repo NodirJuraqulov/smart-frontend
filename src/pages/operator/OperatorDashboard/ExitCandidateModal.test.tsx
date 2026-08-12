@@ -834,4 +834,23 @@ describe('ExitCandidateModal', () => {
 
     expect(getButtonByText('Majburiy ochish')).toBeInTheDocument()
   })
+
+  it('exit modalda suggested_plate qidiruv inputini toʻldiradi', () => {
+    renderModal({
+      ...unmatchedCandidate,
+      suggested_plate: '01B555BB',
+    })
+
+    expect(
+      page.getByPlaceholderText('Chiqayotgan mashina raqamini kiriting'),
+    ).toHaveValue('01B555BB')
+  })
+
+  it('exit modalda suggested_plate boʻlmasa input boʻsh qoladi (regression)', () => {
+    renderModal(unmatchedCandidate)
+
+    expect(page.getByPlaceholderText('Chiqayotgan mashina raqamini kiriting')).toHaveValue(
+      '',
+    )
+  })
 })

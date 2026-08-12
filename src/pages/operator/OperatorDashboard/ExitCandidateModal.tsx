@@ -132,7 +132,7 @@ export default function ExitCandidateModal({
   const [selectedAt, setSelectedAt] = useState<number | null>(null)
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null)
   const [searchPlate, setSearchPlate] = useState<string>(
-    candidate.detected_plate ?? '',
+    candidate.suggested_plate ?? candidate.detected_plate ?? '',
   )
   const [searchResults, setSearchResults] = useState<
     ExitCandidateSearchResult[]
@@ -154,7 +154,9 @@ export default function ExitCandidateModal({
     setSelectedSession(null)
     setSelectedAt(null)
     setPaymentMethod(null)
-    setSearchPlate(candidate.detected_plate ?? '')
+    setSearchPlate(
+      candidate.suggested_plate ?? candidate.detected_plate ?? '',
+    )
     setSearchResults([])
     setActiveSessionOptions([])
     setSearchListMode('search')

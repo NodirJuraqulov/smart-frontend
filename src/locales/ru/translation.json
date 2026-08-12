@@ -32,7 +32,8 @@
     "vipVehicles": "VIP автомобили",
     "clinicDiscount": "Скидка клиники",
     "settings": "Настройки",
-    "activityLog": "Журнал действий"
+    "activityLog": "Журнал действий",
+    "plateFormats": "Форматы номеров"
   },
   "auth": {
     "pageTitle": "Вход",
@@ -939,5 +940,42 @@
     "toggleLabel": "Показывать аварийную кнопку шлагбаума",
     "saveSuccess": "Настройка сохранена",
     "saveError": "Не удалось сохранить настройку"
+  },
+  "plateFormats": {
+    "title": "Форматы номеров",
+    "organizationLabel": "Парковка",
+    "organizationPlaceholder": "Выберите парковку",
+    "settingLabel": "Проверка формата номера",
+    "settingSaveSuccess": "Настройка сохранена",
+    "settingSaveError": "Не удалось сохранить настройку",
+    "createButton": "Добавить формат",
+    "createModalTitle": "Добавить формат",
+    "editModalTitle": "Редактировать формат",
+    "patternLabel": "Формат",
+    "patternPlaceholder": "Например: NNLNNNLL",
+    "patternHint": "N — цифра, L — буква",
+    "patternRequired": "Введите формат",
+    "patternInvalid": "Формат должен состоять только из N и L, длиной 1-20",
+    "descriptionLabel": "Описание",
+    "descriptionPlaceholder": "Например: Обычный автомобильный номер",
+    "descriptionMaxLength": "Описание не должно превышать 255 символов",
+    "columnPattern": "Формат",
+    "columnDescription": "Описание",
+    "columnStatus": "Статус",
+    "columnActions": "Действия",
+    "statusActive": "Активен",
+    "statusInactive": "Неактивен",
+    "toggleActiveAria": "Активировать/деактивировать формат {{pattern}}",
+    "deleteButton": "Удалить",
+    "deleteConfirm": "Удалить этот формат?",
+    "deleteConfirmOk": "Удалить",
+    "createSuccess": "Формат добавлен",
+    "createError": "Не удалось добавить формат",
+    "updateSuccess": "Формат обновлён",
+    "updateError": "Не удалось обновить формат",
+    "deleteSuccess": "Формат удалён",
+    "deleteError": "Не удалось удалить формат",
+    "duplicateError": "Такой формат уже существует",
+    "emptyState": "Форматов пока нет"
   }
 }
