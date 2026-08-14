@@ -33,7 +33,6 @@ const {
   getActiveSessionsMock,
   getCapacityMock,
   updateSessionPaymentMethodMock,
-  openBarrierForSessionMock,
   getDailyReportMock,
   getSettingsMock,
   useAppSelectorMock,
@@ -44,7 +43,6 @@ const {
   getActiveSessionsMock: vi.fn(),
   getCapacityMock: vi.fn(),
   updateSessionPaymentMethodMock: vi.fn(),
-  openBarrierForSessionMock: vi.fn(),
   getDailyReportMock: vi.fn(),
   getSettingsMock: vi.fn(),
   useAppSelectorMock: vi.fn(),
@@ -57,7 +55,6 @@ vi.mock('@/api/parking', () => ({
   getActiveSessions: getActiveSessionsMock,
   getCapacity: getCapacityMock,
   updateSessionPaymentMethod: updateSessionPaymentMethodMock,
-  openBarrierForSession: openBarrierForSessionMock,
 }))
 
 vi.mock('@/api/reports', () => ({
@@ -207,7 +204,6 @@ describe('OperatorDashboard manual entry modal', () => {
       available: null,
     })
     updateSessionPaymentMethodMock.mockReset()
-    openBarrierForSessionMock.mockReset()
     getDailyReportMock.mockReset().mockResolvedValue({})
     getSettingsMock.mockReset().mockResolvedValue({})
     useAppSelectorMock.mockReset().mockReturnValue(undefined)
@@ -257,7 +253,6 @@ describe('OperatorDashboard 401 xatosida so‘rovlarni qayta urinmasligi (regres
     entryManualMock.mockReset()
     exitManualMock.mockReset()
     updateSessionPaymentMethodMock.mockReset()
-    openBarrierForSessionMock.mockReset()
     getCapacityMock.mockReset().mockResolvedValue({
       occupied: 0,
       total: null,
@@ -295,7 +290,6 @@ describe('OperatorDashboard qurilma ogohlantirishlari', () => {
       available: null,
     })
     updateSessionPaymentMethodMock.mockReset()
-    openBarrierForSessionMock.mockReset()
     getDailyReportMock.mockReset().mockResolvedValue({})
     getSettingsMock.mockReset().mockResolvedValue({})
     useAppSelectorMock.mockReset().mockReturnValue(undefined)
@@ -346,7 +340,6 @@ describe('OperatorDashboard exit candidate WebSocket va ruxsat oqimi', () => {
       available: null,
     })
     updateSessionPaymentMethodMock.mockReset()
-    openBarrierForSessionMock.mockReset()
     getDailyReportMock.mockReset().mockResolvedValue({})
     getSettingsMock.mockReset().mockResolvedValue({})
     socketCallbacksRef.current = null

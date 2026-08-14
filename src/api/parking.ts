@@ -69,19 +69,6 @@ export const updateSessionPaymentMethod = ({
     )
     .then((res) => res.data)
 
-export const openBarrierForSession = ({
-  id,
-  direction,
-}: {
-  id: number
-  direction: 'entry' | 'exit'
-}) =>
-  axiosInstance
-    .post<{ success: boolean }>(`/api/parking/sessions/${id}/open-barrier`, {
-      direction,
-    })
-    .then((res) => res.data.success)
-
 export const printReceiptForSession = (id: number) =>
   axiosInstance
     .post<{ success: boolean; reason?: string }>(

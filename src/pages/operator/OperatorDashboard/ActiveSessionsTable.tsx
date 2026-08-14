@@ -2,7 +2,6 @@ import { Card, Empty, Table, type TableProps } from 'antd'
 import { useTranslation } from 'react-i18next'
 import { formatDate, formatDuration } from '@/utils/format'
 import PlateBadge from '@/components/PlateBadge'
-import OpenBarrierAction from '@/components/OpenBarrierAction'
 import { SessionImagesAction } from '@/components/SessionImagesModal'
 import type { ParkingSession } from '@/types/parking'
 
@@ -49,11 +48,6 @@ export default function ActiveSessionsTable({
       render: (_, record) => (
         <SessionImagesAction session={record} showEmpty={false} />
       ),
-    },
-    {
-      title: t('sessions.columnActions'),
-      key: 'actions',
-      render: (_, record) => <OpenBarrierAction sessionId={record.id} />,
     },
   ]
 
