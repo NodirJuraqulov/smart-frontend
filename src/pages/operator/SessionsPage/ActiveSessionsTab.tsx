@@ -4,25 +4,16 @@ import { useTranslation } from 'react-i18next'
 import { Card, Empty, Table } from 'antd'
 import { getActiveSessions } from '@/api/parking'
 import { useTheme } from '@/contexts/ThemeContext'
-import { useAppSelector } from '@/hooks/redux'
-import ReceiptModal from '@/components/ReceiptModal'
-import type { ParkingSession, Payment } from '@/types/parking'
+import type { ParkingSession } from '@/types/parking'
 import { buildColumns } from './columns'
 import ForceCloseModal from './ForceCloseModal'
-
-interface ReceiptState {
-  session: ParkingSession
-  payment: Payment
-}
 
 export default function ActiveSessionsTab() {
   const { t } = useTranslation()
   const { mode } = useTheme()
-  const orgName = useAppSelector((state) => state.auth.user?.org_name)
   const [forceCloseTarget, setForceCloseTarget] = useState<ParkingSession | null>(
     null,
   )
-  const [receipt, setReceipt] = useState<ReceiptState | null>(null)
 
   const activeQuery = useQuery({
     queryKey: ['parking', 'active'],
@@ -58,16 +49,6 @@ export default function ActiveSessionsTab() {
       <ForceCloseModal
         session={forceCloseTarget}
         onClose={() => setForceCloseTarget(null)}
-        onForceClosed={setReceipt}
-      />
-
-      <ReceiptModal
-        open={!!receipt}
-        onClose={() => setReceipt(null)}
-        session={receipt?.session ?? null}
-        amount={receipt?.payment?.amount ?? null}
-        paymentMethod={receipt?.payment?.payment_method ?? null}
-        orgName={orgName}
       />
     </>
   )

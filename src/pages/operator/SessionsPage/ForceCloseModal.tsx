@@ -18,7 +18,7 @@ import type { ForceCloseSessionPayload } from '@/api/parking'
 import { getErrorMessage } from '@/utils/apiError'
 import { formatDate, formatDuration } from '@/utils/format'
 import PlateBadge from '@/components/PlateBadge'
-import type { ParkingSession, Payment, PaymentMethod } from '@/types/parking'
+import type { ParkingSession, PaymentMethod } from '@/types/parking'
 
 interface ForceCloseFormValues {
   exited_at: Dayjs
@@ -29,13 +29,11 @@ interface ForceCloseFormValues {
 interface ForceCloseModalProps {
   session: ParkingSession | null
   onClose: () => void
-  onForceClosed: (data: { session: ParkingSession; payment: Payment }) => void
 }
 
 export default function ForceCloseModal({
   session,
   onClose,
-  onForceClosed,
 }: ForceCloseModalProps) {
   const { t } = useTranslation()
   const { message } = AntdApp.useApp()
@@ -50,13 +48,12 @@ export default function ForceCloseModal({
       id: number
       payload: ForceCloseSessionPayload
     }) => forceCloseSession(id, payload),
-    onSuccess: (data) => {
+    onSuccess: () => {
       message.success(t('sessions.forceCloseSuccess'))
       queryClient.invalidateQueries({ queryKey: ['parking', 'active'] })
       queryClient.invalidateQueries({ queryKey: ['parking', 'sessions'] })
       form.resetFields()
       onClose()
-      onForceClosed(data)
     },
     onError: (error) => {
       message.error(getErrorMessage(error, t('sessions.forceCloseError')))
