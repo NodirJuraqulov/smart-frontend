@@ -105,21 +105,24 @@ describe('EmergencyBarrierAction', () => {
     openEmergencyBarrierMock.mockReset()
   })
 
-  it('shared layoutda yo‘nalish tanlovisiz qisqa tasdiqlash modalini ko‘rsatadi', async () => {
+  it('shared layoutda tugma bosilganda modalsiz to‘g‘ridan-to‘g‘ri so‘rov yuboradi', async () => {
     getOrganizationGateLayoutMock.mockResolvedValue({ gate_layout: 'shared' })
+    openEmergencyBarrierMock.mockResolvedValue({ barrier_status: 'opened' })
     renderAction()
 
-    const modal = await openModal()
+    const button = await screen.findByRole('button', {
+      name: /Shlagbaumni ochish/,
+    })
+    await waitFor(() => expect(button).toBeEnabled())
+    fireEvent.click(button)
 
-    expect(modal).toHaveTextContent('Shlagbaumni ochishni tasdiqlaysizmi?')
-    expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument()
-    expect(screen.queryByText("Yo'nalish")).not.toBeInTheDocument()
-    expect(
-      screen.queryByPlaceholderText('Sabab (ixtiyoriy)'),
-    ).not.toBeInTheDocument()
-    expect(
-      screen.getByRole('button', { name: 'Ha, ochish' }),
-    ).toBeInTheDocument()
+    await waitFor(() =>
+      expect(openEmergencyBarrierMock).toHaveBeenCalledWith({
+        orgId: 7,
+        direction: 'exit',
+      }),
+    )
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
   it('shared layoutda configured relay directionini APIga yuboradi', async () => {
@@ -130,8 +133,11 @@ describe('EmergencyBarrierAction', () => {
     })
     openEmergencyBarrierMock.mockResolvedValue({ barrier_status: 'failed' })
     renderAction()
-    await openModal()
-    fireEvent.click(screen.getByRole('button', { name: 'Ha, ochish' }))
+    const button = await screen.findByRole('button', {
+      name: /Shlagbaumni ochish/,
+    })
+    await waitFor(() => expect(button).toBeEnabled())
+    fireEvent.click(button)
 
     await waitFor(() =>
       expect(openEmergencyBarrierMock).toHaveBeenCalledWith({
@@ -139,30 +145,17 @@ describe('EmergencyBarrierAction', () => {
         direction: 'entry',
       }),
     )
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
-  it('separate layoutda kirish va chiqish yo‘nalishi tanlovini saqlaydi', async () => {
+  it('separate layoutda kirish va chiqish yo‘nalishi tanlovini ko‘rsatadi', async () => {
     renderAction()
 
     await openModal()
 
-    expect(screen.getByRole('radio', { name: 'Kirish' })).toBeChecked()
+    expect(screen.getByRole('radio', { name: 'Kirish' })).not.toBeChecked()
     expect(screen.getByRole('radio', { name: 'Chiqish' })).toBeInTheDocument()
-  })
-
-  it('shared layoutda ikkala relay configured bo‘lsa exitni yuboradi', async () => {
-    getOrganizationGateLayoutMock.mockResolvedValue({ gate_layout: 'shared' })
-    openEmergencyBarrierMock.mockResolvedValue({ barrier_status: 'failed' })
-    renderAction()
-    await openModal()
-    fireEvent.click(screen.getByRole('button', { name: 'Ha, ochish' }))
-
-    await waitFor(() =>
-      expect(openEmergencyBarrierMock).toHaveBeenCalledWith({
-        orgId: 7,
-        direction: 'exit',
-      }),
-    )
+    expect(screen.getByRole('button', { name: 'Ochish' })).toBeDisabled()
   })
 
   it('tugma bosilganda tasdiqlash modalini ochadi', async () => {
@@ -195,10 +188,38 @@ describe('EmergencyBarrierAction', () => {
     )
   })
 
+  it('kirish tanlanganda entry direction bilan so‘rov yuboradi', async () => {
+    openEmergencyBarrierMock.mockResolvedValue({ barrier_status: 'failed' })
+    renderAction()
+    await openModal()
+    fireEvent.click(screen.getByRole('radio', { name: 'Kirish' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Ochish' }))
+
+    await waitFor(() =>
+      expect(openEmergencyBarrierMock).toHaveBeenCalledWith({
+        orgId: 7,
+        direction: 'entry',
+      }),
+    )
+  })
+
+  it('modal bekor qilinsa so‘rov yubormaydi', async () => {
+    renderAction()
+    await openModal()
+    fireEvent.click(screen.getByRole('radio', { name: 'Chiqish' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Bekor qilish' }))
+
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+    )
+    expect(openEmergencyBarrierMock).not.toHaveBeenCalled()
+  })
+
   it('opened holatida muvaffaqiyat xabarini ko‘rsatib modalni yopadi', async () => {
     openEmergencyBarrierMock.mockResolvedValue({ barrier_status: 'opened' })
     renderAction()
     await openModal()
+    fireEvent.click(screen.getByRole('radio', { name: 'Kirish' }))
     fireEvent.click(screen.getByRole('button', { name: 'Ochish' }))
 
     expect(await screen.findByText('Shlagbaum ochildi')).toBeInTheDocument()
@@ -211,6 +232,7 @@ describe('EmergencyBarrierAction', () => {
     openEmergencyBarrierMock.mockResolvedValue({ barrier_status: 'failed' })
     renderAction()
     await openModal()
+    fireEvent.click(screen.getByRole('radio', { name: 'Kirish' }))
     fireEvent.click(screen.getByRole('button', { name: 'Ochish' }))
 
     expect(
@@ -227,6 +249,7 @@ describe('EmergencyBarrierAction', () => {
 
     for (let index = 0; index < 2; index += 1) {
       await openModal()
+      fireEvent.click(screen.getByRole('radio', { name: 'Kirish' }))
       fireEvent.click(screen.getByRole('button', { name: 'Ochish' }))
       expect(
         await screen.findByText(
@@ -250,6 +273,7 @@ describe('EmergencyBarrierAction', () => {
     )
     renderAction()
     await openModal()
+    fireEvent.click(screen.getByRole('radio', { name: 'Kirish' }))
     const confirmButton = screen.getByRole('button', { name: 'Ochish' })
     fireEvent.click(confirmButton)
 

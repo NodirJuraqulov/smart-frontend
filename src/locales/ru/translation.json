@@ -563,8 +563,6 @@
     "emergencyBarrierButton": "Открыть шлагбаум",
     "emergencyBarrierTitle": "Аварийное открытие шлагбаума",
     "emergencyBarrierWarning": "Эта функция предназначена только для экстренных случаев. Шлагбаум откроется без привязки к сессии или оплате.",
-    "emergencyBarrierSharedConfirm": "Подтвердить открытие шлагбаума?",
-    "emergencyBarrierSharedConfirmButton": "Да, открыть",
     "emergencyBarrierDirection": "Направление",
     "emergencyBarrierReason": "Причина (необязательно)",
     "emergencyBarrierConfirm": "Открыть",

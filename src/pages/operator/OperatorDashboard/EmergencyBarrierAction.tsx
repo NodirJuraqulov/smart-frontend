@@ -42,7 +42,7 @@ export default function EmergencyBarrierAction({ orgId }: Props) {
   const { message } = AntdApp.useApp()
   const [open, setOpen] = useState(false)
   const [direction, setDirection] =
-    useState<EmergencyBarrierDirection>('entry')
+    useState<EmergencyBarrierDirection | null>(null)
   const [reason, setReason] = useState('')
   const buttonSettingsQuery = useQuery({
     queryKey: emergencyBarrierSettingsQueryKey(orgId),
@@ -54,29 +54,30 @@ export default function EmergencyBarrierAction({ orgId }: Props) {
     queryFn: () => getOrganizationGateLayout(orgId),
     retry: false,
   })
+  const isShared = gateLayoutQuery.data?.gate_layout === 'shared'
   const relaySettingsQuery = useQuery({
     queryKey: ['organizations', orgId, 'camera-relay-settings'],
     queryFn: () => getCameraRelaySettings(orgId),
+    enabled: isShared,
     retry: false,
   })
-  const isShared = gateLayoutQuery.data?.gate_layout === 'shared'
   const requestDirection = isShared
     ? getSharedDirection(relaySettingsQuery.data)
     : direction
   const isConfigurationLoading =
-    gateLayoutQuery.isLoading || relaySettingsQuery.isLoading
+    gateLayoutQuery.isLoading || (isShared && relaySettingsQuery.isLoading)
 
   const resetAndClose = () => {
     setOpen(false)
-    setDirection('entry')
+    setDirection(null)
     setReason('')
   }
 
   const mutation = useMutation({
-    mutationFn: () =>
+    mutationFn: (selectedDirection: EmergencyBarrierDirection) =>
       openEmergencyBarrier({
         orgId,
-        direction: requestDirection,
+        direction: selectedDirection,
         ...(!isShared && reason.trim() ? { reason: reason.trim() } : {}),
       }),
     onSuccess: ({ barrier_status }) => {
@@ -103,13 +104,21 @@ export default function EmergencyBarrierAction({ orgId }: Props) {
   })
 
   const submit = () => {
-    if (mutation.isPending) return
-    mutation.mutate()
+    if (mutation.isPending || !requestDirection) return
+    mutation.mutate(requestDirection)
   }
 
   const cancel = () => {
     if (mutation.isPending) return
     resetAndClose()
+  }
+
+  const handleButtonClick = () => {
+    if (isShared) {
+      submit()
+      return
+    }
+    setOpen(true)
   }
 
   if (!buttonSettingsQuery.data?.emergency_barrier_button_enabled) return null
@@ -121,9 +130,9 @@ export default function EmergencyBarrierAction({ orgId }: Props) {
         type="primary"
         size="small"
         icon={<WarningOutlined />}
-        loading={isConfigurationLoading}
-        disabled={isConfigurationLoading}
-        onClick={() => setOpen(true)}
+        loading={isConfigurationLoading || mutation.isPending}
+        disabled={isConfigurationLoading || mutation.isPending}
+        onClick={handleButtonClick}
       >
         {t('operatorDashboard.emergencyBarrierButton')}
       </Button>
@@ -144,65 +153,51 @@ export default function EmergencyBarrierAction({ orgId }: Props) {
               danger
               type="primary"
               loading={mutation.isPending}
-              disabled={mutation.isPending}
+              disabled={mutation.isPending || !direction}
               onClick={submit}
             >
-              {t(
-                isShared
-                  ? 'operatorDashboard.emergencyBarrierSharedConfirmButton'
-                  : 'operatorDashboard.emergencyBarrierConfirm',
-              )}
+              {t('operatorDashboard.emergencyBarrierConfirm')}
             </Button>
           </Space>
         }
       >
         <Space orientation="vertical" size="large" className="w-full">
-          {isShared ? (
-            <Typography.Text>
-              {t('operatorDashboard.emergencyBarrierSharedConfirm')}
+          <Alert
+            showIcon
+            type="warning"
+            title={t('operatorDashboard.emergencyBarrierWarning')}
+          />
+          <Space orientation="vertical" className="w-full">
+            <Typography.Text strong>
+              {t('operatorDashboard.emergencyBarrierDirection')}
             </Typography.Text>
-          ) : (
-            <>
-              <Alert
-                showIcon
-                type="warning"
-                title={t('operatorDashboard.emergencyBarrierWarning')}
-              />
-              <Space orientation="vertical" className="w-full">
-                <Typography.Text strong>
-                  {t('operatorDashboard.emergencyBarrierDirection')}
-                </Typography.Text>
-                <Radio.Group
-                  block
-                  optionType="button"
-                  buttonStyle="solid"
-                  value={direction}
-                  disabled={mutation.isPending}
-                  onChange={(event) => setDirection(event.target.value)}
-                  options={[
-                    {
-                      value: 'entry',
-                      label: t('operatorDashboard.directionEntryLabel'),
-                    },
-                    {
-                      value: 'exit',
-                      label: t('operatorDashboard.directionExitLabel'),
-                    },
-                  ]}
-                />
-              </Space>
-            </>
-          )}
-          {!isShared && (
-            <Input.TextArea
-              value={reason}
+            <Radio.Group
+              block
+              optionType="button"
+              buttonStyle="solid"
+              value={direction}
               disabled={mutation.isPending}
-              maxLength={500}
-              rows={3}
-              placeholder={t('operatorDashboard.emergencyBarrierReason')}
-              onChange={(event) => setReason(event.target.value)}
+              onChange={(event) => setDirection(event.target.value)}
+              options={[
+                {
+                  value: 'entry',
+                  label: t('operatorDashboard.directionEntryLabel'),
+                },
+                {
+                  value: 'exit',
+                  label: t('operatorDashboard.directionExitLabel'),
+                },
+              ]}
             />
-          )}
+          </Space>
+          <Input.TextArea
+            value={reason}
+            disabled={mutation.isPending}
+            maxLength={500}
+            rows={3}
+            placeholder={t('operatorDashboard.emergencyBarrierReason')}
+            onChange={(event) => setReason(event.target.value)}
+          />
         </Space>
       </Modal>
     </>
