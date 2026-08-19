@@ -28,6 +28,19 @@ export const searchExitCandidate = (id: string, plate?: string) => {
   return request.then((response) => response.data)
 }
 
+export const previewExitSession = ({
+  candidateId,
+  sessionId,
+}: {
+  candidateId: string
+  sessionId: string
+}) =>
+  axiosInstance
+    .post(`${candidatePath(candidateId)}/preview-session`, {
+      sessionId: Number(sessionId),
+    })
+    .then((response) => response.data)
+
 export const confirmExitCandidate = (
   id: string,
   payload: ExitCandidateConfirmPayload,

@@ -19,6 +19,7 @@ import {
 import {
   confirmExitCandidate,
   forceOpenExitCandidate,
+  previewExitSession,
   retryExitCandidateBarrier,
   searchExitCandidate,
 } from '@/api/exitCandidates'
@@ -341,6 +342,12 @@ export default function ExitCandidateModal({
     setSelectedAt(Date.now())
     setPaymentMethod(null)
     setMode('view')
+    void previewExitSession({
+      candidateId: candidate.candidate_id,
+      sessionId: result.session_id,
+    }).catch((error: unknown) => {
+      console.error(error)
+    })
   }
 
   return (

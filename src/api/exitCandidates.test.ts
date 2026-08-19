@@ -13,6 +13,7 @@ import {
   confirmExitCandidate,
   forceOpenExitCandidate,
   getNextExitCandidate,
+  previewExitSession,
   retryExitCandidateBarrier,
   searchExitCandidate,
 } from './exitCandidates'
@@ -63,6 +64,18 @@ describe('exit candidates API', () => {
     expect(postMock).toHaveBeenCalledWith(
       '/api/exit-candidates/candidate-1/confirm',
       { session_id: 'session-2', payment_method: 'cash' },
+    )
+  })
+
+  it('preview-session uchun candidate va session idni yuboradi', async () => {
+    await previewExitSession({
+      candidateId: 'candidate/1',
+      sessionId: '2',
+    })
+
+    expect(postMock).toHaveBeenCalledWith(
+      '/api/exit-candidates/candidate%2F1/preview-session',
+      { sessionId: 2 },
     )
   })
 

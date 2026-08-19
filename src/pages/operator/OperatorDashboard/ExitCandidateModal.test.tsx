@@ -22,6 +22,7 @@ import type {
 const {
   confirmExitCandidateMock,
   forceOpenExitCandidateMock,
+  previewExitSessionMock,
   retryExitCandidateBarrierMock,
   searchExitCandidateMock,
 } = vi.hoisted(() => ({
@@ -29,6 +30,8 @@ const {
     vi.fn<typeof ExitCandidatesApi.confirmExitCandidate>(),
   forceOpenExitCandidateMock:
     vi.fn<typeof ExitCandidatesApi.forceOpenExitCandidate>(),
+  previewExitSessionMock:
+    vi.fn<typeof ExitCandidatesApi.previewExitSession>(),
   retryExitCandidateBarrierMock:
     vi.fn<typeof ExitCandidatesApi.retryExitCandidateBarrier>(),
   searchExitCandidateMock:
@@ -38,6 +41,7 @@ const {
 vi.mock('@/api/exitCandidates', () => ({
   confirmExitCandidate: confirmExitCandidateMock,
   forceOpenExitCandidate: forceOpenExitCandidateMock,
+  previewExitSession: previewExitSessionMock,
   retryExitCandidateBarrier: retryExitCandidateBarrierMock,
   searchExitCandidate: searchExitCandidateMock,
 }))
@@ -243,6 +247,8 @@ describe('ExitCandidateModal', () => {
     forceOpenExitCandidateMock.mockResolvedValue({
       barrier_status: 'opened',
     })
+    previewExitSessionMock.mockReset()
+    previewExitSessionMock.mockResolvedValue({})
     retryExitCandidateBarrierMock.mockReset()
     retryExitCandidateBarrierMock.mockResolvedValue({
       barrier_status: 'opened',
@@ -424,6 +430,10 @@ describe('ExitCandidateModal', () => {
     await waitForText('01B555BB')
     const resultCard = page.getByRole('button', { name: /01B555BB/ })
     fireEvent.click(resultCard)
+    expect(previewExitSessionMock).toHaveBeenCalledWith({
+      candidateId: 'candidate-1',
+      sessionId: 'session-2',
+    })
     const entryImage = page.getByAltText('Kirish — avtomobil')
     expect(entryImage).toHaveAttribute(
       'src',
@@ -438,6 +448,30 @@ describe('ExitCandidateModal', () => {
         payment_method: 'cash',
       }),
     )
+  })
+
+  it('preview xatosida tanlovni saqlaydi va modal oqimini davom ettiradi', async () => {
+    const error = new Error('preview failed')
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined)
+    previewExitSessionMock.mockRejectedValue(error)
+
+    try {
+      renderModal()
+      clickButton('Boshqa sessiyani tanlash')
+      clickButton('Qidirish')
+
+      await waitForText('01B555BB')
+      fireEvent.click(page.getByRole('button', { name: /01B555BB/ }))
+
+      await waitFor(() => expect(consoleErrorSpy).toHaveBeenCalledWith(error))
+      expect(page.getByText('01B555BB')).toBeInTheDocument()
+      selectCash()
+      expect(getButtonByText('Tasdiqlash va ochish')).toBeEnabled()
+    } finally {
+      consoleErrorSpy.mockRestore()
+    }
   })
 
   it('search natijasida davomiylik, taxminiy summa va foizni ko‘rsatadi', async () => {
