@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { Provider } from 'react-redux'
@@ -9,6 +9,10 @@ import { ThemeProvider } from '@/contexts/ThemeContext'
 import authReducer from '@/store/authSlice'
 import AppRoutes from './AppRoutes'
 import type { AuthUser } from '@/types/auth'
+
+vi.mock('@/layouts/components/BlacklistAttemptNotifier', () => ({
+  default: () => null,
+}))
 
 const operatorUser: AuthUser = {
   id: 'u1',
@@ -26,6 +30,13 @@ const operatorUser: AuthUser = {
     can_view_settings: false,
     can_view_activity_log: false,
   },
+}
+
+const ownerUser: AuthUser = {
+  ...operatorUser,
+  id: 'owner-1',
+  name: 'Sardor',
+  role: 'owner',
 }
 
 function renderAtPath(path: string, user: AuthUser = operatorUser) {
@@ -74,6 +85,25 @@ describe('AppRoutes sidebar permission filtering', () => {
     expect(await screen.findByText('Dashboard')).toBeInTheDocument()
     expect(screen.queryByText('VIP mashinalar')).not.toBeInTheDocument()
     expect(screen.getByText('Klinika chegirmasi')).toBeInTheDocument()
+  })
+
+  it("Qora ro'yxat Owner sidebarida ko'rinadi", async () => {
+    renderAtPath('/operator/sessions', ownerUser)
+
+    expect(await screen.findByText("Qora ro'yxat")).toBeInTheDocument()
+  })
+
+  it("Qora ro'yxat subscriptions ruxsatli operatorda ham ko'rinmaydi", async () => {
+    renderAtPath('/operator/sessions', {
+      ...operatorUser,
+      permissions: {
+        ...operatorUser.permissions,
+        can_view_subscriptions: true,
+      },
+    })
+
+    expect(await screen.findByText('VIP mashinalar')).toBeInTheDocument()
+    expect(screen.queryByText("Qora ro'yxat")).not.toBeInTheDocument()
   })
 
   it("ruxsat false bolgan yolga kirishga urinilganda PermissionRoute /403 ga yonaltiradi (regression)", async () => {

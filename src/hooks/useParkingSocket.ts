@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { connectSocket, disconnectSocket } from '@/services/socket'
+import { acquireSocket, releaseSocket } from '@/services/socket'
 import { useAppSelector } from './redux'
 import type { DetectionType, ParkingSession, Payment } from '@/types/parking'
 import type {
@@ -49,7 +49,7 @@ export function useParkingSocket(callbacks: UseParkingSocketCallbacks) {
   useEffect(() => {
     if (!isAuthenticated || (role !== 'operator' && role !== 'owner')) return
 
-    const socket = connectSocket()
+    const socket = acquireSocket()
 
     const handleEntry = (payload: {
       session: ParkingSession
@@ -135,7 +135,7 @@ export function useParkingSocket(callbacks: UseParkingSocketCallbacks) {
       socket.off('entry_candidate_resolved', handleEntryCandidateResolved)
       socket.off('relay_failed', handleRelayFailed)
       socket.off('webhook_parse_failed', handleWebhookParseFailed)
-      disconnectSocket()
+      releaseSocket()
     }
   }, [isAuthenticated, role])
 }

@@ -30,7 +30,12 @@ vi.mock('./authSession', () => ({
 }))
 
 import { API_BASE_URL } from '@/utils/runtimeBaseUrl'
-import { connectSocket, disconnectSocket } from './socket'
+import {
+  acquireSocket,
+  connectSocket,
+  disconnectSocket,
+  releaseSocket,
+} from './socket'
 import { connectPublicDisplaySocket } from './publicDisplaySocket'
 
 describe('Socket.IO runtime base', () => {
@@ -86,6 +91,18 @@ describe('Socket.IO runtime base', () => {
     options.auth(callback)
     expect(callback).toHaveBeenCalledWith({ token: 'refreshed-access' })
     vi.useRealTimers()
+  })
+
+  it('socketni oxirgi consumer release qilganda uzadi', () => {
+    const first = acquireSocket()
+    const second = acquireSocket()
+
+    expect(first).toBe(second)
+    releaseSocket()
+    expect(socketMock.disconnect).not.toHaveBeenCalled()
+
+    releaseSocket()
+    expect(socketMock.disconnect).toHaveBeenCalledTimes(1)
   })
 
   it('uses the resolved base without changing public display options', () => {

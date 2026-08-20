@@ -7,6 +7,7 @@ import AppHeader from './components/AppHeader'
 import AppFooter from './components/AppFooter'
 import ScrollToTopButton from '@/components/ScrollToTopButton'
 import PageLoader from '@/components/PageLoader'
+import BlacklistAttemptNotifier from './components/BlacklistAttemptNotifier'
 
 const { Content } = Layout
 
@@ -32,6 +33,7 @@ export default function AppLayout({ menuItems, roleLabel }: AppLayoutProps) {
 
   return (
     <Layout style={{ height: '100vh' }}>
+      <BlacklistAttemptNotifier />
       <AppSidebar
         menuItems={menuItems}
         collapsed={collapsed}

@@ -9,6 +9,7 @@ import type {
   EntryCandidateCreatedEvent,
   EntryCandidateResolvedEvent,
 } from '@/types/entryCandidate'
+import type { BlacklistAttemptEvent } from '@/types/blacklist'
 import { API_BASE_URL } from '@/utils/runtimeBaseUrl'
 import { refreshAccessToken } from './authSession'
 
@@ -31,6 +32,7 @@ interface ServerToClientEvents {
   exit_candidate_resolved: (payload: ExitCandidateResolvedEvent) => void
   entry_candidate_created: (payload: EntryCandidateCreatedEvent) => void
   entry_candidate_resolved: (payload: EntryCandidateResolvedEvent) => void
+  blacklist_attempt: (payload: BlacklistAttemptEvent) => void
   relay_failed: (payload: {
     direction: 'entry' | 'exit'
     plateNumber: string
@@ -50,6 +52,7 @@ let socket: ParkingSocket | null = null
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null
 let reconnectAttempt = 0
 let authRecoveryPending = false
+let socketConsumers = 0
 
 const RECONNECT_DELAYS = [2000, 3000, 5000]
 const SOCKET_AUTH_ERRORS = new Set([
@@ -124,10 +127,21 @@ export function connectSocket(): ParkingSocket {
   return socket
 }
 
+export function acquireSocket(): ParkingSocket {
+  socketConsumers += 1
+  return connectSocket()
+}
+
+export function releaseSocket(): void {
+  if (socketConsumers > 0) socketConsumers -= 1
+  if (socketConsumers === 0) disconnectSocket()
+}
+
 export function disconnectSocket(): void {
   clearReconnectTimer()
   reconnectAttempt = 0
   authRecoveryPending = false
+  socketConsumers = 0
   socket?.disconnect()
   socket = null
 }

@@ -11,18 +11,18 @@ import type {
   EntryCandidateResolvedEvent,
 } from '@/types/entryCandidate'
 
-const { connectSocketMock, disconnectSocketMock, onMock, offMock } = vi.hoisted(
+const { acquireSocketMock, releaseSocketMock, onMock, offMock } = vi.hoisted(
   () => ({
-    connectSocketMock: vi.fn(),
-    disconnectSocketMock: vi.fn(),
+    acquireSocketMock: vi.fn(),
+    releaseSocketMock: vi.fn(),
     onMock: vi.fn(),
     offMock: vi.fn(),
   }),
 )
 
 vi.mock('@/services/socket', () => ({
-  connectSocket: connectSocketMock,
-  disconnectSocket: disconnectSocketMock,
+  acquireSocket: acquireSocketMock,
+  releaseSocket: releaseSocketMock,
 }))
 
 vi.mock('./redux', () => ({
@@ -55,8 +55,8 @@ describe('useParkingSocket exit candidate events', () => {
   beforeEach(() => {
     onMock.mockReset()
     offMock.mockReset()
-    disconnectSocketMock.mockReset()
-    connectSocketMock.mockReset().mockReturnValue({ on: onMock, off: offMock })
+    releaseSocketMock.mockReset()
+    acquireSocketMock.mockReset().mockReturnValue({ on: onMock, off: offMock })
   })
 
   it('created va resolved eventlarini callbacklarga uzatadi va cleanup qiladi', () => {
@@ -120,7 +120,7 @@ describe('useParkingSocket exit candidate events', () => {
       'exit_awaiting_payment',
       expect.any(Function),
     )
-    expect(disconnectSocketMock).toHaveBeenCalled()
+    expect(releaseSocketMock).toHaveBeenCalled()
   })
 
   it('entry candidate created va resolved eventlarini uzatadi', () => {

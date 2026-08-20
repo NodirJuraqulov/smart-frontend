@@ -11,6 +11,7 @@ import {
   MedicineBoxOutlined,
   NumberOutlined,
   SettingOutlined,
+  StopOutlined,
   TagsOutlined,
   TeamOutlined,
   UnorderedListOutlined,
@@ -36,6 +37,7 @@ const SubscriptionsPage = lazy(
   () => import('@/pages/operator/SubscriptionsPage'),
 )
 const VipVehiclesPage = lazy(() => import('@/pages/operator/VipVehiclesPage'))
+const BlacklistPage = lazy(() => import('@/pages/operator/BlacklistPage'))
 const ClinicDiscountPage = lazy(
   () => import('@/pages/operator/ClinicDiscountPage'),
 )
@@ -58,6 +60,7 @@ interface OperatorMenuConfigItem {
   icon: ReactNode
   label: string
   permission?: keyof OperatorPermissions
+  ownerOnly?: boolean
 }
 
 export default function AppRoutes() {
@@ -133,6 +136,12 @@ export default function AppRoutes() {
       permission: 'can_view_subscriptions',
     },
     {
+      key: '/operator/blacklist',
+      icon: <StopOutlined />,
+      label: t('nav.blacklist'),
+      ownerOnly: true,
+    },
+    {
       key: '/operator/clinic-discount',
       icon: <MedicineBoxOutlined />,
       label: t('nav.clinicDiscount'),
@@ -150,6 +159,7 @@ export default function AppRoutes() {
   const isKassir = user?.role === 'kassir'
   const operatorMenuItems: MenuProps['items'] = operatorMenuConfig
     .filter((item) => {
+      if (item.ownerOnly) return user?.role === 'owner'
       if (isKassir) {
         return Boolean(item.permission && permissions?.[item.permission])
       }
@@ -215,6 +225,9 @@ export default function AppRoutes() {
           >
             <Route path="subscriptions" element={<SubscriptionsPage />} />
             <Route path="vip-vehicles" element={<VipVehiclesPage />} />
+          </Route>
+          <Route element={<ProtectedRoute allowedRoles={['owner']} />}>
+            <Route path="blacklist" element={<BlacklistPage />} />
           </Route>
           <Route path="clinic-discount" element={<ClinicDiscountPage />} />
           <Route element={<PermissionRoute permission="can_view_settings" />}>
