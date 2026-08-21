@@ -37,6 +37,7 @@ import SettingsCard from './SettingsCard'
 import IntegrationSettingsCard from './IntegrationSettingsCard'
 import CameraRelaySettingsCard from './CameraRelaySettingsCard'
 import LedSettingsCard from './LedSettingsCard'
+import TelegramSettingsCard from './TelegramSettingsCard'
 
 export default function OrganizationDetailPage() {
   const { t } = useTranslation()
@@ -214,6 +215,8 @@ export default function OrganizationDetailPage() {
       <CameraRelaySettingsCard orgId={orgId} />
 
       <LedSettingsCard orgId={orgId} />
+
+      <TelegramSettingsCard orgId={orgId} />
 
       <AddOperatorModal
         open={addOperatorModalOpen}

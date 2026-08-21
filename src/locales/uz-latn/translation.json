@@ -366,6 +366,28 @@
     "loadError": "LED ekran sozlamalarini yuklab bo‘lmadi",
     "retry": "Qayta urinish"
   },
+  "telegramSettings": {
+    "title": "Telegram bildirishnoma sozlamalari",
+    "botTokenLabel": "Bot Token",
+    "botTokenPlaceholder": "Telegram bot tokenini kiriting",
+    "botTokenPreserveHint": "Bo‘sh qoldirilsa, mavjud token o‘zgarmaydi",
+    "botTokenInvalid": "To‘g‘ri Telegram bot tokenini kiriting",
+    "chatIdsLabel": "Chat ID'lar",
+    "chatIdInputLabel": "Chat ID {{number}}",
+    "chatIdPlaceholder": "Masalan: 1652032889",
+    "chatIdsRequired": "Kamida bitta Chat ID qo‘shing",
+    "chatIdRequired": "Chat ID kiriting",
+    "chatIdInvalid": "Chat ID faqat musbat yoki manfiy butun son bo‘lishi kerak",
+    "addChatId": "Chat ID qo‘shish",
+    "removeChatId": "O‘chirish",
+    "removeChatIdLabel": "Chat ID {{number}} ni o‘chirish",
+    "configured": "O'rnatilgan",
+    "notConfigured": "Sozlanmagan",
+    "saveSuccess": "Telegram bildirishnoma sozlamalari saqlandi",
+    "saveError": "Telegram bildirishnoma sozlamalarini saqlab bo‘lmadi",
+    "loadError": "Telegram bildirishnoma sozlamalarini yuklab bo‘lmadi",
+    "retry": "Qayta urinish"
+  },
   "permissions": {
     "title": "Ruxsatlar",
     "dashboard": "Dashboard",

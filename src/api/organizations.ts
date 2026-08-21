@@ -17,8 +17,10 @@ import type {
   LedSettings,
   OrganizationStats,
   PricingMode,
+  TelegramSettings,
   UpdateIntegrationSettingsPayload,
   UpdateLedSettingsPayload,
+  UpdateTelegramSettingsPayload,
   UpdateCameraRelaySettingsPayload,
   UpdateOrganizationPayload,
 } from '@/types/organization'
@@ -161,6 +163,24 @@ export const updateLedSettings = ({
 }: UpdateLedSettingsPayload & { orgId: number }) =>
   axiosInstance
     .patch<LedSettings>(`/api/organizations/${orgId}/led-settings`, payload)
+    .then((res) => res.data)
+
+export const getTelegramSettings = (orgId: number) =>
+  axiosInstance
+    .get<TelegramSettings>(
+      `/api/organizations/${orgId}/telegram-settings`,
+    )
+    .then((res) => res.data)
+
+export const updateTelegramSettings = ({
+  orgId,
+  ...payload
+}: UpdateTelegramSettingsPayload & { orgId: number }) =>
+  axiosInstance
+    .patch<TelegramSettings>(
+      `/api/organizations/${orgId}/telegram-settings`,
+      payload,
+    )
     .then((res) => res.data)
 
 export const openEmergencyBarrier = ({

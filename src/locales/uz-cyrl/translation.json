@@ -366,6 +366,28 @@
     "loadError": "LED экран созламаларини юклаб бўлмади",
     "retry": "Қайта уриниш"
   },
+  "telegramSettings": {
+    "title": "Telegram билдиришнома созламалари",
+    "botTokenLabel": "Bot Token",
+    "botTokenPlaceholder": "Telegram bot tokenини киритинг",
+    "botTokenPreserveHint": "Бўш қолдирилса, мавжуд token ўзгармайди",
+    "botTokenInvalid": "Тўғри Telegram bot tokenини киритинг",
+    "chatIdsLabel": "Chat ID'лар",
+    "chatIdInputLabel": "Chat ID {{number}}",
+    "chatIdPlaceholder": "Масалан: 1652032889",
+    "chatIdsRequired": "Камида битта Chat ID қўшинг",
+    "chatIdRequired": "Chat ID киритинг",
+    "chatIdInvalid": "Chat ID фақат мусбат ёки манфий бутун сон бўлиши керак",
+    "addChatId": "Chat ID қўшиш",
+    "removeChatId": "Ўчириш",
+    "removeChatIdLabel": "Chat ID {{number}} ни ўчириш",
+    "configured": "Ўрнатилган",
+    "notConfigured": "Созланмаган",
+    "saveSuccess": "Telegram билдиришнома созламалари сақланди",
+    "saveError": "Telegram билдиришнома созламаларини сақлаб бўлмади",
+    "loadError": "Telegram билдиришнома созламаларини юклаб бўлмади",
+    "retry": "Қайта уриниш"
+  },
   "permissions": {
     "title": "Рухсатлар",
     "dashboard": "Дашборд",

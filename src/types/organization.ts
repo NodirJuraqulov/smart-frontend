@@ -129,3 +129,13 @@ export interface UpdateLedSettingsPayload {
   led_host: string | null
   led_port: number | null
 }
+
+export interface TelegramSettings {
+  telegram_bot_configured: boolean
+  telegram_chat_ids: string[]
+}
+
+export interface UpdateTelegramSettingsPayload {
+  telegram_bot_token?: string | null
+  telegram_chat_ids?: string[]
+}

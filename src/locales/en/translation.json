@@ -366,6 +366,28 @@
     "loadError": "Failed to load LED display settings",
     "retry": "Retry"
   },
+  "telegramSettings": {
+    "title": "Telegram notification settings",
+    "botTokenLabel": "Bot Token",
+    "botTokenPlaceholder": "Enter the Telegram bot token",
+    "botTokenPreserveHint": "Leave blank to keep the current token",
+    "botTokenInvalid": "Enter a valid Telegram bot token",
+    "chatIdsLabel": "Chat IDs",
+    "chatIdInputLabel": "Chat ID {{number}}",
+    "chatIdPlaceholder": "For example: 1652032889",
+    "chatIdsRequired": "Add at least one Chat ID",
+    "chatIdRequired": "Enter a Chat ID",
+    "chatIdInvalid": "Chat ID must be a positive or negative integer",
+    "addChatId": "Add Chat ID",
+    "removeChatId": "Remove",
+    "removeChatIdLabel": "Remove Chat ID {{number}}",
+    "configured": "Set",
+    "notConfigured": "Not configured",
+    "saveSuccess": "Telegram notification settings saved",
+    "saveError": "Failed to save Telegram notification settings",
+    "loadError": "Failed to load Telegram notification settings",
+    "retry": "Retry"
+  },
   "permissions": {
     "title": "Permissions",
     "dashboard": "Dashboard",

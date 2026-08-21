@@ -366,6 +366,28 @@
     "loadError": "Не удалось загрузить настройки LED-экрана",
     "retry": "Повторить"
   },
+  "telegramSettings": {
+    "title": "Настройки Telegram-уведомлений",
+    "botTokenLabel": "Bot Token",
+    "botTokenPlaceholder": "Введите токен Telegram-бота",
+    "botTokenPreserveHint": "Оставьте пустым, чтобы сохранить текущий токен",
+    "botTokenInvalid": "Введите корректный токен Telegram-бота",
+    "chatIdsLabel": "Chat ID",
+    "chatIdInputLabel": "Chat ID {{number}}",
+    "chatIdPlaceholder": "Например: 1652032889",
+    "chatIdsRequired": "Добавьте хотя бы один Chat ID",
+    "chatIdRequired": "Введите Chat ID",
+    "chatIdInvalid": "Chat ID должен быть положительным или отрицательным целым числом",
+    "addChatId": "Добавить Chat ID",
+    "removeChatId": "Удалить",
+    "removeChatIdLabel": "Удалить Chat ID {{number}}",
+    "configured": "Установлен",
+    "notConfigured": "Не настроено",
+    "saveSuccess": "Настройки Telegram-уведомлений сохранены",
+    "saveError": "Не удалось сохранить настройки Telegram-уведомлений",
+    "loadError": "Не удалось загрузить настройки Telegram-уведомлений",
+    "retry": "Повторить"
+  },
   "permissions": {
     "title": "Права доступа",
     "dashboard": "Панель управления",

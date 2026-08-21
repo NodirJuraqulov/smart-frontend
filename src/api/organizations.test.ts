@@ -33,6 +33,7 @@ import {
   getOrganizationGateLayout,
   getOrganizations,
   getPermissions,
+  getTelegramSettings,
   getTariffIntervals,
   getTariffIntervalsAdmin,
   openEmergencyBarrier,
@@ -42,6 +43,7 @@ import {
   updateLedSettings,
   updatePermissions,
   updatePricingMode,
+  updateTelegramSettings,
   updateTariffInterval,
   updateTariffIntervalAdmin,
 } from '@/api/organizations'
@@ -203,6 +205,44 @@ describe('LED settings', () => {
       { led_host: '192.168.1.157', led_port: 10000 },
     )
     expect(result).toEqual(ledSettings)
+  })
+})
+
+describe('Telegram settings', () => {
+  const telegramSettings = {
+    telegram_bot_configured: true,
+    telegram_chat_ids: ['1652032889', '-987654321'],
+  }
+
+  it('GET organization Telegram sozlamalarini tokensiz oladi', async () => {
+    getMock.mockResolvedValue({ data: telegramSettings })
+
+    const result = await getTelegramSettings(7)
+
+    expect(getMock).toHaveBeenCalledWith(
+      '/api/organizations/7/telegram-settings',
+    )
+    expect(result).toEqual(telegramSettings)
+    expect(result).not.toHaveProperty('telegram_bot_token')
+  })
+
+  it('PATCH backend kutgan Chat ID massivini yuboradi', async () => {
+    patchMock.mockResolvedValue({ data: telegramSettings })
+
+    const result = await updateTelegramSettings({
+      orgId: 7,
+      telegram_bot_token: '123456789:TEST_bot-token',
+      telegram_chat_ids: ['1652032889', '-987654321'],
+    })
+
+    expect(patchMock).toHaveBeenCalledWith(
+      '/api/organizations/7/telegram-settings',
+      {
+        telegram_bot_token: '123456789:TEST_bot-token',
+        telegram_chat_ids: ['1652032889', '-987654321'],
+      },
+    )
+    expect(result).toEqual(telegramSettings)
   })
 })
 
