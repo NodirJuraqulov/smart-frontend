@@ -119,3 +119,13 @@ export interface UpdateCameraRelaySettingsPayload {
   entry?: CameraRelayDirectionPayload
   exit?: CameraRelayDirectionPayload
 }
+
+export interface LedSettings {
+  led_host: string | null
+  led_port: number | null
+}
+
+export interface UpdateLedSettingsPayload {
+  led_host: string | null
+  led_port: number | null
+}

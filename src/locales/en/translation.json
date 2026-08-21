@@ -351,6 +351,21 @@
     "passwordSet": "Set",
     "passwordNotSet": "Not set"
   },
+  "ledSettings": {
+    "title": "LED display settings",
+    "hostLabel": "IP/Host address",
+    "hostPlaceholder": "For example: 192.168.1.157",
+    "hostInvalid": "Enter a valid IP or host without a protocol",
+    "portLabel": "Port",
+    "portRequired": "Enter the port",
+    "portInvalid": "Port must be an integer from 1 to 65535",
+    "configured": "Configured",
+    "notConfigured": "Not configured",
+    "saveSuccess": "LED display settings saved",
+    "saveError": "Failed to save LED display settings",
+    "loadError": "Failed to load LED display settings",
+    "retry": "Retry"
+  },
   "permissions": {
     "title": "Permissions",
     "dashboard": "Dashboard",

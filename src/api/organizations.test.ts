@@ -29,6 +29,7 @@ import {
   deleteTariffIntervalAdmin,
   getCameraRelaySettings,
   getIntegrationSettings,
+  getLedSettings,
   getOrganizationGateLayout,
   getOrganizations,
   getPermissions,
@@ -38,6 +39,7 @@ import {
   updateCapacity,
   updateCameraRelaySettings,
   updateIntegrationSettings,
+  updateLedSettings,
   updatePermissions,
   updatePricingMode,
   updateTariffInterval,
@@ -169,6 +171,38 @@ describe('camera relay settings', () => {
         },
       },
     )
+  })
+})
+
+describe('LED settings', () => {
+  const ledSettings = {
+    led_host: '192.168.1.157',
+    led_port: 10000,
+  }
+
+  it('GET organization LED sozlamalarini wrapper’siz oladi', async () => {
+    getMock.mockResolvedValue({ data: ledSettings })
+
+    const result = await getLedSettings(7)
+
+    expect(getMock).toHaveBeenCalledWith('/api/organizations/7/led-settings')
+    expect(result).toEqual(ledSettings)
+  })
+
+  it('PATCH backend kutgan snake_case body yuboradi', async () => {
+    patchMock.mockResolvedValue({ data: ledSettings })
+
+    const result = await updateLedSettings({
+      orgId: 7,
+      led_host: '192.168.1.157',
+      led_port: 10000,
+    })
+
+    expect(patchMock).toHaveBeenCalledWith(
+      '/api/organizations/7/led-settings',
+      { led_host: '192.168.1.157', led_port: 10000 },
+    )
+    expect(result).toEqual(ledSettings)
   })
 })
 

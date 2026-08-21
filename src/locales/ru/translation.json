@@ -351,6 +351,21 @@
     "passwordSet": "Установлен",
     "passwordNotSet": "Не установлен"
   },
+  "ledSettings": {
+    "title": "Настройки LED-экрана",
+    "hostLabel": "IP/Host адрес",
+    "hostPlaceholder": "Например: 192.168.1.157",
+    "hostInvalid": "Введите корректный IP или host без протокола",
+    "portLabel": "Порт",
+    "portRequired": "Введите порт",
+    "portInvalid": "Порт должен быть целым числом от 1 до 65535",
+    "configured": "Настроено",
+    "notConfigured": "Не настроено",
+    "saveSuccess": "Настройки LED-экрана сохранены",
+    "saveError": "Не удалось сохранить настройки LED-экрана",
+    "loadError": "Не удалось загрузить настройки LED-экрана",
+    "retry": "Повторить"
+  },
   "permissions": {
     "title": "Права доступа",
     "dashboard": "Панель управления",

@@ -36,6 +36,7 @@ import PermissionsCard from './PermissionsCard'
 import SettingsCard from './SettingsCard'
 import IntegrationSettingsCard from './IntegrationSettingsCard'
 import CameraRelaySettingsCard from './CameraRelaySettingsCard'
+import LedSettingsCard from './LedSettingsCard'
 
 export default function OrganizationDetailPage() {
   const { t } = useTranslation()
@@ -211,6 +212,8 @@ export default function OrganizationDetailPage() {
       <IntegrationSettingsCard orgId={orgId} />
 
       <CameraRelaySettingsCard orgId={orgId} />
+
+      <LedSettingsCard orgId={orgId} />
 
       <AddOperatorModal
         open={addOperatorModalOpen}

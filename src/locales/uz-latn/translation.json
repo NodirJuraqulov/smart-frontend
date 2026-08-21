@@ -351,6 +351,21 @@
     "passwordSet": "O'rnatilgan",
     "passwordNotSet": "O'rnatilmagan"
   },
+  "ledSettings": {
+    "title": "LED ekran sozlamalari",
+    "hostLabel": "IP/Host manzili",
+    "hostPlaceholder": "Masalan: 192.168.1.157",
+    "hostInvalid": "Protokolsiz to‘g‘ri IP yoki host manzilini kiriting",
+    "portLabel": "Port",
+    "portRequired": "Portni kiriting",
+    "portInvalid": "Port 1–65535 oralig‘idagi butun son bo‘lishi kerak",
+    "configured": "Sozlangan",
+    "notConfigured": "Sozlanmagan",
+    "saveSuccess": "LED ekran sozlamalari saqlandi",
+    "saveError": "LED ekran sozlamalarini saqlab bo‘lmadi",
+    "loadError": "LED ekran sozlamalarini yuklab bo‘lmadi",
+    "retry": "Qayta urinish"
+  },
   "permissions": {
     "title": "Ruxsatlar",
     "dashboard": "Dashboard",

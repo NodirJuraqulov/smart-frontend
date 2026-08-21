@@ -14,9 +14,11 @@ import type {
   EmergencyBarrierOpenParams,
   EmergencyBarrierOpenResponse,
   GateLayout,
+  LedSettings,
   OrganizationStats,
   PricingMode,
   UpdateIntegrationSettingsPayload,
+  UpdateLedSettingsPayload,
   UpdateCameraRelaySettingsPayload,
   UpdateOrganizationPayload,
 } from '@/types/organization'
@@ -146,6 +148,19 @@ export const updateCameraRelaySettings = ({
       `/api/organizations/${orgId}/camera-relay-settings`,
       payload,
     )
+    .then((res) => res.data)
+
+export const getLedSettings = (orgId: number) =>
+  axiosInstance
+    .get<LedSettings>(`/api/organizations/${orgId}/led-settings`)
+    .then((res) => res.data)
+
+export const updateLedSettings = ({
+  orgId,
+  ...payload
+}: UpdateLedSettingsPayload & { orgId: number }) =>
+  axiosInstance
+    .patch<LedSettings>(`/api/organizations/${orgId}/led-settings`, payload)
     .then((res) => res.data)
 
 export const openEmergencyBarrier = ({

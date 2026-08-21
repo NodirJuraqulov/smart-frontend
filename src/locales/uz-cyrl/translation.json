@@ -351,6 +351,21 @@
     "passwordSet": "Ўрнатилган",
     "passwordNotSet": "Ўрнатилмаган"
   },
+  "ledSettings": {
+    "title": "LED экран созламалари",
+    "hostLabel": "IP/Host манзили",
+    "hostPlaceholder": "Масалан: 192.168.1.157",
+    "hostInvalid": "Протоколсиз тўғри IP ёки host манзилини киритинг",
+    "portLabel": "Порт",
+    "portRequired": "Портни киритинг",
+    "portInvalid": "Порт 1–65535 оралиғидаги бутун сон бўлиши керак",
+    "configured": "Созланган",
+    "notConfigured": "Созланмаган",
+    "saveSuccess": "LED экран созламалари сақланди",
+    "saveError": "LED экран созламаларини сақлаб бўлмади",
+    "loadError": "LED экран созламаларини юклаб бўлмади",
+    "retry": "Қайта уриниш"
+  },
   "permissions": {
     "title": "Рухсатлар",
     "dashboard": "Дашборд",
