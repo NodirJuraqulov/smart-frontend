@@ -547,6 +547,8 @@
     "similarity": "Ўхшашлик: {{value}}%",
     "forceOpen": "Мажбурий очиш",
     "emergency": "Тез ёрдам",
+    "forceOpenSearchRequired": "Илтимос, аввал, қидирувни амалга оширинг",
+    "forceOpenCorrectPlateRequired": "Илтимос, рақамни тўғрилаб, яна қидирув қилинг",
     "retryBarrier": "Қайта очиш",
     "nextLoadError": "Чиқиш навбатини юклаб бўлмади",
     "confirmSuccess": "Чиқиш тасдиқланди ва шлагбаум очилди",

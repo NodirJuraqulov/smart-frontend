@@ -547,6 +547,8 @@
     "similarity": "Similarity: {{value}}%",
     "forceOpen": "Force open",
     "emergency": "Emergency",
+    "forceOpenSearchRequired": "Please perform a search first",
+    "forceOpenCorrectPlateRequired": "Please correct the plate number and search again",
     "retryBarrier": "Open again",
     "nextLoadError": "Failed to load the exit queue",
     "confirmSuccess": "Exit confirmed and barrier opened",

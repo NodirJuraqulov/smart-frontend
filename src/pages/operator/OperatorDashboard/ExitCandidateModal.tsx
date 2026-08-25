@@ -51,6 +51,14 @@ interface Props {
 type SelectedSession = ExitCandidateMatchedSession | ExitCandidateSessionOption
 type ModalMode = 'view' | 'search'
 type SearchListMode = 'search' | 'active'
+type SearchRequest = {
+  candidateId: string
+  hasInitialPlate: boolean
+  plate?: string
+  shouldCountFailure: boolean
+}
+
+const actionButtonHeightClass = 'h-8!'
 
 const sourceKey: Record<SessionSource, string> = {
   regular: 'exitCandidates.sourceRegular',
@@ -135,6 +143,10 @@ export default function ExitCandidateModal({
   const [searchPlate, setSearchPlate] = useState<string>(
     candidate.suggested_plate ?? candidate.detected_plate ?? '',
   )
+  const [lastSearchedPlate, setLastSearchedPlate] = useState<string | null>(
+    null,
+  )
+  const [failedSearchCount, setFailedSearchCount] = useState(0)
   const [searchResults, setSearchResults] = useState<
     ExitCandidateSearchResult[]
   >([])
@@ -147,8 +159,11 @@ export default function ExitCandidateModal({
     useState<Exclude<ExitCandidateBarrierStatus, 'opened'> | null>(null)
   const [retryUnavailable, setRetryUnavailable] = useState(false)
   const [now, setNow] = useState(() => Date.now())
+  const candidateIdRef = useRef(candidate.candidate_id)
+  const searchingRef = useRef(false)
   const submittingRef = useRef(false)
   const isMountedRef = useIsMountedRef()
+  candidateIdRef.current = candidate.candidate_id
 
   useEffect(() => {
     setMode(candidate.matched_session ? 'view' : 'search')
@@ -158,11 +173,14 @@ export default function ExitCandidateModal({
     setSearchPlate(
       candidate.suggested_plate ?? candidate.detected_plate ?? '',
     )
+    setLastSearchedPlate(null)
+    setFailedSearchCount(0)
     setSearchResults([])
     setActiveSessionOptions([])
     setSearchListMode('search')
     setBarrierStatus(null)
     setRetryUnavailable(false)
+    searchingRef.current = false
     submittingRef.current = false
   }, [candidate])
 
@@ -217,19 +235,35 @@ export default function ExitCandidateModal({
   }
 
   const searchMutation = useMutation({
-    mutationFn: (plate?: string) =>
-      searchExitCandidate(candidate.candidate_id, plate),
-    onSuccess: (data, plate) => {
-      if (!isMountedRef.current) return
-      if (plate?.trim()) {
+    mutationFn: ({ candidateId, plate }: SearchRequest) =>
+      searchExitCandidate(candidateId, plate),
+    onSuccess: (
+      data,
+      { candidateId, hasInitialPlate, plate, shouldCountFailure },
+    ) => {
+      if (
+        !isMountedRef.current ||
+        candidateId !== candidateIdRef.current
+      ) {
+        return
+      }
+      if (plate) {
         setSearchResults(data.results)
+        if (shouldCountFailure && data.results.length === 0) {
+          setFailedSearchCount((currentCount) =>
+            hasInitialPlate ? currentCount + 1 : 2,
+          )
+        }
         return
       }
       setActiveSessionOptions(data.active_sessions)
     },
-    onError: (error) => {
-      if (!isMountedRef.current) return
+    onError: (error, { candidateId }) => {
+      if (!isMountedRef.current || candidateId !== candidateIdRef.current) return
       message.error(getErrorMessage(error, t('exitCandidates.searchError')))
+    },
+    onSettled: () => {
+      searchingRef.current = false
     },
   })
 
@@ -326,6 +360,7 @@ export default function ExitCandidateModal({
     !isResolving &&
     !barrierStatus
   const hasLinkedSession =
+    selectedSession != null ||
     candidate.matched_session_id != null ||
     candidate.resolved_session_id != null ||
     candidate.matched_session != null
@@ -345,8 +380,34 @@ export default function ExitCandidateModal({
 
   const submitForce = (isEmergency = false) => {
     if (!canForce || submittingRef.current) return
+    if (!isEmergency && failedSearchCount < 2) {
+      message.warning(
+        t(
+          failedSearchCount === 0
+            ? 'exitCandidates.forceOpenSearchRequired'
+            : 'exitCandidates.forceOpenCorrectPlateRequired',
+        ),
+      )
+      return
+    }
     submittingRef.current = true
     forceMutation.mutate(isEmergency)
+  }
+
+  const submitSearch = () => {
+    const plate = searchPlate.trim()
+    if (!plate || searchingRef.current || searchMutation.isPending) return
+    const shouldCountFailure = plate !== lastSearchedPlate
+    if (shouldCountFailure) setLastSearchedPlate(plate)
+    searchingRef.current = true
+    searchMutation.mutate({
+      candidateId: candidate.candidate_id,
+      hasInitialPlate: Boolean(
+        (candidate.suggested_plate ?? candidate.detected_plate)?.trim(),
+      ),
+      plate,
+      shouldCountFailure,
+    })
   }
 
   const submitRetry = () => {
@@ -445,18 +506,27 @@ export default function ExitCandidateModal({
                 <Typography.Text strong>
                   {t('exitCandidates.paymentMethod')}
                 </Typography.Text>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <Radio.Group
                     value={paymentMethod}
                     onChange={(event) => setPaymentMethod(event.target.value)}
-                    optionType="button"
                     buttonStyle="solid"
-                    options={[
-                      { label: t('paymentMethod.cash'), value: 'cash' },
-                      { label: t('paymentMethod.online'), value: 'online' },
-                    ]}
-                  />
+                  >
+                    <Radio.Button
+                      className={actionButtonHeightClass}
+                      value="cash"
+                    >
+                      {t('paymentMethod.cash')}
+                    </Radio.Button>
+                    <Radio.Button
+                      className={actionButtonHeightClass}
+                      value="online"
+                    >
+                      {t('paymentMethod.online')}
+                    </Radio.Button>
+                  </Radio.Group>
                   <Button
+                    className={actionButtonHeightClass}
                     danger
                     loading={isEmergencyConfirming}
                     disabled={!canEmergencyConfirm}
@@ -511,7 +581,15 @@ export default function ExitCandidateModal({
                   const nextMode = value as SearchListMode
                   setSearchListMode(nextMode)
                   if (nextMode === 'active') {
-                    searchMutation.mutate(undefined)
+                    searchMutation.mutate({
+                      candidateId: candidate.candidate_id,
+                      hasInitialPlate: Boolean(
+                        (
+                          candidate.suggested_plate ?? candidate.detected_plate
+                        )?.trim(),
+                      ),
+                      shouldCountFailure: false,
+                    })
                   }
                 }}
               />
@@ -521,16 +599,13 @@ export default function ExitCandidateModal({
                     value={searchPlate ?? ''}
                     onChange={(event) => setSearchPlate(event.target.value)}
                     placeholder={t('exitCandidates.searchInputPlaceholder')}
-                    onPressEnter={() =>
-                      searchPlate.trim() &&
-                      searchMutation.mutate(searchPlate)
-                    }
+                    onPressEnter={submitSearch}
                   />
                   <Button
                     type="primary"
                     loading={searchMutation.isPending}
                     disabled={!searchPlate.trim() || searchMutation.isPending}
-                    onClick={() => searchMutation.mutate(searchPlate)}
+                    onClick={submitSearch}
                   >
                     {t('exitCandidates.search')}
                   </Button>
@@ -658,7 +733,7 @@ export default function ExitCandidateModal({
           ) : null}
           <div
             className={`grid grid-cols-1 gap-3 ${
-              hasLinkedSession ? '' : 'sm:grid-cols-3'
+              hasLinkedSession ? '' : 'sm:grid-cols-2'
             }`}
           >
             <Button
@@ -669,27 +744,30 @@ export default function ExitCandidateModal({
               {t('exitCandidates.chooseAnotherSession')}
             </Button>
             {!hasLinkedSession && (
-              <Button
-                block
-                danger
-                loading={isStandardForceOpening}
-                disabled={!canForce}
-                onClick={() => submitForce()}
+              <div
+                data-testid="exit-candidate-force-actions"
+                className="flex flex-col gap-3 sm:flex-row"
               >
-                {t('exitCandidates.forceOpen')}
-              </Button>
-            )}
-            {!hasLinkedSession && (
-              <Button
-                block
-                type="primary"
-                danger
-                loading={isEmergencyForceOpening}
-                disabled={!canForce}
-                onClick={() => submitForce(true)}
-              >
-                {t('exitCandidates.emergency')}
-              </Button>
+                <Button
+                  className={`${actionButtonHeightClass} min-w-0 flex-1`}
+                  danger
+                  loading={isStandardForceOpening}
+                  disabled={!canForce}
+                  onClick={() => submitForce()}
+                >
+                  {t('exitCandidates.forceOpen')}
+                </Button>
+                <Button
+                  className={`${actionButtonHeightClass} min-w-0 flex-1`}
+                  type="primary"
+                  danger
+                  loading={isEmergencyForceOpening}
+                  disabled={!canForce}
+                  onClick={() => submitForce(true)}
+                >
+                  {t('exitCandidates.emergency')}
+                </Button>
+              </div>
             )}
           </div>
         </div>

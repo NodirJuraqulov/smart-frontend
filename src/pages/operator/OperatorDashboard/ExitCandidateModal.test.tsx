@@ -84,6 +84,11 @@ const unmatchedCandidate: ExitCandidateNext = {
   matched_session: null,
 }
 
+const detectedUnmatchedCandidate: ExitCandidateNext = {
+  ...candidate,
+  matched_session: null,
+}
+
 const searchResult: ExitCandidateSearchResult = {
   session_id: 'session-2',
   plate_number: '01B555BB',
@@ -143,20 +148,28 @@ function renderModal(value: ExitCandidateNext = candidate) {
   const onResolved = vi.fn()
   const onPendingRefresh = vi.fn()
   const onDataChanged = vi.fn()
-  render(
+  const tree = (currentCandidate: ExitCandidateNext) => (
     <QueryClientProvider client={queryClient}>
       <AntdApp>
         <ExitCandidateModal
-          candidate={value}
+          candidate={currentCandidate}
           onClose={onClose}
           onResolved={onResolved}
           onPendingRefresh={onPendingRefresh}
           onDataChanged={onDataChanged}
         />
       </AntdApp>
-    </QueryClientProvider>,
+    </QueryClientProvider>
   )
-  return { onClose, onResolved, onPendingRefresh, onDataChanged }
+  const view = render(tree(value))
+  return {
+    onClose,
+    onResolved,
+    onPendingRefresh,
+    onDataChanged,
+    rerenderCandidate: (nextCandidate: ExitCandidateNext) =>
+      view.rerender(tree(nextCandidate)),
+  }
 }
 
 function renderModalHost() {
@@ -236,6 +249,29 @@ async function waitForButton(label: string): Promise<HTMLButtonElement> {
   })
   if (!button) throw new Error(`Button not found: ${label}`)
   return button
+}
+
+function useEmptySearchResults(): void {
+  searchExitCandidateMock.mockResolvedValue({
+    results: [],
+    active_sessions: [],
+  })
+}
+
+async function runPlateSearch(plate?: string): Promise<void> {
+  const input = page.getByPlaceholderText(
+    'Chiqayotgan mashina raqamini kiriting',
+  )
+  if (plate !== undefined) {
+    fireEvent.change(input, { target: { value: plate } })
+  }
+  const previousCallCount = searchExitCandidateMock.mock.calls.length
+  clickButton('Qidirish')
+  await waitFor(() =>
+    expect(searchExitCandidateMock).toHaveBeenCalledTimes(
+      previousCallCount + 1,
+    ),
+  )
 }
 
 describe('ExitCandidateModal', () => {
@@ -623,8 +659,56 @@ describe('ExitCandidateModal', () => {
     expect(searchButton).toBeDisabled()
   })
 
-  it('Majburiy ochish bosilganda formasiz darhol bodysiz API chaqiradi', async () => {
+  it('boshlang‘ich holatda Majburiy ochish qidiruv talabini ko‘rsatadi va so‘rov yubormaydi', async () => {
+    renderModal(detectedUnmatchedCandidate)
+    clickButton('Majburiy ochish')
+
+    await waitForText('Iltimos, avval, qidiruvni amalga oshiring')
+    expect(forceOpenExitCandidateMock).not.toHaveBeenCalled()
+  })
+
+  it('birinchi muvaffaqiyatsiz qidiruvdan keyin raqamni to‘g‘rilash warningini ko‘rsatadi', async () => {
+    useEmptySearchResults()
+    renderModal(detectedUnmatchedCandidate)
+    await runPlateSearch()
+
+    clickButton('Majburiy ochish')
+
+    await waitForText("Iltimos, raqamni to'g'irlab, yana qidiruv qiling")
+    expect(forceOpenExitCandidateMock).not.toHaveBeenCalled()
+  })
+
+  it('bir xil raqam bilan qayta qidiruv failedSearchCountni oshirmaydi', async () => {
+    useEmptySearchResults()
+    renderModal(detectedUnmatchedCandidate)
+    await runPlateSearch()
+    await runPlateSearch()
+
+    clickButton('Majburiy ochish')
+
+    await waitForText("Iltimos, raqamni to'g'irlab, yana qidiruv qiling")
+    expect(searchExitCandidateMock).toHaveBeenCalledTimes(2)
+    expect(forceOpenExitCandidateMock).not.toHaveBeenCalled()
+  })
+
+  it('raqam o‘zgartirilib ikkinchi muvaffaqiyatsiz qidirilganda Majburiy ochish so‘rov yuboradi', async () => {
+    useEmptySearchResults()
+    renderModal(detectedUnmatchedCandidate)
+    await runPlateSearch()
+    await runPlateSearch('01A777BC')
+
+    clickButton('Majburiy ochish')
+
+    await waitFor(() =>
+      expect(forceOpenExitCandidateMock).toHaveBeenCalledWith('candidate-1'),
+    )
+  })
+
+  it('kamera raqami topilmagan candidate birinchi qo‘lda qidiruvdan keyin Majburiy ochishni faollashtiradi', async () => {
+    useEmptySearchResults()
     renderModal(unmatchedCandidate)
+    await runPlateSearch('01X999XX')
+
     clickButton('Majburiy ochish')
 
     await waitFor(() =>
@@ -637,6 +721,65 @@ describe('ExitCandidateModal', () => {
         name: 'Majburiy ochishni tasdiqlash',
       }),
     ).not.toBeInTheDocument()
+  })
+
+  it('suggested_plate mavjud candidate birinchi bo‘sh qidiruvni bitta urinish deb hisoblaydi', async () => {
+    useEmptySearchResults()
+    renderModal({
+      ...unmatchedCandidate,
+      suggested_plate: '01B555BB',
+    })
+    await runPlateSearch()
+
+    clickButton('Majburiy ochish')
+
+    await waitForText("Iltimos, raqamni to'g'irlab, yana qidiruv qiling")
+    expect(forceOpenExitCandidateMock).not.toHaveBeenCalled()
+  })
+
+  it('muvaffaqiyatli qidiruvdan sessiya tanlanganda Majburiy ochishni yashirib oddiy confirm oqimini beradi', async () => {
+    renderModal(detectedUnmatchedCandidate)
+    await runPlateSearch()
+
+    await waitForText('01B555BB')
+    fireEvent.click(page.getByRole('button', { name: /01B555BB/ }))
+
+    expect(queryButtonByText('Majburiy ochish')).toBeNull()
+    selectCash()
+    clickButton('Tasdiqlash va ochish')
+    await waitFor(() =>
+      expect(confirmExitCandidateMock).toHaveBeenCalledWith('candidate-1', {
+        session_id: 'session-2',
+        payment_method: 'cash',
+      }),
+    )
+  })
+
+  it('yangi candidate yuklanganda qidiruv urinishlari holatini tozalaydi', async () => {
+    useEmptySearchResults()
+    const { rerenderCandidate } = renderModal(detectedUnmatchedCandidate)
+    await runPlateSearch()
+    await runPlateSearch('01A777BC')
+    clickButton('Majburiy ochish')
+    await waitFor(() =>
+      expect(forceOpenExitCandidateMock).toHaveBeenCalledTimes(1),
+    )
+    forceOpenExitCandidateMock.mockClear()
+
+    rerenderCandidate({
+      ...detectedUnmatchedCandidate,
+      candidate_id: 'candidate-2',
+      detected_plate: '01D222DD',
+    })
+    await waitFor(() =>
+      expect(
+        page.getByPlaceholderText('Chiqayotgan mashina raqamini kiriting'),
+      ).toHaveValue('01D222DD'),
+    )
+    clickButton('Majburiy ochish')
+
+    await waitForText('Iltimos, avval, qidiruvni amalga oshiring')
+    expect(forceOpenExitCandidateMock).not.toHaveBeenCalled()
   })
 
   it('majburiy ochish holatida Tez yordamni yonida ko‘rsatib emergency force-open yuboradi', async () => {
@@ -652,6 +795,41 @@ describe('ExitCandidateModal', () => {
     )
   })
 
+  it('Naqd, Online, Majburiy ochish va Tez yordam tugmalariga teng balandlik va force actionlarga teng kenglik beradi', async () => {
+    const { rerenderCandidate } = renderModal()
+    const vehicleDetails = page.getByTestId(
+      'exit-candidate-vehicle-details',
+    )
+    const cashButton = scope(vehicleDetails)
+      .getByRole('radio', { name: 'Naqd' })
+      .closest('label')
+    const onlineButton = scope(vehicleDetails)
+      .getByRole('radio', { name: 'Online' })
+      .closest('label')
+    const paymentEmergencyButton = scope(vehicleDetails).getByRole('button', {
+      name: 'Tez yordam',
+    })
+
+    expect(cashButton).toHaveClass('h-8!')
+    expect(onlineButton).toHaveClass('h-8!')
+    expect(paymentEmergencyButton).toHaveClass('h-8!')
+
+    rerenderCandidate(unmatchedCandidate)
+    const forceActions = await waitFor(() =>
+      page.getByTestId('exit-candidate-force-actions'),
+    )
+    const forceButton = scope(forceActions).getByRole('button', {
+      name: 'Majburiy ochish',
+    })
+    const forceEmergencyButton = scope(forceActions).getByRole('button', {
+      name: 'Tez yordam',
+    })
+
+    expect(forceActions).toHaveClass('flex', 'flex-col', 'gap-3', 'sm:flex-row')
+    expect(forceButton).toHaveClass('h-8!', 'flex-1')
+    expect(forceEmergencyButton).toHaveClass('h-8!', 'flex-1')
+  })
+
   it('Majburiy ochish so‘rovi davomida double-submitni bloklaydi', async () => {
     let resolveRequest!: (value: ExitCandidateBarrierResponse) => void
     forceOpenExitCandidateMock.mockReturnValue(
@@ -659,7 +837,9 @@ describe('ExitCandidateModal', () => {
         resolveRequest = resolve
       }),
     )
+    useEmptySearchResults()
     renderModal(unmatchedCandidate)
+    await runPlateSearch('01X999XX')
     const button = getButtonByText('Majburiy ochish')
 
     fireEvent.click(button)
@@ -674,7 +854,9 @@ describe('ExitCandidateModal', () => {
   })
 
   it('Majburiy ochish muvaffaqiyatli bo‘lganda modalni yopish va ro‘yxatni yangilash callbackini chaqiradi', async () => {
+    useEmptySearchResults()
     const { onResolved } = renderModal(unmatchedCandidate)
+    await runPlateSearch('01X999XX')
 
     clickButton('Majburiy ochish')
 
@@ -705,7 +887,9 @@ describe('ExitCandidateModal', () => {
 
   it('force-open barrier failed bo‘lsa retry tugmasini ko‘rsatadi', async () => {
     forceOpenExitCandidateMock.mockResolvedValue({ barrier_status: 'failed' })
+    useEmptySearchResults()
     renderModal(unmatchedCandidate)
+    await runPlateSearch('01X999XX')
     clickButton('Majburiy ochish')
 
     await waitForButton('Qayta ochish')

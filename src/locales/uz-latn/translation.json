@@ -547,6 +547,8 @@
     "similarity": "O‘xshashlik: {{value}}%",
     "forceOpen": "Majburiy ochish",
     "emergency": "Tez yordam",
+    "forceOpenSearchRequired": "Iltimos, avval, qidiruvni amalga oshiring",
+    "forceOpenCorrectPlateRequired": "Iltimos, raqamni to'g'irlab, yana qidiruv qiling",
     "retryBarrier": "Qayta ochish",
     "nextLoadError": "Chiqish navbatini yuklab bo‘lmadi",
     "confirmSuccess": "Chiqish tasdiqlandi va shlagbaum ochildi",

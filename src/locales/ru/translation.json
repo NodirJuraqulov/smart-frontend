@@ -547,6 +547,8 @@
     "similarity": "Сходство: {{value}}%",
     "forceOpen": "Открыть принудительно",
     "emergency": "Скорая помощь",
+    "forceOpenSearchRequired": "Пожалуйста, сначала выполните поиск",
+    "forceOpenCorrectPlateRequired": "Пожалуйста, исправьте номер и выполните поиск ещё раз",
     "retryBarrier": "Открыть повторно",
     "nextLoadError": "Не удалось загрузить очередь выезда",
     "confirmSuccess": "Выезд подтверждён, шлагбаум открыт",
