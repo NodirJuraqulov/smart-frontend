@@ -51,9 +51,15 @@ export interface ExitCandidateSearchResponse {
   active_sessions: ExitCandidateActiveSession[]
 }
 
+export type ExitCandidatePaymentMethod = PaymentMethod | 'emergency'
+
 export interface ExitCandidateConfirmPayload {
   session_id?: string
-  payment_method?: PaymentMethod
+  payment_method?: ExitCandidatePaymentMethod
+}
+
+export interface ExitCandidateForceOpenPayload {
+  isEmergency: boolean
 }
 
 export interface ExitCandidateConfirmResponse {

@@ -3,6 +3,7 @@ import type {
   ExitCandidateBarrierResponse,
   ExitCandidateConfirmPayload,
   ExitCandidateConfirmResponse,
+  ExitCandidateForceOpenPayload,
   ExitCandidateNext,
   ExitCandidateSearchResponse,
 } from '@/types/exitCandidate'
@@ -49,10 +50,18 @@ export const confirmExitCandidate = (
     .post<ExitCandidateConfirmResponse>(`${candidatePath(id)}/confirm`, payload)
     .then((response) => response.data)
 
-export const forceOpenExitCandidate = (id: string) =>
-  axiosInstance
-    .post<ExitCandidateBarrierResponse>(`${candidatePath(id)}/force-open`)
-    .then((response) => response.data)
+export const forceOpenExitCandidate = (
+  id: string,
+  payload?: ExitCandidateForceOpenPayload,
+) => {
+  const path = `${candidatePath(id)}/force-open`
+  const request = payload
+    ? axiosInstance.post<ExitCandidateBarrierResponse>(path, {
+        is_emergency: payload.isEmergency,
+      })
+    : axiosInstance.post<ExitCandidateBarrierResponse>(path)
+  return request.then((response) => response.data)
+}
 
 export const retryExitCandidateBarrier = (id: string) =>
   axiosInstance

@@ -234,15 +234,17 @@ export default function ExitCandidateModal({
   })
 
   const confirmMutation = useMutation({
-    mutationFn: () =>
-      confirmExitCandidate(candidate.candidate_id, {
+    mutationFn: (isEmergency: boolean) => {
+      const selectedPaymentMethod = isEmergency ? 'emergency' : paymentMethod
+      return confirmExitCandidate(candidate.candidate_id, {
         ...(isReassigned && session
           ? { session_id: session.session_id }
           : {}),
-        ...(isRegular && paymentMethod
-          ? { payment_method: paymentMethod }
+        ...(isRegular && selectedPaymentMethod
+          ? { payment_method: selectedPaymentMethod }
           : {}),
-      }),
+      })
+    },
     onSuccess: (data) => {
       if (!isMountedRef.current) return
       onDataChanged()
@@ -261,7 +263,10 @@ export default function ExitCandidateModal({
   })
 
   const forceMutation = useMutation({
-    mutationFn: () => forceOpenExitCandidate(candidate.candidate_id),
+    mutationFn: (isEmergency: boolean) =>
+      isEmergency
+        ? forceOpenExitCandidate(candidate.candidate_id, { isEmergency: true })
+        : forceOpenExitCandidate(candidate.candidate_id),
     onSuccess: (data) => {
       if (!isMountedRef.current) return
       if (handleBarrierProblem(data.barrier_status)) return
@@ -300,10 +305,24 @@ export default function ExitCandidateModal({
 
   const isResolving =
     confirmMutation.isPending || forceMutation.isPending || retryMutation.isPending
+  const isStandardConfirming =
+    confirmMutation.isPending && !confirmMutation.variables
+  const isEmergencyConfirming =
+    confirmMutation.isPending && confirmMutation.variables
+  const isStandardForceOpening =
+    forceMutation.isPending && !forceMutation.variables
+  const isEmergencyForceOpening =
+    forceMutation.isPending && forceMutation.variables
   const canConfirm =
     candidate.status === 'pending' &&
     Boolean(session) &&
     (!isRegular || Boolean(paymentMethod)) &&
+    !isResolving &&
+    !barrierStatus
+  const canEmergencyConfirm =
+    candidate.status === 'pending' &&
+    Boolean(session) &&
+    isRegular &&
     !isResolving &&
     !barrierStatus
   const hasLinkedSession =
@@ -315,13 +334,19 @@ export default function ExitCandidateModal({
   const submitConfirm = () => {
     if (!canConfirm || submittingRef.current) return
     submittingRef.current = true
-    confirmMutation.mutate()
+    confirmMutation.mutate(false)
   }
 
-  const submitForce = () => {
+  const submitEmergencyConfirm = () => {
+    if (!canEmergencyConfirm || submittingRef.current) return
+    submittingRef.current = true
+    confirmMutation.mutate(true)
+  }
+
+  const submitForce = (isEmergency = false) => {
     if (!canForce || submittingRef.current) return
     submittingRef.current = true
-    forceMutation.mutate()
+    forceMutation.mutate(isEmergency)
   }
 
   const submitRetry = () => {
@@ -420,16 +445,26 @@ export default function ExitCandidateModal({
                 <Typography.Text strong>
                   {t('exitCandidates.paymentMethod')}
                 </Typography.Text>
-                <Radio.Group
-                  value={paymentMethod}
-                  onChange={(event) => setPaymentMethod(event.target.value)}
-                  optionType="button"
-                  buttonStyle="solid"
-                  options={[
-                    { label: t('paymentMethod.cash'), value: 'cash' },
-                    { label: t('paymentMethod.online'), value: 'online' },
-                  ]}
-                />
+                <div className="flex flex-wrap gap-2">
+                  <Radio.Group
+                    value={paymentMethod}
+                    onChange={(event) => setPaymentMethod(event.target.value)}
+                    optionType="button"
+                    buttonStyle="solid"
+                    options={[
+                      { label: t('paymentMethod.cash'), value: 'cash' },
+                      { label: t('paymentMethod.online'), value: 'online' },
+                    ]}
+                  />
+                  <Button
+                    danger
+                    loading={isEmergencyConfirming}
+                    disabled={!canEmergencyConfirm}
+                    onClick={submitEmergencyConfirm}
+                  >
+                    {t('exitCandidates.emergency')}
+                  </Button>
+                </div>
               </div>
             )}
           </Card>
@@ -614,7 +649,7 @@ export default function ExitCandidateModal({
               block
               size="large"
               type="primary"
-              loading={confirmMutation.isPending}
+              loading={isStandardConfirming}
               disabled={!canConfirm}
               onClick={submitConfirm}
             >
@@ -623,7 +658,7 @@ export default function ExitCandidateModal({
           ) : null}
           <div
             className={`grid grid-cols-1 gap-3 ${
-              hasLinkedSession ? '' : 'sm:grid-cols-2'
+              hasLinkedSession ? '' : 'sm:grid-cols-3'
             }`}
           >
             <Button
@@ -637,11 +672,23 @@ export default function ExitCandidateModal({
               <Button
                 block
                 danger
-                loading={forceMutation.isPending}
+                loading={isStandardForceOpening}
                 disabled={!canForce}
-                onClick={submitForce}
+                onClick={() => submitForce()}
               >
                 {t('exitCandidates.forceOpen')}
+              </Button>
+            )}
+            {!hasLinkedSession && (
+              <Button
+                block
+                type="primary"
+                danger
+                loading={isEmergencyForceOpening}
+                disabled={!canForce}
+                onClick={() => submitForce(true)}
+              >
+                {t('exitCandidates.emergency')}
               </Button>
             )}
           </div>

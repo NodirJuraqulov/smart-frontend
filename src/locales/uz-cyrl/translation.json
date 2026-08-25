@@ -546,6 +546,7 @@
     "searchError": "Сессияларни қидириб бўлмади",
     "similarity": "Ўхшашлик: {{value}}%",
     "forceOpen": "Мажбурий очиш",
+    "emergency": "Тез ёрдам",
     "retryBarrier": "Қайта очиш",
     "nextLoadError": "Чиқиш навбатини юклаб бўлмади",
     "confirmSuccess": "Чиқиш тасдиқланди ва шлагбаум очилди",

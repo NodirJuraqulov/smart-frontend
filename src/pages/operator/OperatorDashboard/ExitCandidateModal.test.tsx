@@ -217,6 +217,11 @@ function selectCash(): void {
   fireEvent.click(radio)
 }
 
+function selectOnline(): void {
+  const radio = page.getByRole('radio', { name: 'Online' })
+  fireEvent.click(radio)
+}
+
 async function waitForText(text: string): Promise<void> {
   await waitFor(() => {
     expect(document.body).toHaveTextContent(text)
@@ -342,6 +347,18 @@ describe('ExitCandidateModal', () => {
     await waitFor(() => expect(onResolved).toHaveBeenCalled())
   })
 
+  it('Online tanlanganda confirmga online payment_method yuboradi', async () => {
+    renderModal()
+    selectOnline()
+    clickButton('Tasdiqlash va ochish')
+
+    await waitFor(() =>
+      expect(confirmExitCandidateMock).toHaveBeenCalledWith('candidate-1', {
+        payment_method: 'online',
+      }),
+    )
+  })
+
   it('Naqd va Online tanlovini mashina ma’lumotlari ustunida ko‘rsatadi', () => {
     renderModal()
 
@@ -359,6 +376,31 @@ describe('ExitCandidateModal', () => {
     expect(cashRadio).toBeInTheDocument()
     expect(onlineRadio).toBeInTheDocument()
     expect(qrRadio).not.toBeInTheDocument()
+  })
+
+  it('oddiy holatda Tez yordamni Naqd va Online yonida ko‘rsatib emergency confirm yuboradi', async () => {
+    renderModal()
+
+    const vehicleDetails = page.getByTestId(
+      'exit-candidate-vehicle-details',
+    )
+    const emergencyButton = scope(vehicleDetails).getByRole('button', {
+      name: 'Tez yordam',
+    })
+    expect(
+      scope(vehicleDetails).getByRole('radio', { name: 'Naqd' }),
+    ).toBeInTheDocument()
+    expect(
+      scope(vehicleDetails).getByRole('radio', { name: 'Online' }),
+    ).toBeInTheDocument()
+
+    fireEvent.click(emergencyButton)
+
+    await waitFor(() =>
+      expect(confirmExitCandidateMock).toHaveBeenCalledWith('candidate-1', {
+        payment_method: 'emergency',
+      }),
+    )
   })
 
   it('yakuniy summani chap ustunda faqat bir marta ko‘rsatadi', () => {
@@ -595,6 +637,19 @@ describe('ExitCandidateModal', () => {
         name: 'Majburiy ochishni tasdiqlash',
       }),
     ).not.toBeInTheDocument()
+  })
+
+  it('majburiy ochish holatida Tez yordamni yonida ko‘rsatib emergency force-open yuboradi', async () => {
+    renderModal(unmatchedCandidate)
+
+    expect(getButtonByText('Majburiy ochish')).toBeInTheDocument()
+    clickButton('Tez yordam')
+
+    await waitFor(() =>
+      expect(forceOpenExitCandidateMock).toHaveBeenCalledWith('candidate-1', {
+        isEmergency: true,
+      }),
+    )
   })
 
   it('Majburiy ochish so‘rovi davomida double-submitni bloklaydi', async () => {

@@ -546,6 +546,7 @@
     "searchError": "Failed to search sessions",
     "similarity": "Similarity: {{value}}%",
     "forceOpen": "Force open",
+    "emergency": "Emergency",
     "retryBarrier": "Open again",
     "nextLoadError": "Failed to load the exit queue",
     "confirmSuccess": "Exit confirmed and barrier opened",

@@ -67,6 +67,17 @@ describe('exit candidates API', () => {
     )
   })
 
+  it('emergency confirm payloadini o‘zgartirmasdan yuboradi', async () => {
+    await confirmExitCandidate('candidate-1', {
+      payment_method: 'emergency',
+    })
+
+    expect(postMock).toHaveBeenCalledWith(
+      '/api/exit-candidates/candidate-1/confirm',
+      { payment_method: 'emergency' },
+    )
+  })
+
   it('preview-session uchun candidate va session idni yuboradi', async () => {
     await previewExitSession({
       candidateId: 'candidate/1',
@@ -90,6 +101,15 @@ describe('exit candidates API', () => {
     expect(postMock).toHaveBeenNthCalledWith(
       2,
       '/api/exit-candidates/candidate-1/retry-barrier',
+    )
+  })
+
+  it('emergency force-open parametrini backend body formatiga o‘giradi', async () => {
+    await forceOpenExitCandidate('candidate-1', { isEmergency: true })
+
+    expect(postMock).toHaveBeenCalledWith(
+      '/api/exit-candidates/candidate-1/force-open',
+      { is_emergency: true },
     )
   })
 })
