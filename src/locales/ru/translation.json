@@ -19,6 +19,7 @@
     "hoursAgo": "{{hours}} ч назад",
     "daysAgo": "{{days}} дн назад",
     "roleKassir": "Кассир",
+    "roleRegistrator": "Регистратор",
     "edit": "Редактировать"
   },
   "nav": {

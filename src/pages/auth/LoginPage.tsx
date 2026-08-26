@@ -31,7 +31,10 @@ export default function LoginPage() {
       const loginResult = await login(payload)
       localStorage.setItem('accessToken', loginResult.token)
       localStorage.setItem('refreshToken', loginResult.refreshToken)
-      const user = await fetchCurrentUser()
+      const user =
+        loginResult.user.role === 'registrator'
+          ? loginResult.user
+          : await fetchCurrentUser()
       return {
         user,
         token: loginResult.token,

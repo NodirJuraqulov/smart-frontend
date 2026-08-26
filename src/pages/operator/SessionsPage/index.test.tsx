@@ -58,4 +58,16 @@ describe('SessionsPage forced open tab visibility', () => {
       screen.queryByRole('tab', { name: 'Majburiy ochilganlar' }),
     ).not.toBeInTheDocument()
   })
+
+  it("registrator uchun faqat Faol tabini ko'rsatadi", () => {
+    renderPage('registrator')
+
+    expect(
+      screen.getByRole('tab', { name: 'Hozir stoyankada' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByRole('tab', { name: 'Tarix' })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('tab', { name: 'Majburiy ochilganlar' }),
+    ).not.toBeInTheDocument()
+  })
 })

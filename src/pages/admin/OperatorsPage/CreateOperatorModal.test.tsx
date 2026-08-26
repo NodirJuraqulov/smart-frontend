@@ -37,7 +37,7 @@ function getRoleSelect(): HTMLElement {
 }
 
 describe('CreateOperatorModal', () => {
-  it('rol tanlovida Kassir varianti mavjud', async () => {
+  it('rol tanlovida Kassir va Registrator variantlari mavjud', async () => {
     renderModal()
 
     fireEvent.mouseDown(getRoleSelect())
@@ -46,6 +46,7 @@ describe('CreateOperatorModal', () => {
       expect(screen.getAllByTitle('Kassir').length).toBeGreaterThan(0)
     })
     expect(screen.getAllByTitle('Operator').length).toBeGreaterThan(0)
+    expect(screen.getAllByTitle('Registrator').length).toBeGreaterThan(0)
   })
 
   it('sukut bo‘yicha operator roli tanlanadi', () => {

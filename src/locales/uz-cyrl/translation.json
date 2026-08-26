@@ -19,6 +19,7 @@
     "hoursAgo": "{{hours}} соат олдин",
     "daysAgo": "{{days}} кун олдин",
     "roleKassir": "Кассир",
+    "roleRegistrator": "Регистратор",
     "edit": "Таҳрирлаш"
   },
   "nav": {

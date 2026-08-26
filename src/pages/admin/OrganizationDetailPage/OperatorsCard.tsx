@@ -41,8 +41,12 @@ export default function OperatorsCard({
       render: (_, record) => (
         <Tag>
           {record.role === 'owner'
-            ? t('orgDetail.roleOwner')
-            : t('orgDetail.roleOperator')}
+            ? t('common.roleOwner')
+            : record.role === 'kassir'
+              ? t('common.roleKassir')
+              : record.role === 'registrator'
+                ? t('common.roleRegistrator')
+                : t('common.roleOperator')}
         </Tag>
       ),
     },

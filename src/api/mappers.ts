@@ -115,5 +115,16 @@ export const mapAuthUser = (
   permissions: AuthPermissionsDto | undefined,
 ): AuthUser => ({
   ...user,
-  permissions: mapAuthPermissions(permissions),
+  permissions:
+    user.role === 'registrator'
+      ? {
+          can_view_dashboard: false,
+          can_view_sessions: false,
+          can_view_reports: false,
+          can_view_tariffs: false,
+          can_view_subscriptions: false,
+          can_view_settings: false,
+          can_view_activity_log: false,
+        }
+      : mapAuthPermissions(permissions),
 })

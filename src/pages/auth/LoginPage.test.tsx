@@ -192,4 +192,45 @@ describe('LoginPage', () => {
       expect(screen.getByRole('heading', { name: 'Dashboard' })).toBeInTheDocument(),
     )
   })
+
+  it("registrator login javobidan Sessiyalar sahifasiga o'tadi va taqiqlangan /auth/me ni chaqirmaydi", async () => {
+    postMock.mockResolvedValue({
+      data: {
+        token: 'registrator-access-token',
+        refreshToken: 'registrator-refresh-token',
+        user: {
+          id: 'u3',
+          org_id: 1,
+          name: 'Dilshod',
+          role: 'registrator',
+          org_name: 'Chorsu',
+          pricing_mode: 'hourly',
+        },
+      },
+    })
+    getMock.mockResolvedValue({
+      data: {
+        sessions: [],
+        pagination: { page: 1, limit: 20, total: 0, total_pages: 1 },
+      },
+    })
+    renderApp()
+
+    submitLoginForm()
+
+    expect(
+      await screen.findByRole('heading', { name: 'Sessiyalar' }),
+    ).toBeInTheDocument()
+    expect(
+      getMock.mock.calls.some(([url]) => url === '/api/auth/me'),
+    ).toBe(false)
+    expect(getMock).toHaveBeenCalledWith('/api/parking/sessions', {
+      params: {
+        page: 1,
+        limit: 20,
+        status: 'active',
+        plate_number: undefined,
+      },
+    })
+  })
 })

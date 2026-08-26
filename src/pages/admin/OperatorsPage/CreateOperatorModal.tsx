@@ -103,6 +103,7 @@ export default function CreateOperatorModal({
             options={[
               { label: t('common.roleOperator'), value: 'operator' },
               { label: t('common.roleKassir'), value: 'kassir' },
+              { label: t('common.roleRegistrator'), value: 'registrator' },
             ]}
           />
         </Form.Item>

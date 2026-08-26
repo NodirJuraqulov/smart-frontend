@@ -10,7 +10,10 @@ export interface Operator {
   created_at: string
 }
 
-export type ManagedUserRole = Extract<UserRole, 'operator' | 'kassir'>
+export type ManagedUserRole = Extract<
+  UserRole,
+  'operator' | 'kassir' | 'registrator'
+>
 
 export interface CreateOperatorPayload {
   name: string

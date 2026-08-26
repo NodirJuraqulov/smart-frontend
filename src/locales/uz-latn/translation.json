@@ -19,6 +19,7 @@
     "hoursAgo": "{{hours}} soat oldin",
     "daysAgo": "{{days}} kun oldin",
     "roleKassir": "Kassir",
+    "roleRegistrator": "Registrator",
     "edit": "Tahrirlash"
   },
   "nav": {

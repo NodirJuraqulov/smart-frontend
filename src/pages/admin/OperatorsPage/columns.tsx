@@ -40,7 +40,9 @@ export function buildColumns(
             ? 'common.roleOwner'
             : record.role === 'kassir'
               ? 'common.roleKassir'
-              : 'common.roleOperator',
+              : record.role === 'registrator'
+                ? 'common.roleRegistrator'
+                : 'common.roleOperator',
         ),
     },
     {

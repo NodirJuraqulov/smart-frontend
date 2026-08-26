@@ -169,4 +169,28 @@ describe('mapAuthUser', () => {
       },
     })
   })
+
+  it('registrator uchun backend permissions bermasa ham barcha umumiy ruxsatlarni o‘chiradi', () => {
+    const result = mapAuthUser(
+      {
+        id: 'u3',
+        org_id: 1,
+        name: 'Dilshod',
+        role: 'registrator',
+        org_name: 'Chorsu',
+        pricing_mode: 'hourly',
+      },
+      undefined,
+    )
+
+    expect(result.permissions).toEqual({
+      can_view_dashboard: false,
+      can_view_sessions: false,
+      can_view_reports: false,
+      can_view_tariffs: false,
+      can_view_subscriptions: false,
+      can_view_settings: false,
+      can_view_activity_log: false,
+    })
+  })
 })

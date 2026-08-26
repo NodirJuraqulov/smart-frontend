@@ -19,6 +19,7 @@
     "hoursAgo": "{{hours}} h ago",
     "daysAgo": "{{days}} d ago",
     "roleKassir": "Cashier",
+    "roleRegistrator": "Registrar",
     "edit": "Edit"
   },
   "nav": {

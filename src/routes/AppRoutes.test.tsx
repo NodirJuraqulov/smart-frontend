@@ -39,6 +39,22 @@ const ownerUser: AuthUser = {
   role: 'owner',
 }
 
+const registratorUser: AuthUser = {
+  ...operatorUser,
+  id: 'registrator-1',
+  name: 'Dilshod',
+  role: 'registrator',
+  permissions: {
+    can_view_dashboard: false,
+    can_view_sessions: false,
+    can_view_reports: false,
+    can_view_tariffs: false,
+    can_view_subscriptions: false,
+    can_view_settings: false,
+    can_view_activity_log: false,
+  },
+}
+
 function renderAtPath(path: string, user: AuthUser = operatorUser) {
   const store = configureStore({
     reducer: { auth: authReducer },
@@ -119,6 +135,28 @@ describe('AppRoutes sidebar permission filtering', () => {
     expect(
       screen.queryByText('Yo‘lak va kamera himoyasi'),
     ).not.toBeInTheDocument()
+  })
+})
+
+describe('AppRoutes registrator routing', () => {
+  it("registrator bosh sahifadan Sessiyalar sahifasiga yo'naltiriladi", async () => {
+    renderAtPath('/', registratorUser)
+
+    expect(
+      await screen.findByRole('heading', { name: 'Sessiyalar' }),
+    ).toBeInTheDocument()
+    expect(screen.getAllByText('Sessiyalar')).toHaveLength(2)
+    expect(document.querySelectorAll('.ant-menu-item')).toHaveLength(1)
+  })
+
+  it('registrator boshqa operator sahifasidan Sessiyalar sahifasiga qaytariladi', async () => {
+    renderAtPath('/operator/vip-vehicles', registratorUser)
+
+    expect(
+      await screen.findByRole('heading', { name: 'Sessiyalar' }),
+    ).toBeInTheDocument()
+    expect(screen.queryByText('VIP mashinalar')).not.toBeInTheDocument()
+    expect(screen.queryByText('Dashboard')).not.toBeInTheDocument()
   })
 })
 

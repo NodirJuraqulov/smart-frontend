@@ -10,6 +10,7 @@ export default function SessionsPage() {
   const { t } = useTranslation()
   const user = useAppSelector((state) => state.auth.user)
   useDocumentTitle(t('sessions.title'))
+  const isRegistrator = user?.role === 'registrator'
   const canViewForcedOpenHistory = Boolean(
     user && ['owner', 'kassir', 'super_admin'].includes(user.role),
   )
@@ -28,11 +29,15 @@ export default function SessionsPage() {
             label: t('sessions.activeTab'),
             children: <ActiveSessionsTab />,
           },
-          {
-            key: 'history',
-            label: t('sessions.historyTab'),
-            children: <HistorySessionsTab />,
-          },
+          ...(!isRegistrator
+            ? [
+                {
+                  key: 'history',
+                  label: t('sessions.historyTab'),
+                  children: <HistorySessionsTab />,
+                },
+              ]
+            : []),
           ...(canViewForcedOpenHistory
             ? [
                 {

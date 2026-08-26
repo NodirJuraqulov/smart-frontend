@@ -1,5 +1,5 @@
 import { lazy, Suspense, type ReactNode } from 'react'
-import { Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
   BankOutlined,
@@ -72,7 +72,9 @@ export default function AppRoutes() {
       ? t('common.roleOwner')
       : user?.role === 'kassir'
         ? t('common.roleKassir')
-        : t('common.roleOperator')
+        : user?.role === 'registrator'
+          ? t('common.roleRegistrator')
+          : t('common.roleOperator')
   const operatorDisplayName = user?.name?.trim() || operatorRoleText
   const operatorRoleLabel = user?.org_name
     ? `${user.org_name} (${operatorDisplayName})`
@@ -157,8 +159,10 @@ export default function AppRoutes() {
   const permissions = user?.permissions
   const bypassPermissions = user?.role === 'owner'
   const isKassir = user?.role === 'kassir'
+  const isRegistrator = user?.role === 'registrator'
   const operatorMenuItems: MenuProps['items'] = operatorMenuConfig
     .filter((item) => {
+      if (isRegistrator) return item.key === '/operator/sessions'
       if (item.ownerOnly) return user?.role === 'owner'
       if (isKassir) {
         return Boolean(item.permission && permissions?.[item.permission])
@@ -171,6 +175,34 @@ export default function AppRoutes() {
       )
     })
     .map(({ key, icon, label }) => ({ key, icon, label }))
+
+  if (isRegistrator) {
+    return (
+      <Routes>
+        <Route element={<ProtectedRoute allowedRoles={['registrator']} />}>
+          <Route
+            path="/operator"
+            element={
+              <AppLayout
+                menuItems={operatorMenuItems}
+                roleLabel={operatorRoleLabel}
+              />
+            }
+          >
+            <Route
+              index
+              element={<Navigate to="/operator/sessions" replace />}
+            />
+            <Route path="sessions" element={<SessionsPage />} />
+          </Route>
+          <Route
+            path="*"
+            element={<Navigate to="/operator/sessions" replace />}
+          />
+        </Route>
+      </Routes>
+    )
+  }
 
   return (
     <Routes>

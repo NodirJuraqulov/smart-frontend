@@ -37,7 +37,9 @@ export default function EditOperatorModal({
       ? 'common.roleOwner'
       : role === 'kassir'
         ? 'common.roleKassir'
-        : 'common.roleOperator'
+        : role === 'registrator'
+          ? 'common.roleRegistrator'
+          : 'common.roleOperator'
 
   return (
     <Modal
