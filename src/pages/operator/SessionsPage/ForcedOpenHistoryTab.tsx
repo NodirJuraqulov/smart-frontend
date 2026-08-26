@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { Card, Empty, Table, type TableProps } from 'antd'
+import { Card, Empty, Table, Tag, type TableProps } from 'antd'
 import { getForcedOpenHistory } from '@/api/forcedOpenHistory'
 import AuthenticatedImage from '@/components/AuthenticatedImage'
 import PlateBadge from '@/components/PlateBadge'
@@ -53,6 +53,20 @@ export default function ForcedOpenHistoryTab({
       dataIndex: 'resolution_note',
       key: 'resolution_note',
       render: (value: string | null) => value || '—',
+    },
+    {
+      title: t('sessions.forcedOpenColumnEmergency'),
+      dataIndex: 'is_emergency',
+      key: 'is_emergency',
+      render: (value: boolean) => (
+        <Tag color={value ? 'red' : 'default'}>
+          {t(
+            value
+              ? 'sessions.forcedOpenEmergencyYes'
+              : 'sessions.forcedOpenEmergencyNo',
+          )}
+        </Tag>
+      ),
     },
     {
       title: t('sessions.forcedOpenColumnImage'),

@@ -35,7 +35,17 @@ const response: ForcedOpenHistoryResponse = {
       resolved_at: resolvedAt,
       resolved_by: { id: 12, name: 'Alisher Karimov' },
       resolution_note: 'Kirish sessiyasi topilmadi',
+      is_emergency: true,
       image_url: '/api/webhook-events/44/images/overview',
+    },
+    {
+      id: 90,
+      plate_number: '01B456CD',
+      resolved_at: '2026-08-21T08:20:00.000Z',
+      resolved_by: { id: 13, name: 'Bekzod Aliyev' },
+      resolution_note: null,
+      is_emergency: false,
+      image_url: null,
     },
   ],
   pagination: { page: 1, limit: 20, total: 41, total_pages: 3 },
@@ -97,6 +107,19 @@ describe('ForcedOpenHistoryTab', () => {
         limit: 20,
       }),
     )
+  })
+
+  it('Tez yordam ustunida emergency holatini to‘g‘ri ko‘rsatadi', async () => {
+    renderTab()
+
+    const emergencyRow = (await screen.findByText('01A123BC')).closest('tr')
+    const ordinaryRow = screen.getByText('01B456CD').closest('tr')
+
+    expect(
+      screen.getByRole('columnheader', { name: 'Tez yordam bilanmi' }),
+    ).toBeInTheDocument()
+    expect(within(emergencyRow!).getByText('Ha')).toBeInTheDocument()
+    expect(within(ordinaryRow!).getByText('Yo‘q')).toBeInTheDocument()
   })
 
   it('thumbnail bosilganda rasm previewini ochadi', async () => {

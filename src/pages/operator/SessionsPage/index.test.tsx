@@ -19,6 +19,10 @@ vi.mock('./HistorySessionsTab', () => ({
   default: () => <div>history-content</div>,
 }))
 
+vi.mock('./EmergencyExitHistoryTab', () => ({
+  default: () => <div>emergency-history-content</div>,
+}))
+
 vi.mock('./ForcedOpenHistoryTab', () => ({
   default: () => <div>forced-open-content</div>,
 }))
@@ -48,6 +52,9 @@ describe('SessionsPage forced open tab visibility', () => {
       expect(
         screen.getByRole('tab', { name: 'Majburiy ochilganlar' }),
       ).toBeInTheDocument()
+      expect(
+        screen.getByRole('tab', { name: 'Tez yordam' }),
+      ).toBeInTheDocument()
     },
   )
 
@@ -56,6 +63,9 @@ describe('SessionsPage forced open tab visibility', () => {
 
     expect(
       screen.queryByRole('tab', { name: 'Majburiy ochilganlar' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('tab', { name: 'Tez yordam' }),
     ).not.toBeInTheDocument()
   })
 
@@ -68,6 +78,9 @@ describe('SessionsPage forced open tab visibility', () => {
     expect(screen.queryByRole('tab', { name: 'Tarix' })).not.toBeInTheDocument()
     expect(
       screen.queryByRole('tab', { name: 'Majburiy ochilganlar' }),
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole('tab', { name: 'Tez yordam' }),
     ).not.toBeInTheDocument()
   })
 })
