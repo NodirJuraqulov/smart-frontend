@@ -17,6 +17,7 @@ import {
   exitManual,
   forceCloseSession,
   getCapacity,
+  retryCardPayment,
   updateSessionPaymentMethod,
 } from '@/api/parking'
 
@@ -57,6 +58,22 @@ describe('exitManual', () => {
       plate_number: '01A777BA',
       payment_method: 'online',
     })
+  })
+})
+
+describe('retryCardPayment', () => {
+  it('session retry endpointiga POST yuboradi va operation_number qaytaradi', async () => {
+    const response = {
+      session_id: 44,
+      status: 'awaiting_payment',
+      operation_number: 'op-2',
+    }
+    postMock.mockResolvedValue({ data: response })
+
+    await expect(retryCardPayment(44)).resolves.toEqual(response)
+    expect(postMock).toHaveBeenCalledWith(
+      '/api/parking/sessions/44/retry-card-payment',
+    )
   })
 })
 

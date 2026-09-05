@@ -10,6 +10,10 @@ import type {
   EntryCandidateCreatedEvent,
   EntryCandidateResolvedEvent,
 } from '@/types/entryCandidate'
+import type {
+  CardPaymentStartedEvent,
+  ExitPaymentDeclinedEvent,
+} from '@/types/cardPayment'
 
 const { acquireSocketMock, releaseSocketMock, onMock, offMock } = vi.hoisted(
   () => ({
@@ -174,6 +178,55 @@ describe('useParkingSocket exit candidate events', () => {
     expect(offMock).toHaveBeenCalledWith(
       'entry_candidate_resolved',
       resolvedHandler,
+    )
+  })
+
+  it('card started va declined eventlarini uzatadi va cleanup qiladi', () => {
+    const onStarted = vi.fn()
+    const onDeclined = vi.fn()
+    const { unmount } = renderHook(() =>
+      useParkingSocket({
+        onCardPaymentStarted: onStarted,
+        onExitPaymentDeclined: onDeclined,
+      }),
+    )
+    const startedHandler = onMock.mock.calls.find(
+      ([event]) => event === 'card_payment_started',
+    )?.[1] as (payload: unknown) => void
+    const declinedHandler = onMock.mock.calls.find(
+      ([event]) => event === 'exit_payment_declined',
+    )?.[1] as (payload: unknown) => void
+    const startedPayload: CardPaymentStartedEvent = {
+      orgId: 3,
+      sessionId: 44,
+      candidateId: 7,
+      operationNumber: 'op-1',
+      plateNumber: '01A777BA',
+    }
+    const declinedPayload: ExitPaymentDeclinedEvent = {
+      orgId: 3,
+      sessionId: 44,
+      operationNumber: 'op-1',
+      reason: 'declined',
+      errorMessage: 'Declined',
+    }
+
+    act(() => {
+      startedHandler(startedPayload)
+      declinedHandler(declinedPayload)
+    })
+
+    expect(onStarted).toHaveBeenCalledWith(startedPayload)
+    expect(onDeclined).toHaveBeenCalledWith(declinedPayload)
+
+    unmount()
+    expect(offMock).toHaveBeenCalledWith(
+      'card_payment_started',
+      startedHandler,
+    )
+    expect(offMock).toHaveBeenCalledWith(
+      'exit_payment_declined',
+      declinedHandler,
     )
   })
 

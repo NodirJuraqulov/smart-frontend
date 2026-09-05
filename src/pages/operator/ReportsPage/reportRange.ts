@@ -59,6 +59,7 @@ export function safeTotals(totals: Partial<ReportTotals>): ReportTotals {
     total_exits: safeNumber(totals.total_exits),
     cash_revenue: safeNumber(totals.cash_revenue),
     online_revenue: safeNumber(totals.online_revenue),
+    card_revenue: safeNumber(totals.card_revenue),
     regular_revenue: safeNumber(totals.regular_revenue),
     subscription_revenue: safeNumber(totals.subscription_revenue),
     total_revenue: safeNumber(totals.total_revenue),
@@ -73,6 +74,7 @@ export interface RangeViewItem {
   revenue: number
   cashRevenue: number
   onlineRevenue: number
+  cardRevenue: number
   regularRevenue: number
   subscriptionRevenue: number
 }
@@ -96,6 +98,7 @@ export function normalizeRangeItems(
       revenue: safeNumber(item.total_revenue ?? item.revenue),
       cashRevenue: safeNumber(item.cash_revenue),
       onlineRevenue: safeNumber(item.online_revenue),
+      cardRevenue: safeNumber(item.card_revenue),
       regularRevenue: safeNumber(item.regular_revenue),
       subscriptionRevenue: safeNumber(item.subscription_revenue),
     }

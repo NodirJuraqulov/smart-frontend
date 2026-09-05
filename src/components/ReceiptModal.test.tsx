@@ -92,6 +92,24 @@ describe('ReceiptModal', () => {
     expect(screen.queryByRole('radio')).not.toBeInTheDocument()
   })
 
+  it.each([
+    ['cash' as const, 'Naqd'],
+    ['online' as const, 'Online'],
+    ['card' as const, 'Karta'],
+  ])('%s to‘lov turiga mos label ko‘rsatadi', (paymentMethod, label) => {
+    render(
+      <ReceiptModal
+        open
+        onClose={() => {}}
+        session={{ ...baseSession, exit_method: 'manual' }}
+        amount={15000}
+        paymentMethod={paymentMethod}
+      />,
+    )
+
+    expect(screen.getByText(label)).toBeInTheDocument()
+  })
+
   it("avtomatik yopilgan sessiyada tolov turini tanlash Radio korinadi va Chop etishda tasdiqlanadi (regression)", () => {
     const onConfirmPaymentMethod = vi.fn()
     render(

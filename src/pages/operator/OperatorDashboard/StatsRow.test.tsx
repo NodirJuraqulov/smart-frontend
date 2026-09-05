@@ -17,9 +17,10 @@ const dailyReport: DailyReport = {
   date: '2026-07-24',
   total_entries: 10,
   total_exits: 4,
-  total_revenue: 50000,
+  total_revenue: 60000,
   cash_revenue: 30000,
   online_revenue: 20000,
+  card_revenue: 10000,
   currently_parked: 8,
   busiest_hour: 14,
   hourly_breakdown: [],
@@ -103,11 +104,11 @@ describe('StatsRow', () => {
     })
   })
 
-  it('to‘rtta statistik card ko‘rsatadi', async () => {
+  it('beshta statistik card ko‘rsatadi', async () => {
     getCapacityMock.mockResolvedValue({ occupied: 8, total: 50, available: 42 })
     renderRow()
 
-    expect(await screen.findAllByTestId('dashboard-stat-card')).toHaveLength(4)
+    expect(await screen.findAllByTestId('dashboard-stat-card')).toHaveLength(5)
   })
 
   it('birinchi card ichida bugungi kirish va chiqishni birga ko‘rsatadi', async () => {
@@ -123,7 +124,7 @@ describe('StatsRow', () => {
     expect(within(activityCard).getByText('4')).toBeInTheDocument()
   })
 
-  it('cash va online revenue qiymatlarini backend reportdan bevosita ko‘rsatadi', async () => {
+  it('cash, online va card revenue qiymatlarini backend reportdan bevosita ko‘rsatadi', async () => {
     getCapacityMock.mockResolvedValue({ occupied: 8, total: 50, available: 42 })
     renderRow()
 
@@ -131,6 +132,8 @@ describe('StatsRow', () => {
     expect(screen.getByText(/30.*000 so'm/)).toBeInTheDocument()
     expect(screen.getByText('Online to‘lov')).toBeInTheDocument()
     expect(screen.getByText(/20.*000 so'm/)).toBeInTheDocument()
+    expect(screen.getByText('Karta orqali tushum')).toBeInTheDocument()
+    expect(screen.getByText(/10.*000 so'm/)).toBeInTheDocument()
     expect(screen.queryByText('Bugungi daromad')).not.toBeInTheDocument()
     expect(screen.queryByText(/50.*000 so'm/)).not.toBeInTheDocument()
   })

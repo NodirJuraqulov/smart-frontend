@@ -7,11 +7,13 @@ import {
   entryManual,
   exitManual,
   getActiveSessions,
+  retryCardPayment,
   updateSessionPaymentMethod,
 } from '@/api/parking'
 import { useParkingSocket } from '@/hooks/useParkingSocket'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useAppSelector } from '@/hooks/redux'
+import { useCardPayments } from '@/hooks/useCardPayments'
 import { getErrorMessage } from '@/utils/apiError'
 import { formatDate } from '@/utils/format'
 import ReceiptModal from '@/components/ReceiptModal'
@@ -21,7 +23,10 @@ import type { EntryCandidateCreatedEvent } from '@/types/entryCandidate'
 import StatsRow from './StatsRow'
 import DetectionFailedAlert from './DetectionFailedAlert'
 import ActiveSessionsTable from './ActiveSessionsTable'
-import ManualEntryModal, { type ManualFormValues } from './ManualEntryModal'
+import ManualEntryModal, {
+  type ManualCardWaitingState,
+  type ManualFormValues,
+} from './ManualEntryModal'
 import ExitCandidateWorkflow from './ExitCandidateWorkflow'
 import EntryCandidateWorkflow from './EntryCandidateWorkflow'
 import ManualParkingEntryModal from './ManualParkingEntryModal'
@@ -45,6 +50,12 @@ export default function OperatorDashboard() {
   const { message, notification } = AntdApp.useApp()
   const queryClient = useQueryClient()
   const user = useAppSelector((state) => state.auth.user)
+  const {
+    clearDeclined,
+    declinedPayments,
+    isCardTerminalEnabled,
+    markRetryStarted,
+  } = useCardPayments()
   const orgName = user?.org_name
   const canViewExitCandidates =
     user?.role === 'owner' || Boolean(user?.permissions?.can_view_sessions)
@@ -58,6 +69,8 @@ export default function OperatorDashboard() {
   const [manualModalOpen, setManualModalOpen] = useState(false)
   const [manualParkingEntryOpen, setManualParkingEntryOpen] = useState(false)
   const [receipt, setReceipt] = useState<ReceiptState | null>(null)
+  const [manualCardWaiting, setManualCardWaiting] =
+    useState<ManualCardWaitingState | null>(null)
   const [now, setNow] = useState(() => Date.now())
   const [newCandidateSignal, setNewCandidateSignal] = useState(0)
   const [exitStatusSignal, setExitStatusSignal] = useState(0)
@@ -176,9 +189,15 @@ export default function OperatorDashboard() {
     onDetectionFailed: (type, imageUrl) => {
       setDetectionFailed({ type, imageUrl })
     },
-    onExitCompleted: () => {
+    onExitCompleted: (payload) => {
       invalidateResolvedExitData()
       setExitStatusSignal((current) => current + 1)
+      if (manualCardWaiting?.sessionId === payload.sessionId) {
+        setManualCardWaiting(null)
+        setManualModalOpen(false)
+        setDetectionFailed(null)
+        manualForm.resetFields()
+      }
     },
     onExitCandidateCreated: (candidate: ExitCandidateCreatedEvent) => {
       if (!canViewExitCandidates) return
@@ -280,16 +299,61 @@ export default function OperatorDashboard() {
   const exitMutation = useMutation({
     mutationFn: (values: ManualFormValues) =>
       exitManual(values.plate_number, values.payment_method!),
-    onSuccess: (data) => {
-      message.success(t('operatorDashboard.manualExitSuccess'))
+    onSuccess: (data, values) => {
       invalidateParkingData()
-      setReceipt(data)
+      if (
+        values.payment_method === 'card' &&
+        data.operation_number &&
+        data.session
+      ) {
+        const waiting = {
+          sessionId: data.session.id,
+          operationNumber: data.operation_number,
+          plateNumber: data.session.plate_number,
+        }
+        setManualCardWaiting(waiting)
+        markRetryStarted({
+          orgId: data.session.org_id,
+          sessionId: waiting.sessionId,
+          candidateId: null,
+          operationNumber: waiting.operationNumber,
+          plateNumber: waiting.plateNumber,
+        })
+        return
+      }
+      if (!data.payment) return
+      message.success(t('operatorDashboard.manualExitSuccess'))
+      setReceipt({ session: data.session, payment: data.payment })
       setManualModalOpen(false)
       setDetectionFailed(null)
       manualForm.resetFields()
     },
     onError: (error) => {
       message.error(getErrorMessage(error, t('operatorDashboard.manualExitError')))
+    },
+  })
+
+  const retryCardMutation = useMutation({
+    mutationFn: retryCardPayment,
+    onSuccess: (data) => {
+      if (!manualCardWaiting) return
+      const nextWaiting = {
+        ...manualCardWaiting,
+        operationNumber: data.operation_number,
+      }
+      setManualCardWaiting(nextWaiting)
+      markRetryStarted({
+        orgId: user?.org_id ?? undefined,
+        sessionId: nextWaiting.sessionId,
+        candidateId: null,
+        operationNumber: nextWaiting.operationNumber,
+        plateNumber: nextWaiting.plateNumber,
+      })
+    },
+    onError: (error) => {
+      message.error(
+        getErrorMessage(error, t('paymentMethod.retryCardError')),
+      )
     },
   })
 
@@ -314,6 +378,23 @@ export default function OperatorDashboard() {
       entryMutation.mutate(values.plate_number)
     }
   }
+
+  const closeManualModal = () => {
+    if (manualCardWaiting) clearDeclined(manualCardWaiting.sessionId)
+    setManualCardWaiting(null)
+    setManualModalOpen(false)
+    manualForm.resetFields()
+  }
+
+  const switchManualPaymentMethod = () => {
+    if (manualCardWaiting) clearDeclined(manualCardWaiting.sessionId)
+    setManualCardWaiting(null)
+    manualForm.setFieldsValue({ payment_method: 'cash' })
+  }
+
+  const manualCardDeclined = Boolean(
+    manualCardWaiting && declinedPayments.has(manualCardWaiting.sessionId),
+  )
 
   return (
     <div className="flex flex-col gap-4 p-6">
@@ -409,11 +490,17 @@ export default function OperatorDashboard() {
         isExit={detectionFailed?.type === 'exit'}
         form={manualForm}
         isPending={isManualPending}
-        onCancel={() => {
-          setManualModalOpen(false)
-          manualForm.resetFields()
-        }}
+        cardEnabled={isCardTerminalEnabled}
+        cardWaiting={manualCardWaiting}
+        cardDeclined={manualCardDeclined}
+        isRetryingCard={retryCardMutation.isPending}
+        onCancel={closeManualModal}
         onSubmit={handleManualSubmit}
+        onRetryCard={() =>
+          manualCardWaiting &&
+          retryCardMutation.mutate(manualCardWaiting.sessionId)
+        }
+        onSwitchPaymentMethod={switchManualPaymentMethod}
       />
 
       <ManualParkingEntryModal

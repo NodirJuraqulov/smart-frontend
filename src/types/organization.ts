@@ -130,6 +130,23 @@ export interface UpdateLedSettingsPayload {
   led_port: number | null
 }
 
+export interface CardTerminalSettings {
+  card_terminal_enabled: boolean
+  card_terminal_ip: string | null
+  card_terminal_port: number | null
+  card_terminal_id: string | null
+  card_terminal_merchant_id: string | null
+  card_terminal_keepalive_interval_seconds?: number | null
+}
+
+export interface UpdateCardTerminalSettingsPayload {
+  card_terminal_enabled: boolean
+  card_terminal_ip: string | null
+  card_terminal_port: number | null
+  card_terminal_id: string | null
+  card_terminal_merchant_id: string | null
+}
+
 export interface TelegramSettings {
   telegram_bot_configured: boolean
   telegram_chat_ids: string[]

@@ -28,6 +28,7 @@ import {
   deleteTariffInterval,
   deleteTariffIntervalAdmin,
   getCameraRelaySettings,
+  getCardTerminalSettings,
   getIntegrationSettings,
   getLedSettings,
   getOrganizationGateLayout,
@@ -39,6 +40,7 @@ import {
   openEmergencyBarrier,
   updateCapacity,
   updateCameraRelaySettings,
+  updateCardTerminalSettings,
   updateIntegrationSettings,
   updateLedSettings,
   updatePermissions,
@@ -205,6 +207,39 @@ describe('LED settings', () => {
       { led_host: '192.168.1.157', led_port: 10000 },
     )
     expect(result).toEqual(ledSettings)
+  })
+})
+
+describe('card terminal settings', () => {
+  const cardTerminalSettings = {
+    card_terminal_enabled: true,
+    card_terminal_ip: '192.168.1.55',
+    card_terminal_port: 62801,
+    card_terminal_id: 'terminal-1',
+    card_terminal_merchant_id: 'merchant-1',
+  }
+
+  it('GET organization karta terminali sozlamalarini oladi', async () => {
+    getMock.mockResolvedValue({ data: cardTerminalSettings })
+
+    await expect(getCardTerminalSettings(7)).resolves.toEqual(
+      cardTerminalSettings,
+    )
+    expect(getMock).toHaveBeenCalledWith(
+      '/api/organizations/7/card-terminal-settings',
+    )
+  })
+
+  it('PATCH backend kutgan payloadni yuboradi', async () => {
+    patchMock.mockResolvedValue({ data: cardTerminalSettings })
+
+    await expect(
+      updateCardTerminalSettings(7, cardTerminalSettings),
+    ).resolves.toEqual(cardTerminalSettings)
+    expect(patchMock).toHaveBeenCalledWith(
+      '/api/organizations/7/card-terminal-settings',
+      cardTerminalSettings,
+    )
   })
 })
 

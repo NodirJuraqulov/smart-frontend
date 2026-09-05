@@ -165,6 +165,26 @@ export default function ExitDisplayPage() {
                 {t('publicDisplay.operatorWorking')}
               </Typography.Text>
             </div>
+          ) : flow.state === 'awaiting_payment' ? (
+            <div className="flex flex-col items-center gap-8">
+              <Typography.Title
+                data-testid="exit-display-status-title"
+                style={{ fontSize: 68, margin: 0 }}
+              >
+                {t('publicDisplay.awaitingPaymentTitle')}
+              </Typography.Title>
+              {flow.plate && (
+                <Typography.Title
+                  level={2}
+                  style={{ fontSize: 64, margin: 0 }}
+                >
+                  {flow.plate}
+                </Typography.Title>
+              )}
+              <Typography.Text style={{ fontSize: 38, opacity: 0.8 }}>
+                {t('publicDisplay.awaitingPaymentWaitNote')}
+              </Typography.Text>
+            </div>
           ) : flow.state === 'completed' ? (
             <div className="flex w-full flex-col items-center gap-6">
               <Typography.Title
@@ -208,7 +228,9 @@ export default function ExitDisplayPage() {
                       method: t(
                         flow.payment_method === 'cash'
                           ? 'publicDisplay.cashPaymentMethod'
-                          : 'publicDisplay.onlinePaymentMethod',
+                          : flow.payment_method === 'online'
+                            ? 'publicDisplay.onlinePaymentMethod'
+                            : 'publicDisplay.cardPaymentMethod',
                       ),
                     })}
                   </Typography.Text>

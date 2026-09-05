@@ -1,9 +1,11 @@
-import { Card, Empty, Table, type TableProps } from 'antd'
+import { Card, Empty, Space, Table, Tooltip, type TableProps } from 'antd'
+import { CreditCardOutlined } from '@ant-design/icons'
 import { useTranslation } from 'react-i18next'
 import { formatDate, formatDuration } from '@/utils/format'
 import PlateBadge from '@/components/PlateBadge'
 import { SessionImagesAction } from '@/components/SessionImagesModal'
 import type { ParkingSession } from '@/types/parking'
+import { useCardPayments } from '@/hooks/useCardPayments'
 
 interface ActiveSessionsTableProps {
   dataSource: ParkingSession[]
@@ -17,13 +19,26 @@ export default function ActiveSessionsTable({
   now,
 }: ActiveSessionsTableProps) {
   const { t } = useTranslation()
+  const { isCardPending } = useCardPayments()
 
   const columns: TableProps<ParkingSession>['columns'] = [
     {
       title: t('sessions.columnPlate'),
       dataIndex: 'plate_number',
       key: 'plate_number',
-      render: (value: string) => <PlateBadge value={value} />,
+      render: (value: string, record) => (
+        <Space size={6}>
+          <PlateBadge value={value} />
+          {isCardPending(record.id) && (
+            <Tooltip title={t('paymentMethod.cardPaymentPending')}>
+              <CreditCardOutlined
+                data-testid={`card-payment-pending-${record.id}`}
+                style={{ color: '#1677ff' }}
+              />
+            </Tooltip>
+          )}
+        </Space>
+      ),
     },
     {
       title: t('sessions.columnEntered'),

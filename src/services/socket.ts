@@ -10,6 +10,10 @@ import type {
   EntryCandidateResolvedEvent,
 } from '@/types/entryCandidate'
 import type { BlacklistAttemptEvent } from '@/types/blacklist'
+import type {
+  CardPaymentStartedEvent,
+  ExitPaymentDeclinedEvent,
+} from '@/types/cardPayment'
 import { API_BASE_URL } from '@/utils/runtimeBaseUrl'
 import { refreshAccessToken } from './authSession'
 
@@ -32,6 +36,8 @@ interface ServerToClientEvents {
   exit_candidate_resolved: (payload: ExitCandidateResolvedEvent) => void
   entry_candidate_created: (payload: EntryCandidateCreatedEvent) => void
   entry_candidate_resolved: (payload: EntryCandidateResolvedEvent) => void
+  card_payment_started: (payload: CardPaymentStartedEvent) => void
+  exit_payment_declined: (payload: ExitPaymentDeclinedEvent) => void
   blacklist_attempt: (payload: BlacklistAttemptEvent) => void
   relay_failed: (payload: {
     direction: 'entry' | 'exit'

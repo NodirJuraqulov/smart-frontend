@@ -15,11 +15,13 @@ import type {
   EmergencyBarrierOpenResponse,
   GateLayout,
   LedSettings,
+  CardTerminalSettings,
   OrganizationStats,
   PricingMode,
   TelegramSettings,
   UpdateIntegrationSettingsPayload,
   UpdateLedSettingsPayload,
+  UpdateCardTerminalSettingsPayload,
   UpdateTelegramSettingsPayload,
   UpdateCameraRelaySettingsPayload,
   UpdateOrganizationPayload,
@@ -163,6 +165,24 @@ export const updateLedSettings = ({
 }: UpdateLedSettingsPayload & { orgId: number }) =>
   axiosInstance
     .patch<LedSettings>(`/api/organizations/${orgId}/led-settings`, payload)
+    .then((res) => res.data)
+
+export const getCardTerminalSettings = (orgId: number) =>
+  axiosInstance
+    .get<CardTerminalSettings>(
+      `/api/organizations/${orgId}/card-terminal-settings`,
+    )
+    .then((res) => res.data)
+
+export const updateCardTerminalSettings = (
+  orgId: number,
+  payload: UpdateCardTerminalSettingsPayload,
+) =>
+  axiosInstance
+    .patch<CardTerminalSettings>(
+      `/api/organizations/${orgId}/card-terminal-settings`,
+      payload,
+    )
     .then((res) => res.data)
 
 export const getTelegramSettings = (orgId: number) =>

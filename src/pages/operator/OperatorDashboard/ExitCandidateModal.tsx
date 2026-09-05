@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import type { TFunction } from 'i18next'
 import {
   App as AntdApp,
+  Alert,
   Button,
   Card,
   Descriptions,
@@ -23,10 +24,12 @@ import {
   retryExitCandidateBarrier,
   searchExitCandidate,
 } from '@/api/exitCandidates'
+import { retryCardPayment } from '@/api/parking'
 import AuthenticatedImage from '@/components/AuthenticatedImage'
 import PaymentQrCode from '@/components/PaymentQrCode'
 import PlateBadge from '@/components/PlateBadge'
 import { useIsMountedRef } from '@/hooks/useIsMountedRef'
+import { useCardPayments } from '@/hooks/useCardPayments'
 import { getErrorMessage } from '@/utils/apiError'
 import { formatDate, formatMoney } from '@/utils/format'
 import type {
@@ -37,8 +40,9 @@ import type {
   ExitCandidateActiveSession,
   ExitCandidateBarrierStatus,
   ExitCandidateSessionOption,
+  ExitCandidatePaymentMethod,
 } from '@/types/exitCandidate'
-import type { PaymentMethod, SessionSource } from '@/types/parking'
+import type { SessionSource } from '@/types/parking'
 
 interface Props {
   candidate: ExitCandidateNext
@@ -133,13 +137,15 @@ export default function ExitCandidateModal({
 }: Props) {
   const { t } = useTranslation()
   const { message } = AntdApp.useApp()
+  const { declinedPayments, markRetryStarted } = useCardPayments()
   const [mode, setMode] = useState<ModalMode>(
     candidate.matched_session ? 'view' : 'search',
   )
   const [selectedSession, setSelectedSession] =
     useState<ExitCandidateSessionOption | null>(null)
   const [selectedAt, setSelectedAt] = useState<number | null>(null)
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | null>(null)
+  const [paymentMethod, setPaymentMethod] =
+    useState<Exclude<ExitCandidatePaymentMethod, 'emergency'> | null>(null)
   const [searchPlate, setSearchPlate] = useState<string>(
     candidate.suggested_plate ?? candidate.detected_plate ?? '',
   )
@@ -196,6 +202,15 @@ export default function ExitCandidateModal({
   const entryImages = session?.entry_images
   const displayPlate = session?.plate_number ?? candidate.detected_plate ?? ''
   const amount = session?.tariff_snapshot_amount ?? null
+  const numericSessionId = session ? Number(session.session_id) : null
+  const declinedCardPayment =
+    numericSessionId != null && Number.isFinite(numericSessionId)
+      ? declinedPayments.get(numericSessionId)
+      : undefined
+  const isCurrentCandidateCardDeclined = Boolean(
+    declinedCardPayment?.candidateId != null &&
+      String(declinedCardPayment.candidateId) === candidate.candidate_id,
+  )
 
   const durationText = useMemo(() => {
     if (!session) return '—'
@@ -337,8 +352,33 @@ export default function ExitCandidateModal({
     },
   })
 
+  const retryCardMutation = useMutation({
+    mutationFn: () => retryCardPayment(numericSessionId!),
+    onSuccess: (data) => {
+      if (!isMountedRef.current || !session) return
+      const parsedCandidateId = Number(candidate.candidate_id)
+      markRetryStarted({
+        sessionId: data.session_id,
+        candidateId: Number.isFinite(parsedCandidateId)
+          ? parsedCandidateId
+          : declinedCardPayment?.candidateId ?? null,
+        operationNumber: data.operation_number,
+        plateNumber: session.plate_number ?? candidate.detected_plate ?? '',
+      })
+    },
+    onError: (error) => {
+      if (!isMountedRef.current) return
+      message.error(
+        getErrorMessage(error, t('paymentMethod.retryCardError')),
+      )
+    },
+  })
+
   const isResolving =
-    confirmMutation.isPending || forceMutation.isPending || retryMutation.isPending
+    confirmMutation.isPending ||
+    forceMutation.isPending ||
+    retryMutation.isPending ||
+    retryCardMutation.isPending
   const isStandardConfirming =
     confirmMutation.isPending && !confirmMutation.variables
   const isEmergencyConfirming =
@@ -535,6 +575,14 @@ export default function ExitCandidateModal({
                     {t('exitCandidates.emergency')}
                   </Button>
                 </div>
+                {isCurrentCandidateCardDeclined && (
+                  <Alert
+                    type="warning"
+                    showIcon
+                    title={t('paymentMethod.cardPaymentDeclined')}
+                    description={t('paymentMethod.retryCardHint')}
+                  />
+                )}
               </div>
             )}
           </Card>
@@ -731,6 +779,16 @@ export default function ExitCandidateModal({
               {t('exitCandidates.confirmAndOpen')}
             </Button>
           ) : null}
+          {isCurrentCandidateCardDeclined && (
+            <Button
+              block
+              loading={retryCardMutation.isPending}
+              disabled={isResolving}
+              onClick={() => retryCardMutation.mutate()}
+            >
+              {t('paymentMethod.retryCardPayment')}
+            </Button>
+          )}
           <div
             className={`grid grid-cols-1 gap-3 ${
               hasLinkedSession ? '' : 'sm:grid-cols-2'

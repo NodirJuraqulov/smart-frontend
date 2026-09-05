@@ -32,21 +32,32 @@ const {
   exitManualMock,
   getActiveSessionsMock,
   getCapacityMock,
+  retryCardPaymentMock,
   updateSessionPaymentMethodMock,
   getDailyReportMock,
   getSettingsMock,
   useAppSelectorMock,
   socketCallbacksRef,
+  cardPaymentContext,
 } = vi.hoisted(() => ({
   entryManualMock: vi.fn(),
   exitManualMock: vi.fn(),
   getActiveSessionsMock: vi.fn(),
   getCapacityMock: vi.fn(),
+  retryCardPaymentMock: vi.fn(),
   updateSessionPaymentMethodMock: vi.fn(),
   getDailyReportMock: vi.fn(),
   getSettingsMock: vi.fn(),
   useAppSelectorMock: vi.fn(),
   socketCallbacksRef: { current: null as SocketCallbacks | null },
+  cardPaymentContext: {
+    clearDeclined: vi.fn(),
+    declinedPayments: new Map(),
+    isCardTerminalEnabled: true,
+    isCardPending: vi.fn(() => false),
+    markRetryStarted: vi.fn(),
+    pendingPayments: new Map(),
+  },
 }))
 
 vi.mock('@/api/parking', () => ({
@@ -54,6 +65,7 @@ vi.mock('@/api/parking', () => ({
   exitManual: exitManualMock,
   getActiveSessions: getActiveSessionsMock,
   getCapacity: getCapacityMock,
+  retryCardPayment: retryCardPaymentMock,
   updateSessionPaymentMethod: updateSessionPaymentMethodMock,
 }))
 
@@ -73,6 +85,10 @@ vi.mock('@/hooks/useParkingSocket', () => ({
   useParkingSocket: (callbacks: SocketCallbacks) => {
     socketCallbacksRef.current = callbacks
   },
+}))
+
+vi.mock('@/hooks/useCardPayments', () => ({
+  useCardPayments: () => cardPaymentContext,
 }))
 
 vi.mock('./ExitCandidateWorkflow', () => ({
@@ -187,11 +203,25 @@ function triggerDetectionFailed(imageUrl: string) {
   socketCallbacksRef.current?.onDetectionFailed?.('entry', imageUrl)
 }
 
+function triggerExitDetectionFailed(imageUrl: string) {
+  socketCallbacksRef.current?.onDetectionFailed?.('exit', imageUrl)
+}
+
 async function openManualEntryModal() {
   fireEvent.click(
     await screen.findByRole('button', { name: "Qo'lda kiritish" }),
   )
 }
+
+beforeEach(() => {
+  cardPaymentContext.clearDeclined.mockReset()
+  cardPaymentContext.declinedPayments = new Map()
+  cardPaymentContext.isCardTerminalEnabled = true
+  cardPaymentContext.isCardPending.mockReset().mockReturnValue(false)
+  cardPaymentContext.markRetryStarted.mockReset()
+  cardPaymentContext.pendingPayments = new Map()
+  retryCardPaymentMock.mockReset()
+})
 
 describe('OperatorDashboard manual entry modal', () => {
   beforeEach(() => {
@@ -245,6 +275,58 @@ describe('OperatorDashboard manual entry modal', () => {
     await openManualEntryModal()
 
     expect(screen.queryByDisplayValue('01A777BA')).not.toBeInTheDocument()
+  })
+
+  it('Karta tanlanganda kutish holatiga o‘tadi va exit_completed modalni yopadi', async () => {
+    exitManualMock.mockResolvedValue({
+      session: {
+        id: 44,
+        org_id: 3,
+        plate_number: '01A777BA',
+        status: 'active',
+      },
+      payment: null,
+      operation_number: 'op-1',
+    })
+    renderDashboard()
+    await waitFor(() => expect(socketCallbacksRef.current).not.toBeNull())
+
+    act(() => triggerExitDetectionFailed('http://example.com/exit.jpg'))
+    await openManualEntryModal()
+    fireEvent.change(screen.getByPlaceholderText('Masalan: 01A777BA'), {
+      target: { value: '01A777BA' },
+    })
+    fireEvent.click(screen.getByRole('radio', { name: 'Karta' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Saqlash' }))
+
+    await waitFor(() =>
+      expect(exitManualMock).toHaveBeenCalledWith('01A777BA', 'card'),
+    )
+    expect(
+      await screen.findByText("Karta orqali to'lov kutilmoqda..."),
+    ).toBeInTheDocument()
+    expect(document.querySelector('.ant-modal-close')).not.toBeInTheDocument()
+    expect(cardPaymentContext.markRetryStarted).toHaveBeenCalledWith(
+      expect.objectContaining({
+        sessionId: 44,
+        operationNumber: 'op-1',
+      }),
+    )
+
+    act(() => {
+      socketCallbacksRef.current?.onExitCompleted?.({
+        orgId: 3,
+        sessionId: 44,
+        plateNumber: '01A777BA',
+        amount: 12000,
+        paymentMethod: 'card',
+        barrierStatus: 'opened',
+      })
+    })
+
+    await waitFor(() =>
+      expect(screen.getByRole('dialog')).toHaveClass('ant-zoom-leave'),
+    )
   })
 })
 

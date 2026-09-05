@@ -10,6 +10,7 @@ import { ThemeProvider, useTheme } from './contexts/ThemeContext'
 import { buildThemeConfig } from './theme/themeConfig'
 import MessageApiBridge from './components/MessageApiBridge'
 import ErrorBoundary from './components/ErrorBoundary'
+import { CardPaymentProvider } from './contexts/CardPaymentContext'
 import { AUTH_SESSION_EXPIRED_EVENT } from './services/authSession'
 
 const queryClient = new QueryClient()
@@ -47,11 +48,13 @@ function ThemedApp() {
     <ConfigProvider theme={buildThemeConfig(mode)}>
       <AntApp>
         <MessageApiBridge />
-        <BrowserRouter>
-          <ErrorBoundary>
-            <AppGate />
-          </ErrorBoundary>
-        </BrowserRouter>
+        <CardPaymentProvider>
+          <BrowserRouter>
+            <ErrorBoundary>
+              <AppGate />
+            </ErrorBoundary>
+          </BrowserRouter>
+        </CardPaymentProvider>
       </AntApp>
     </ConfigProvider>
   )

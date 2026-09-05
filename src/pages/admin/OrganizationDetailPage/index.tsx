@@ -37,6 +37,7 @@ import SettingsCard from './SettingsCard'
 import IntegrationSettingsCard from './IntegrationSettingsCard'
 import CameraRelaySettingsCard from './CameraRelaySettingsCard'
 import LedSettingsCard from './LedSettingsCard'
+import CardTerminalSettingsCard from './CardTerminalSettingsCard'
 import TelegramSettingsCard from './TelegramSettingsCard'
 
 export default function OrganizationDetailPage() {
@@ -215,6 +216,8 @@ export default function OrganizationDetailPage() {
       <CameraRelaySettingsCard orgId={orgId} />
 
       <LedSettingsCard orgId={orgId} />
+
+      <CardTerminalSettingsCard orgId={orgId} />
 
       <TelegramSettingsCard orgId={orgId} />
 

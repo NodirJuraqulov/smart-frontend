@@ -1,5 +1,6 @@
-import { Button, Space, Tag, type TableProps } from 'antd'
+import { Button, Space, Tag, Tooltip, type TableProps } from 'antd'
 import {
+  CreditCardOutlined,
   FileTextOutlined,
   FormOutlined,
   ThunderboltOutlined,
@@ -27,6 +28,7 @@ export function buildColumns(
   actions?: {
     onReceipt?: (record: ParkingSession) => void
     onForceClose?: (record: ParkingSession) => void
+    isCardPending?: (sessionId: number) => boolean
   },
 ): TableProps<ParkingSession>['columns'] {
   const columns: TableProps<ParkingSession>['columns'] = [
@@ -34,7 +36,19 @@ export function buildColumns(
       title: t('sessions.columnPlate'),
       dataIndex: 'plate_number',
       key: 'plate_number',
-      render: (value: string) => <PlateBadge value={value} />,
+      render: (value: string, record) => (
+        <Space size={6}>
+          <PlateBadge value={value} />
+          {actions?.isCardPending?.(record.id) && (
+            <Tooltip title={t('paymentMethod.cardPaymentPending')}>
+              <CreditCardOutlined
+                data-testid={`card-payment-pending-${record.id}`}
+                style={{ color: '#1677ff' }}
+              />
+            </Tooltip>
+          )}
+        </Space>
+      ),
     },
     {
       title: t('sessions.columnEntered'),

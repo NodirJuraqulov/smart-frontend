@@ -47,7 +47,7 @@ export interface SessionsResponse {
   pagination: PaginationMeta
 }
 
-export type PaymentMethod = 'cash' | 'online'
+export type PaymentMethod = 'cash' | 'online' | 'card'
 
 export interface Payment {
   id: number
@@ -56,6 +56,19 @@ export interface Payment {
   amount: number
   payment_method: PaymentMethod
   paid_at: string
+}
+
+export interface ManualExitResponse {
+  session: ParkingSession
+  payment: Payment | null
+  barrier_status?: string | null
+  operation_number?: string
+}
+
+export interface RetryCardPaymentResponse {
+  session_id: number
+  status: string
+  operation_number: string
 }
 
 export interface ParkingCapacity {

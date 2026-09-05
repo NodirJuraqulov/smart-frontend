@@ -52,7 +52,11 @@ export default function ReceiptModal({
   }
 
   const paymentMethodLabel = (method: PaymentMethod) =>
-    method === 'cash' ? t('paymentMethod.cash') : t('paymentMethod.online')
+    method === 'cash'
+      ? t('paymentMethod.cash')
+      : method === 'online'
+        ? t('paymentMethod.online')
+        : t('paymentMethod.card')
 
   return (
     <Modal

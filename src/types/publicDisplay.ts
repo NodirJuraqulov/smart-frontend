@@ -26,6 +26,7 @@ export interface DisplayStatus {
 export type PublicDisplayState =
   | 'idle'
   | 'awaiting_operator'
+  | 'awaiting_payment'
   | 'completed'
   | 'barrier_failed'
   | 'declined'
@@ -46,13 +47,14 @@ export interface EntryDisplayFlowStatus {
 export interface ExitDisplayFlowStatus extends EntryDisplayFlowStatus {
   session_source: 'regular' | 'subscription' | 'vip' | null
   amount: number | null
-  payment_method: 'cash' | 'online' | null
+  payment_method: 'cash' | 'online' | 'card' | null
   duration_minutes: number | null
 }
 
 const displayStates: PublicDisplayState[] = [
   'idle',
   'awaiting_operator',
+  'awaiting_payment',
   'completed',
   'barrier_failed',
   'declined',
@@ -100,7 +102,8 @@ export function isExitDisplayFlowStatus(
     isNullableNumber(payload.amount) &&
     (payload.payment_method === null ||
       payload.payment_method === 'cash' ||
-      payload.payment_method === 'online') &&
+      payload.payment_method === 'online' ||
+      payload.payment_method === 'card') &&
     isNullableNumber(payload.duration_minutes)
   )
 }

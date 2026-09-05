@@ -86,6 +86,19 @@ export default function StatsRow({ isLoading, isError, data }: StatsRowProps) {
           className="h-full"
         >
           <Statistic
+            title={t('reports.cardRevenue')}
+            value={data.card_revenue}
+            formatter={(value) => formatMoney(Number(value))}
+          />
+        </Card>
+      </Col>
+      <Col xs={24} sm={12} md={6}>
+        <Card
+          variant="borderless"
+          data-testid="dashboard-stat-card"
+          className="h-full"
+        >
+          <Statistic
             title={t('operatorDashboard.onlinePayment')}
             value={data.online_revenue}
             formatter={(value) => formatMoney(Number(value))}

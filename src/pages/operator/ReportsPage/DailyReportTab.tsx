@@ -160,6 +160,15 @@ export default function DailyReportTab() {
             />
           </Card>
         </Col>
+        <Col xs={12} md={8} lg={5}>
+          <Card variant="borderless">
+            <Statistic
+              title={t('reports.cardRevenue')}
+              value={report?.card_revenue ?? 0}
+              formatter={(value) => formatMoney(Number(value))}
+            />
+          </Card>
+        </Col>
         <Col xs={12} md={8} lg={4}>
           <Card variant="borderless">
             <Statistic

@@ -130,6 +130,15 @@ export default function MonthlyReportTab() {
             />
           </Card>
         </Col>
+        <Col xs={12} sm={8}>
+          <Card variant="borderless">
+            <Statistic
+              title={t('reports.cardRevenue')}
+              value={report?.card_revenue ?? 0}
+              formatter={(value) => formatMoney(Number(value))}
+            />
+          </Card>
+        </Col>
       </Row>
 
       <Segmented

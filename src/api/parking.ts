@@ -4,6 +4,8 @@ import type {
   ParkingSession,
   Payment,
   PaymentMethod,
+  ManualExitResponse,
+  RetryCardPaymentResponse,
   SessionsQueryParams,
   SessionsResponse,
 } from '@/types/parking'
@@ -32,7 +34,7 @@ export const entryManual = (plateNumber: string) =>
 
 export const exitManual = (plateNumber: string, paymentMethod: PaymentMethod) =>
   axiosInstance
-    .post<{ session: ParkingSession; payment: Payment }>(
+    .post<ManualExitResponse>(
       '/api/parking/exit/manual',
       { plate_number: plateNumber, payment_method: paymentMethod },
     )
@@ -75,3 +77,10 @@ export const printReceiptForSession = (id: number) =>
       `/api/parking/sessions/${id}/print-receipt`,
     )
     .then((res) => res.data)
+
+export const retryCardPayment = (sessionId: number) =>
+  axiosInstance
+    .post<RetryCardPaymentResponse>(
+      `/api/parking/sessions/${sessionId}/retry-card-payment`,
+    )
+    .then((response) => response.data)

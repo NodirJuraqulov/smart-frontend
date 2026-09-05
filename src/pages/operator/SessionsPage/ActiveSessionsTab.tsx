@@ -5,6 +5,7 @@ import { Card, Empty, Input, Space, Table } from 'antd'
 import { getSessions } from '@/api/parking'
 import { useTheme } from '@/contexts/ThemeContext'
 import { useAppSelector } from '@/hooks/redux'
+import { useCardPayments } from '@/hooks/useCardPayments'
 import type { ParkingSession } from '@/types/parking'
 import { buildColumns } from './columns'
 import ForceCloseModal from './ForceCloseModal'
@@ -18,6 +19,7 @@ const REGISTRATOR_COLUMN_KEYS = new Set([
 export default function ActiveSessionsTab() {
   const { t } = useTranslation()
   const { mode } = useTheme()
+  const { isCardPending } = useCardPayments()
   const isRegistrator = useAppSelector(
     (state) => state.auth.user?.role === 'registrator',
   )
@@ -43,7 +45,9 @@ export default function ActiveSessionsTab() {
   const columns = buildColumns(
     t,
     mode,
-    isRegistrator ? undefined : { onForceClose: setForceCloseTarget },
+    isRegistrator
+      ? undefined
+      : { onForceClose: setForceCloseTarget, isCardPending },
   )?.filter(
     (column) =>
       !isRegistrator || REGISTRATOR_COLUMN_KEYS.has(String(column.key)),

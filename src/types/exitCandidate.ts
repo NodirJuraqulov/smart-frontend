@@ -51,7 +51,9 @@ export interface ExitCandidateSearchResponse {
   active_sessions: ExitCandidateActiveSession[]
 }
 
-export type ExitCandidatePaymentMethod = PaymentMethod | 'emergency'
+export type ExitCandidatePaymentMethod =
+  | Exclude<PaymentMethod, 'card'>
+  | 'emergency'
 
 export interface ExitCandidateConfirmPayload {
   session_id?: string
@@ -191,7 +193,8 @@ export function isExitCompletedEvent(
     typeof value.amount === 'number' &&
     (value.paymentMethod === null ||
       value.paymentMethod === 'cash' ||
-      value.paymentMethod === 'online') &&
+      value.paymentMethod === 'online' ||
+      value.paymentMethod === 'card') &&
     isExitCandidateBarrierStatus(value.barrierStatus)
   )
 }

@@ -12,6 +12,7 @@ export interface DailyReport {
   total_revenue: number
   cash_revenue: number
   online_revenue: number
+  card_revenue: number
   currently_parked: number
   busiest_hour: number
   hourly_breakdown: HourlyBreakdownItem[]
@@ -33,6 +34,7 @@ export interface MonthlyReport {
   total_revenue: number
   cash_revenue: number
   online_revenue: number
+  card_revenue: number
   daily_breakdown: DailyBreakdownItem[]
 }
 
@@ -51,6 +53,7 @@ export interface YearlyReport {
   total_revenue: number
   cash_revenue: number
   online_revenue: number
+  card_revenue: number
   monthly_breakdown: MonthlyBreakdownItem[]
 }
 
@@ -67,6 +70,7 @@ export interface ReportTotals {
   total_exits: number
   cash_revenue: number
   online_revenue: number
+  card_revenue: number
   regular_revenue: number
   subscription_revenue: number
   total_revenue: number

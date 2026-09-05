@@ -50,6 +50,7 @@ describe('range response safety', () => {
     })
     expect(totals.total_entries).toBe(0)
     expect(totals.total_revenue).toBe(0)
+    expect(totals.card_revenue).toBe(0)
     expect(totals.subscription_revenue).toBe(0)
   })
 
@@ -59,11 +60,22 @@ describe('range response safety', () => {
       totals: safeTotals({}),
       items: [
         { date: '2026-07-01', total_entries: 0, total_revenue: 0 },
-        { date: '2026-07-02', entries: 2, exits: 1, revenue: 5000 },
+        {
+          date: '2026-07-02',
+          entries: 2,
+          exits: 1,
+          revenue: 5000,
+          card_revenue: 3000,
+        },
       ],
     })
     expect(items[0]).toMatchObject({ period: '2026-07-01', entries: 0, revenue: 0 })
-    expect(items[1]).toMatchObject({ entries: 2, exits: 1, revenue: 5000 })
+    expect(items[1]).toMatchObject({
+      entries: 2,
+      exits: 1,
+      revenue: 5000,
+      cardRevenue: 3000,
+    })
     expect(JSON.stringify(items)).not.toMatch(/NaN|Infinity|undefined/)
   })
 })

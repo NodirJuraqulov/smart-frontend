@@ -24,6 +24,7 @@ export default function RangeReportView({ type, report }: Props) {
     { title: t('reports.revenueColumn'), dataIndex: 'revenue', key: 'revenue', render: formatMoney },
     { title: t('reports.cashRevenue'), dataIndex: 'cashRevenue', key: 'cashRevenue', render: formatMoney },
     { title: t('reports.onlineRevenue'), dataIndex: 'onlineRevenue', key: 'onlineRevenue', render: formatMoney },
+    { title: t('reports.cardRevenue'), dataIndex: 'cardRevenue', key: 'cardRevenue', render: formatMoney },
     { title: t('reports.regularRevenue'), dataIndex: 'regularRevenue', key: 'regularRevenue', render: formatMoney },
     { title: t('reports.subscriptionRevenue'), dataIndex: 'subscriptionRevenue', key: 'subscriptionRevenue', render: formatMoney },
   ]
@@ -37,6 +38,7 @@ export default function RangeReportView({ type, report }: Props) {
           ['totalRevenue', totals.total_revenue, true],
           ['cashRevenue', totals.cash_revenue, true],
           ['onlineRevenue', totals.online_revenue, true],
+          ['cardRevenue', totals.card_revenue, true],
           ['regularRevenue', totals.regular_revenue, true],
           ['subscriptionRevenue', totals.subscription_revenue, true],
         ] as const).map(([label, value, money]) => (
