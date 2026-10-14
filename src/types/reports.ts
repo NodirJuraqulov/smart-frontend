@@ -109,3 +109,29 @@ export interface YearlyReportParams {
   from_year?: number
   to_year?: number
 }
+
+export interface ExitControlMetrics {
+  not_found_count?: number
+  forced_open_count?: number
+  forced_open_unknown_or_regular?: number
+  forced_open_vip_or_subscription?: number
+  estimated_loss_som?: number
+}
+
+export interface ExitControlDay extends ExitControlMetrics {
+  date?: string
+}
+
+export interface ExitControlReport {
+  estimated?: boolean
+  avg_loss_som?: number
+  from?: string
+  to?: string
+  days?: ExitControlDay[]
+  totals?: ExitControlMetrics
+}
+
+export interface ExitControlReportParams {
+  from: string
+  to: string
+}

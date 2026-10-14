@@ -28,30 +28,4 @@ describe('candidate translations', () => {
     expect(en.exitCandidates.emergency).toBe('Emergency')
   })
 
-  it('Majburiy ochish qidiruv warninglarini to‘rt tilda saqlaydi', () => {
-    expect(uzLatn.exitCandidates.forceOpenSearchRequired).toBe(
-      'Iltimos, avval, qidiruvni amalga oshiring',
-    )
-    expect(uzLatn.exitCandidates.forceOpenCorrectPlateRequired).toBe(
-      "Iltimos, raqamni to'g'irlab, yana qidiruv qiling",
-    )
-    expect(uzCyrl.exitCandidates.forceOpenSearchRequired).toBe(
-      'Илтимос, аввал, қидирувни амалга оширинг',
-    )
-    expect(uzCyrl.exitCandidates.forceOpenCorrectPlateRequired).toBe(
-      'Илтимос, рақамни тўғрилаб, яна қидирув қилинг',
-    )
-    expect(ru.exitCandidates.forceOpenSearchRequired).toBe(
-      'Пожалуйста, сначала выполните поиск',
-    )
-    expect(ru.exitCandidates.forceOpenCorrectPlateRequired).toBe(
-      'Пожалуйста, исправьте номер и выполните поиск ещё раз',
-    )
-    expect(en.exitCandidates.forceOpenSearchRequired).toBe(
-      'Please perform a search first',
-    )
-    expect(en.exitCandidates.forceOpenCorrectPlateRequired).toBe(
-      'Please correct the plate number and search again',
-    )
-  })
 })

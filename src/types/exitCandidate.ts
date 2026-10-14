@@ -41,7 +41,7 @@ export interface ExitCandidateSessionOption {
 }
 
 export interface ExitCandidateSearchResult extends ExitCandidateSessionOption {
-  similarity_score: number
+  similarity_score?: number | null
 }
 
 export type ExitCandidateActiveSession = ExitCandidateSessionOption

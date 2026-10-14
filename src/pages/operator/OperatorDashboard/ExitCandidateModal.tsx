@@ -57,9 +57,9 @@ type ModalMode = 'view' | 'search'
 type SearchListMode = 'search' | 'active'
 type SearchRequest = {
   candidateId: string
-  hasInitialPlate: boolean
+  requestId: number
   plate?: string
-  shouldCountFailure: boolean
+  silent?: boolean
 }
 
 const actionButtonHeightClass = 'h-8!'
@@ -149,10 +149,6 @@ export default function ExitCandidateModal({
   const [searchPlate, setSearchPlate] = useState<string>(
     candidate.suggested_plate ?? candidate.detected_plate ?? '',
   )
-  const [lastSearchedPlate, setLastSearchedPlate] = useState<string | null>(
-    null,
-  )
-  const [failedSearchCount, setFailedSearchCount] = useState(0)
   const [searchResults, setSearchResults] = useState<
     ExitCandidateSearchResult[]
   >([])
@@ -166,12 +162,17 @@ export default function ExitCandidateModal({
   const [retryUnavailable, setRetryUnavailable] = useState(false)
   const [now, setNow] = useState(() => Date.now())
   const candidateIdRef = useRef(candidate.candidate_id)
+  const initializedCandidateIdRef = useRef(candidate.candidate_id)
+  const autoSearchedCandidateIdsRef = useRef(new Set<string>())
+  const searchRequestIdRef = useRef(0)
   const searchingRef = useRef(false)
   const submittingRef = useRef(false)
   const isMountedRef = useIsMountedRef()
   candidateIdRef.current = candidate.candidate_id
 
   useEffect(() => {
+    if (initializedCandidateIdRef.current === candidate.candidate_id) return
+    initializedCandidateIdRef.current = candidate.candidate_id
     setMode(candidate.matched_session ? 'view' : 'search')
     setSelectedSession(null)
     setSelectedAt(null)
@@ -179,8 +180,6 @@ export default function ExitCandidateModal({
     setSearchPlate(
       candidate.suggested_plate ?? candidate.detected_plate ?? '',
     )
-    setLastSearchedPlate(null)
-    setFailedSearchCount(0)
     setSearchResults([])
     setActiveSessionOptions([])
     setSearchListMode('search')
@@ -189,6 +188,10 @@ export default function ExitCandidateModal({
     searchingRef.current = false
     submittingRef.current = false
   }, [candidate])
+
+  useEffect(() => {
+    if (candidate.matched_session) setMode('view')
+  }, [candidate.matched_session])
 
   useEffect(() => {
     const interval = window.setInterval(() => setNow(Date.now()), 60000)
@@ -252,48 +255,80 @@ export default function ExitCandidateModal({
   const searchMutation = useMutation({
     mutationFn: ({ candidateId, plate }: SearchRequest) =>
       searchExitCandidate(candidateId, plate),
-    onSuccess: (
-      data,
-      { candidateId, hasInitialPlate, plate, shouldCountFailure },
-    ) => {
+    onSuccess: (data, { candidateId, requestId, plate }) => {
       if (
         !isMountedRef.current ||
-        candidateId !== candidateIdRef.current
+        candidateId !== candidateIdRef.current ||
+        requestId !== searchRequestIdRef.current
       ) {
         return
       }
       if (plate) {
         setSearchResults(data.results)
-        if (shouldCountFailure && data.results.length === 0) {
-          setFailedSearchCount((currentCount) =>
-            hasInitialPlate ? currentCount + 1 : 2,
-          )
-        }
         return
       }
       setActiveSessionOptions(data.active_sessions)
     },
-    onError: (error, { candidateId }) => {
-      if (!isMountedRef.current || candidateId !== candidateIdRef.current) return
+    onError: (error, { candidateId, requestId, silent }) => {
+      if (
+        !isMountedRef.current ||
+        candidateId !== candidateIdRef.current ||
+        requestId !== searchRequestIdRef.current
+      ) {
+        return
+      }
+      if (silent) {
+        setSearchListMode('search')
+        return
+      }
       message.error(getErrorMessage(error, t('exitCandidates.searchError')))
     },
-    onSettled: () => {
+    onSettled: (_data, _error, { candidateId, requestId }) => {
+      if (
+        candidateId !== candidateIdRef.current ||
+        requestId !== searchRequestIdRef.current
+      ) {
+        return
+      }
       searchingRef.current = false
     },
   })
 
+  useEffect(() => {
+    const candidateId = candidate.candidate_id
+    if (
+      candidate.matched_session ||
+      autoSearchedCandidateIdsRef.current.has(candidateId)
+    ) {
+      return
+    }
+    autoSearchedCandidateIdsRef.current.add(candidateId)
+    const detectedPlate = (
+      candidate.suggested_plate ?? candidate.detected_plate ?? ''
+    ).trim()
+    const plate = detectedPlate.length >= 3 ? detectedPlate : undefined
+    if (!plate) setSearchListMode('active')
+    searchingRef.current = true
+    const requestId = ++searchRequestIdRef.current
+    searchMutation.mutate({ candidateId, requestId, plate, silent: true })
+  }, [
+    candidate.candidate_id,
+    candidate.detected_plate,
+    candidate.matched_session,
+    candidate.suggested_plate,
+    searchMutation,
+  ])
+
   const confirmMutation = useMutation({
-    mutationFn: (isEmergency: boolean) => {
-      const selectedPaymentMethod = isEmergency ? 'emergency' : paymentMethod
-      return confirmExitCandidate(candidate.candidate_id, {
+    mutationFn: () =>
+      confirmExitCandidate(candidate.candidate_id, {
         ...(isReassigned && session
           ? { session_id: session.session_id }
           : {}),
-        ...(isRegular && selectedPaymentMethod
-          ? { payment_method: selectedPaymentMethod }
+        ...(isRegular && paymentMethod
+          ? { payment_method: paymentMethod }
           : {}),
-      })
-    },
+      }),
     onSuccess: (data) => {
       if (!isMountedRef.current) return
       onDataChanged()
@@ -312,10 +347,7 @@ export default function ExitCandidateModal({
   })
 
   const forceMutation = useMutation({
-    mutationFn: (isEmergency: boolean) =>
-      isEmergency
-        ? forceOpenExitCandidate(candidate.candidate_id, { isEmergency: true })
-        : forceOpenExitCandidate(candidate.candidate_id),
+    mutationFn: () => forceOpenExitCandidate(candidate.candidate_id),
     onSuccess: (data) => {
       if (!isMountedRef.current) return
       if (handleBarrierProblem(data.barrier_status)) return
@@ -379,24 +411,10 @@ export default function ExitCandidateModal({
     forceMutation.isPending ||
     retryMutation.isPending ||
     retryCardMutation.isPending
-  const isStandardConfirming =
-    confirmMutation.isPending && !confirmMutation.variables
-  const isEmergencyConfirming =
-    confirmMutation.isPending && confirmMutation.variables
-  const isStandardForceOpening =
-    forceMutation.isPending && !forceMutation.variables
-  const isEmergencyForceOpening =
-    forceMutation.isPending && forceMutation.variables
   const canConfirm =
     candidate.status === 'pending' &&
     Boolean(session) &&
     (!isRegular || Boolean(paymentMethod)) &&
-    !isResolving &&
-    !barrierStatus
-  const canEmergencyConfirm =
-    candidate.status === 'pending' &&
-    Boolean(session) &&
-    isRegular &&
     !isResolving &&
     !barrierStatus
   const hasLinkedSession =
@@ -404,49 +422,30 @@ export default function ExitCandidateModal({
     candidate.matched_session_id != null ||
     candidate.resolved_session_id != null ||
     candidate.matched_session != null
-  const canForce = !isResolving && !barrierStatus
+  const canForce =
+    candidate.status === 'pending' && !forceMutation.isPending
 
   const submitConfirm = () => {
     if (!canConfirm || submittingRef.current) return
     submittingRef.current = true
-    confirmMutation.mutate(false)
+    confirmMutation.mutate()
   }
 
-  const submitEmergencyConfirm = () => {
-    if (!canEmergencyConfirm || submittingRef.current) return
-    submittingRef.current = true
-    confirmMutation.mutate(true)
-  }
-
-  const submitForce = (isEmergency = false) => {
+  const submitForce = () => {
     if (!canForce || submittingRef.current) return
-    if (!isEmergency && failedSearchCount < 2) {
-      message.warning(
-        t(
-          failedSearchCount === 0
-            ? 'exitCandidates.forceOpenSearchRequired'
-            : 'exitCandidates.forceOpenCorrectPlateRequired',
-        ),
-      )
-      return
-    }
     submittingRef.current = true
-    forceMutation.mutate(isEmergency)
+    forceMutation.mutate()
   }
 
   const submitSearch = () => {
     const plate = searchPlate.trim()
     if (!plate || searchingRef.current || searchMutation.isPending) return
-    const shouldCountFailure = plate !== lastSearchedPlate
-    if (shouldCountFailure) setLastSearchedPlate(plate)
     searchingRef.current = true
+    const requestId = ++searchRequestIdRef.current
     searchMutation.mutate({
       candidateId: candidate.candidate_id,
-      hasInitialPlate: Boolean(
-        (candidate.suggested_plate ?? candidate.detected_plate)?.trim(),
-      ),
+      requestId,
       plate,
-      shouldCountFailure,
     })
   }
 
@@ -565,15 +564,6 @@ export default function ExitCandidateModal({
                       {t('paymentMethod.online')}
                     </Radio.Button>
                   </Radio.Group>
-                  <Button
-                    className={actionButtonHeightClass}
-                    danger
-                    loading={isEmergencyConfirming}
-                    disabled={!canEmergencyConfirm}
-                    onClick={submitEmergencyConfirm}
-                  >
-                    {t('exitCandidates.emergency')}
-                  </Button>
                 </div>
                 {isCurrentCandidateCardDeclined && (
                   <Alert
@@ -629,14 +619,11 @@ export default function ExitCandidateModal({
                   const nextMode = value as SearchListMode
                   setSearchListMode(nextMode)
                   if (nextMode === 'active') {
+                    searchingRef.current = true
+                    const requestId = ++searchRequestIdRef.current
                     searchMutation.mutate({
                       candidateId: candidate.candidate_id,
-                      hasInitialPlate: Boolean(
-                        (
-                          candidate.suggested_plate ?? candidate.detected_plate
-                        )?.trim(),
-                      ),
-                      shouldCountFailure: false,
+                      requestId,
                     })
                   }
                 }}
@@ -726,13 +713,14 @@ export default function ExitCandidateModal({
                           <Typography.Text type="secondary">
                             {formatDate(result.entered_at)}
                           </Typography.Text>
-                          {'similarity_score' in result && (
+                          {'similarity_score' in result &&
+                            typeof result.similarity_score === 'number' && (
                             <Typography.Text type="secondary">
                               {t('exitCandidates.similarity', {
                                 value: result.similarity_score,
                               })}
                             </Typography.Text>
-                          )}
+                            )}
                           <Typography.Text type="secondary">
                             {t('exitCandidates.parkedDuration')}:{' '}
                             {formatDuration(result.duration_minutes, t)}
@@ -772,7 +760,7 @@ export default function ExitCandidateModal({
               block
               size="large"
               type="primary"
-              loading={isStandardConfirming}
+              loading={confirmMutation.isPending}
               disabled={!canConfirm}
               onClick={submitConfirm}
             >
@@ -809,21 +797,11 @@ export default function ExitCandidateModal({
                 <Button
                   className={`${actionButtonHeightClass} min-w-0 flex-1`}
                   danger
-                  loading={isStandardForceOpening}
+                  loading={forceMutation.isPending}
                   disabled={!canForce}
-                  onClick={() => submitForce()}
+                  onClick={submitForce}
                 >
                   {t('exitCandidates.forceOpen')}
-                </Button>
-                <Button
-                  className={`${actionButtonHeightClass} min-w-0 flex-1`}
-                  type="primary"
-                  danger
-                  loading={isEmergencyForceOpening}
-                  disabled={!canForce}
-                  onClick={() => submitForce(true)}
-                >
-                  {t('exitCandidates.emergency')}
                 </Button>
               </div>
             )}

@@ -22,6 +22,7 @@ import type { ReportRangeResponse } from '@/types/reports'
 import { getErrorMessage } from '@/utils/apiError'
 import ReportFilter from './ReportFilter'
 import RangeReportView from './RangeReportView'
+import ExitControlReportBlock from './ExitControlReportBlock'
 import { type DateRange, type FilterMode, validateRange } from './reportRange'
 
 const formatHour = (hour: number) => `${String(hour).padStart(2, '0')}:00`
@@ -95,6 +96,18 @@ export default function DailyReportTab() {
   }
 
   const report = mode === 'single' ? singleQuery.data : undefined
+  const exitControlRange =
+    mode === 'single'
+      ? {
+          from: date.format('YYYY-MM-DD'),
+          to: date.format('YYYY-MM-DD'),
+        }
+      : appliedRange
+        ? {
+            from: appliedRange[0].format('YYYY-MM-DD'),
+            to: appliedRange[1].format('YYYY-MM-DD'),
+          }
+        : null
 
   return (
     <div className="flex flex-col gap-4">
@@ -238,6 +251,13 @@ export default function DailyReportTab() {
         />
       </Card>
       </>
+      )}
+
+      {exitControlRange && (
+        <ExitControlReportBlock
+          from={exitControlRange.from}
+          to={exitControlRange.to}
+        />
       )}
     </div>
   )

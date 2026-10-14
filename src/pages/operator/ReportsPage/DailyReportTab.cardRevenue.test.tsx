@@ -4,12 +4,14 @@ import { App as AntdApp } from 'antd'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import DailyReportTab from './DailyReportTab'
 
-const { getDailyReportMock } = vi.hoisted(() => ({
+const { getDailyReportMock, getExitControlReportMock } = vi.hoisted(() => ({
   getDailyReportMock: vi.fn(),
+  getExitControlReportMock: vi.fn(),
 }))
 
 vi.mock('@/api/reports', () => ({
   getDailyReport: getDailyReportMock,
+  getExitControlReport: getExitControlReportMock,
 }))
 
 vi.mock('@/components/SingleSeriesBarChart', () => ({
@@ -35,6 +37,12 @@ describe('DailyReportTab card revenue', () => {
       busiest_hour: 14,
       hourly_breakdown: [],
     })
+    getExitControlReportMock.mockReset().mockResolvedValue({
+      estimated: true,
+      avg_loss_som: 10000,
+      days: [],
+      totals: {},
+    })
   })
 
   it('backend card_revenue qiymatini hisobot statistikasi sifatida ko‘rsatadi', async () => {
@@ -51,5 +59,20 @@ describe('DailyReportTab card revenue', () => {
 
     expect(await screen.findByText('Karta orqali tushum')).toBeInTheDocument()
     expect(screen.getByText(/12.*345 so'm/)).toBeInTheDocument()
+  })
+
+  it('asosiy kunlik hisobotdan keyin Chiqish nazorati blokini ko‘rsatadi', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    })
+    render(
+      <QueryClientProvider client={queryClient}>
+        <AntdApp>
+          <DailyReportTab />
+        </AntdApp>
+      </QueryClientProvider>,
+    )
+
+    expect(await screen.findByText('Chiqish nazorati')).toBeInTheDocument()
   })
 })

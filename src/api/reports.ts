@@ -2,12 +2,22 @@ import { axiosInstance } from './axiosInstance'
 import type {
   DailyReport,
   DailyReportParams,
+  ExitControlReport,
+  ExitControlReportParams,
   MonthlyReport,
   MonthlyReportParams,
   ReportRangeResponse,
   YearlyReport,
   YearlyReportParams,
 } from '@/types/reports'
+
+export function getExitControlReport(
+  params: ExitControlReportParams,
+): Promise<ExitControlReport> {
+  return axiosInstance
+    .get<ExitControlReport>('/api/reports/exit-control', { params })
+    .then((res) => res.data)
+}
 
 export function getDailyReport(date?: string): Promise<DailyReport>
 export function getDailyReport(
