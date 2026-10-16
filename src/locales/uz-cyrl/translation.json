@@ -590,6 +590,8 @@
     "searchError": "Сессияларни қидириб бўлмади",
     "similarity": "Ўхшашлик: {{value}}%",
     "forceOpen": "Мажбурий очиш",
+    "exitCancelled": "Чиқиш бўлмади",
+    "exitCancelError": "Чиқишни бекор қилиб бўлмади",
     "emergency": "Тез ёрдам",
     "retryBarrier": "Қайта очиш",
     "nextLoadError": "Чиқиш навбатини юклаб бўлмади",

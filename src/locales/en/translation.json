@@ -590,6 +590,8 @@
     "searchError": "Failed to search sessions",
     "similarity": "Similarity: {{value}}%",
     "forceOpen": "Force open",
+    "exitCancelled": "Not leaving",
+    "exitCancelError": "Failed to cancel exit",
     "emergency": "Emergency",
     "retryBarrier": "Open again",
     "nextLoadError": "Failed to load the exit queue",

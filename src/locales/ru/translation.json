@@ -590,6 +590,8 @@
     "searchError": "Не удалось найти сессии",
     "similarity": "Сходство: {{value}}%",
     "forceOpen": "Открыть принудительно",
+    "exitCancelled": "Выезда не было",
+    "exitCancelError": "Не удалось отменить выезд",
     "emergency": "Скорая помощь",
     "retryBarrier": "Открыть повторно",
     "nextLoadError": "Не удалось загрузить очередь выезда",

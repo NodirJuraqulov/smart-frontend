@@ -63,6 +63,11 @@ export const forceOpenExitCandidate = (
   return request.then((response) => response.data)
 }
 
+export const cancelExitCandidate = (id: string) =>
+  axiosInstance
+    .post(`${candidatePath(id)}/cancel-exit`)
+    .then((response) => response.data)
+
 export const retryExitCandidateBarrier = (id: string) =>
   axiosInstance
     .post<ExitCandidateBarrierResponse>(`${candidatePath(id)}/retry-barrier`)

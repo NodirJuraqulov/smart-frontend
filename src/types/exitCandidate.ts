@@ -104,7 +104,12 @@ export interface ExitCandidateResolvedEvent {
   candidateId: number
   orgId: number
   status: 'accepted' | 'dismissed'
-  resolutionType: 'exact' | 'reassigned' | 'dismissed' | 'forced_open'
+  resolutionType:
+    | 'exact'
+    | 'reassigned'
+    | 'dismissed'
+    | 'forced_open'
+    | 'exit_cancelled'
   sessionId: number | null
   barrierStatus: ExitCandidateBarrierStatus | null
 }
@@ -130,6 +135,7 @@ const resolutionTypes: ExitCandidateResolvedEvent['resolutionType'][] = [
   'reassigned',
   'dismissed',
   'forced_open',
+  'exit_cancelled',
 ]
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>

@@ -18,6 +18,7 @@ import {
   Typography,
 } from 'antd'
 import {
+  cancelExitCandidate,
   confirmExitCandidate,
   forceOpenExitCandidate,
   previewExitSession,
@@ -364,6 +365,25 @@ export default function ExitCandidateModal({
     },
   })
 
+  const cancelMutation = useMutation({
+    mutationFn: () => cancelExitCandidate(candidate.candidate_id),
+    onSuccess: () => {
+      if (!isMountedRef.current) return
+      onDataChanged()
+      onResolved()
+    },
+    onError: (error) => {
+      if (!isMountedRef.current) return
+      if (handleConflict(error)) return
+      message.error(
+        getErrorMessage(error, t('exitCandidates.exitCancelError')),
+      )
+    },
+    onSettled: () => {
+      submittingRef.current = false
+    },
+  })
+
   const retryMutation = useMutation({
     mutationFn: () => retryExitCandidateBarrier(candidate.candidate_id),
     onSuccess: (data) => {
@@ -409,6 +429,7 @@ export default function ExitCandidateModal({
   const isResolving =
     confirmMutation.isPending ||
     forceMutation.isPending ||
+    cancelMutation.isPending ||
     retryMutation.isPending ||
     retryCardMutation.isPending
   const canConfirm =
@@ -424,6 +445,8 @@ export default function ExitCandidateModal({
     candidate.matched_session != null
   const canForce =
     candidate.status === 'pending' && !forceMutation.isPending
+  const canCancel =
+    candidate.status === 'pending' && !cancelMutation.isPending
 
   const submitConfirm = () => {
     if (!canConfirm || submittingRef.current) return
@@ -435,6 +458,12 @@ export default function ExitCandidateModal({
     if (!canForce || submittingRef.current) return
     submittingRef.current = true
     forceMutation.mutate()
+  }
+
+  const submitCancel = () => {
+    if (!canCancel || submittingRef.current) return
+    submittingRef.current = true
+    cancelMutation.mutate()
   }
 
   const submitSearch = () => {
@@ -803,6 +832,16 @@ export default function ExitCandidateModal({
                 >
                   {t('exitCandidates.forceOpen')}
                 </Button>
+                {candidate.status === 'pending' && (
+                  <Button
+                    className={`${actionButtonHeightClass} min-w-0 flex-1`}
+                    loading={cancelMutation.isPending}
+                    disabled={!canCancel}
+                    onClick={submitCancel}
+                  >
+                    {t('exitCandidates.exitCancelled')}
+                  </Button>
+                )}
               </div>
             )}
           </div>

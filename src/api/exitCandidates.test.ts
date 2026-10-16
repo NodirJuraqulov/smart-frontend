@@ -10,6 +10,7 @@ vi.mock('./axiosInstance', () => ({
 }))
 
 import {
+  cancelExitCandidate,
   confirmExitCandidate,
   forceOpenExitCandidate,
   getNextExitCandidate,
@@ -110,6 +111,14 @@ describe('exit candidates API', () => {
     expect(postMock).toHaveBeenCalledWith(
       '/api/exit-candidates/candidate-1/force-open',
       { is_emergency: true },
+    )
+  })
+
+  it('cancel-exit so‘rovini candidate endpointiga bodysiz yuboradi', async () => {
+    await cancelExitCandidate('candidate/1')
+
+    expect(postMock).toHaveBeenCalledWith(
+      '/api/exit-candidates/candidate%2F1/cancel-exit',
     )
   })
 })

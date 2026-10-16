@@ -590,6 +590,8 @@
     "searchError": "Sessiyalarni qidirib bo‘lmadi",
     "similarity": "O‘xshashlik: {{value}}%",
     "forceOpen": "Majburiy ochish",
+    "exitCancelled": "Chiqish bo'lmadi",
+    "exitCancelError": "Chiqishni bekor qilib bo‘lmadi",
     "emergency": "Tez yordam",
     "retryBarrier": "Qayta ochish",
     "nextLoadError": "Chiqish navbatini yuklab bo‘lmadi",

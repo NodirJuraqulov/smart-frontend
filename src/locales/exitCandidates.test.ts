@@ -28,4 +28,10 @@ describe('candidate translations', () => {
     expect(en.exitCandidates.emergency).toBe('Emergency')
   })
 
+  it('Chiqish bo‘lmadi matnini to‘rt tilda saqlaydi', () => {
+    expect(uzLatn.exitCandidates.exitCancelled).toBe("Chiqish bo'lmadi")
+    expect(uzCyrl.exitCandidates.exitCancelled).toBe('Чиқиш бўлмади')
+    expect(ru.exitCandidates.exitCancelled).toBe('Выезда не было')
+    expect(en.exitCandidates.exitCancelled).toBe('Not leaving')
+  })
 })

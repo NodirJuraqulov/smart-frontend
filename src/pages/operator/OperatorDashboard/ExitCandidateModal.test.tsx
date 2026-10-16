@@ -20,12 +20,14 @@ import type {
 } from '@/types/exitCandidate'
 
 const {
+  cancelExitCandidateMock,
   confirmExitCandidateMock,
   forceOpenExitCandidateMock,
   previewExitSessionMock,
   retryExitCandidateBarrierMock,
   searchExitCandidateMock,
 } = vi.hoisted(() => ({
+  cancelExitCandidateMock: vi.fn<(id: string) => Promise<unknown>>(),
   confirmExitCandidateMock:
     vi.fn<typeof ExitCandidatesApi.confirmExitCandidate>(),
   forceOpenExitCandidateMock:
@@ -39,6 +41,7 @@ const {
 }))
 
 vi.mock('@/api/exitCandidates', () => ({
+  cancelExitCandidate: cancelExitCandidateMock,
   confirmExitCandidate: confirmExitCandidateMock,
   forceOpenExitCandidate: forceOpenExitCandidateMock,
   previewExitSession: previewExitSessionMock,
@@ -282,6 +285,7 @@ async function runPlateSearch(plate?: string): Promise<void> {
 
 describe('ExitCandidateModal', () => {
   beforeEach(() => {
+    cancelExitCandidateMock.mockReset().mockResolvedValue({})
     confirmExitCandidateMock.mockReset()
     confirmExitCandidateMock.mockResolvedValue({
       session_id: 'session-1',
@@ -1208,6 +1212,99 @@ describe('ExitCandidateModal', () => {
     renderModal(unmatchedCandidate)
 
     expect(getButtonByText('Majburiy ochish')).toBeInTheDocument()
+  })
+
+  it.each([
+    ['nomersiz', unmatchedCandidate],
+    ['nomer bilan', detectedUnmatchedCandidate],
+  ])(
+    'sessiya topilmagan %s candidate uchun Chiqish bo‘lmadi ko‘rsatiladi',
+    (_label, value) => {
+      renderModal(value)
+
+      expect(getButtonByText("Chiqish bo'lmadi")).toBeInTheDocument()
+    },
+  )
+
+  it('sessiya topilgan candidate uchun Chiqish bo‘lmadi ko‘rsatilmaydi', () => {
+    renderModal()
+
+    expect(queryButtonByText("Chiqish bo'lmadi")).toBeNull()
+  })
+
+  it('qidiruv kutilayotganda Chiqish bo‘lmadi faol qoladi', () => {
+    searchExitCandidateMock.mockReturnValue(new Promise(() => undefined))
+    renderModal(detectedUnmatchedCandidate)
+
+    expect(getButtonByText("Chiqish bo'lmadi")).toBeEnabled()
+  })
+
+  it('Chiqish bo‘lmadi bosilganda API chaqiradi, ma’lumotni yangilaydi va modalni yopadi', async () => {
+    const { onDataChanged, onResolved } = renderModal(unmatchedCandidate)
+
+    clickButton("Chiqish bo'lmadi")
+
+    await waitFor(() =>
+      expect(cancelExitCandidateMock).toHaveBeenCalledWith('candidate-1'),
+    )
+    expect(onDataChanged).toHaveBeenCalledTimes(1)
+    expect(onResolved).toHaveBeenCalledTimes(1)
+  })
+
+  it('Chiqish bo‘lmadi xatosida backend xabarini ko‘rsatadi va modalni yopmaydi', async () => {
+    cancelExitCandidateMock.mockRejectedValue({
+      response: { data: { message: 'Chiqishni bekor qilib bo‘lmadi' } },
+    })
+    const { onResolved } = renderModal(unmatchedCandidate)
+
+    clickButton("Chiqish bo'lmadi")
+
+    await waitForText('Chiqishni bekor qilib bo‘lmadi')
+    expect(onResolved).not.toHaveBeenCalled()
+  })
+
+  it('Chiqish bo‘lmadi 409 xatosida mavjud conflict oqimini ishlatadi', async () => {
+    cancelExitCandidateMock.mockRejectedValue({
+      isAxiosError: true,
+      response: { status: 409, data: { error: 'resolved' } },
+    })
+    const { onResolved } = renderModal(unmatchedCandidate)
+
+    clickButton("Chiqish bo'lmadi")
+
+    await waitForText(
+      'Bu chiqish allaqachon boshqa operator tomonidan hal qilingan',
+    )
+    expect(onResolved).toHaveBeenCalledTimes(1)
+  })
+
+  it('Chiqish bo‘lmadi so‘rovi davomida tugmani nofaol qiladi va double-submitni bloklaydi', async () => {
+    let resolveRequest!: (value: unknown) => void
+    cancelExitCandidateMock.mockReturnValue(
+      new Promise((resolve) => {
+        resolveRequest = resolve
+      }),
+    )
+    renderModal(unmatchedCandidate)
+    const button = getButtonByText("Chiqish bo'lmadi")
+
+    fireEvent.click(button)
+    fireEvent.click(button)
+
+    await waitFor(() =>
+      expect(cancelExitCandidateMock).toHaveBeenCalledTimes(1),
+    )
+    expect(button).toBeDisabled()
+    resolveRequest({})
+  })
+
+  it('pending bo‘lmagan candidate uchun Chiqish bo‘lmadi ko‘rsatilmaydi', () => {
+    renderModal({
+      ...unmatchedCandidate,
+      status: 'resolved' as ExitCandidateNext['status'],
+    })
+
+    expect(queryButtonByText("Chiqish bo'lmadi")).toBeNull()
   })
 
   it('exit modalda suggested_plate qidiruv inputini toʻldiradi', () => {

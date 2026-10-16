@@ -127,6 +127,30 @@ describe('useParkingSocket exit candidate events', () => {
     expect(releaseSocketMock).toHaveBeenCalled()
   })
 
+  it('exit_cancelled resolution eventini callbackka uzatadi', () => {
+    const onResolved = vi.fn()
+    renderHook(() =>
+      useParkingSocket({
+        onExitCandidateResolved: onResolved,
+      }),
+    )
+    const resolvedHandler = onMock.mock.calls.find(
+      ([event]) => event === 'exit_candidate_resolved',
+    )?.[1] as (payload: unknown) => void
+    const payload = {
+      candidateId: 7,
+      orgId: 3,
+      status: 'dismissed',
+      resolutionType: 'exit_cancelled',
+      sessionId: null,
+      barrierStatus: null,
+    }
+
+    act(() => resolvedHandler(payload))
+
+    expect(onResolved).toHaveBeenCalledWith(payload)
+  })
+
   it('entry candidate created va resolved eventlarini uzatadi', () => {
     const onCreated = vi.fn()
     const onResolved = vi.fn()
