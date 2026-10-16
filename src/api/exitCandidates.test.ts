@@ -13,6 +13,7 @@ import {
   cancelExitCandidate,
   confirmExitCandidate,
   forceOpenExitCandidate,
+  getCancelledExitCandidates,
   getNextExitCandidate,
   previewExitSession,
   retryExitCandidateBarrier,
@@ -120,5 +121,31 @@ describe('exit candidates API', () => {
     expect(postMock).toHaveBeenCalledWith(
       '/api/exit-candidates/candidate%2F1/cancel-exit',
     )
+  })
+
+  it('cancelled tarixini sana oralig‘i va pagination bilan oladi', async () => {
+    const response = {
+      history: [],
+      pagination: { page: 2, limit: 20, total: 0, total_pages: 0 },
+    }
+    getMock.mockResolvedValue({ data: response })
+
+    await expect(
+      getCancelledExitCandidates({
+        from: '2026-10-13',
+        to: '2026-10-14',
+        page: 2,
+        limit: 20,
+      }),
+    ).resolves.toBe(response)
+
+    expect(getMock).toHaveBeenCalledWith('/api/exit-candidates/cancelled', {
+      params: {
+        from: '2026-10-13',
+        to: '2026-10-14',
+        page: 2,
+        limit: 20,
+      },
+    })
   })
 })

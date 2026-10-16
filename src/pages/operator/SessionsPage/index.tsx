@@ -3,7 +3,7 @@ import { Tabs, Typography } from 'antd'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useAppSelector } from '@/hooks/redux'
 import ActiveSessionsTab from './ActiveSessionsTab'
-import EmergencyExitHistoryTab from './EmergencyExitHistoryTab'
+import CancelledExitHistoryTab from './CancelledExitHistoryTab'
 import HistorySessionsTab from './HistorySessionsTab'
 import ForcedOpenHistoryTab from './ForcedOpenHistoryTab'
 
@@ -48,12 +48,14 @@ export default function SessionsPage() {
                     <ForcedOpenHistoryTab orgId={user?.org_id ?? null} />
                   ),
                 },
+              ]
+            : []),
+          ...(!isRegistrator
+            ? [
                 {
-                  key: 'emergency-exit-history',
-                  label: t('sessions.emergencyHistoryTab'),
-                  children: (
-                    <EmergencyExitHistoryTab orgId={user?.org_id ?? null} />
-                  ),
+                  key: 'cancelled-exit-history',
+                  label: t('sessions.cancelledExitTab'),
+                  children: <CancelledExitHistoryTab />,
                 },
               ]
             : []),

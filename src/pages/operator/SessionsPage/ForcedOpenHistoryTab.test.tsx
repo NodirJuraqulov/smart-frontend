@@ -1,11 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import {
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-  within,
-} from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { App as AntdApp } from 'antd'
 import ForcedOpenHistoryTab from './ForcedOpenHistoryTab'
@@ -35,7 +29,6 @@ const response: ForcedOpenHistoryResponse = {
       resolved_at: resolvedAt,
       resolved_by: { id: 12, name: 'Alisher Karimov' },
       resolution_note: 'Kirish sessiyasi topilmadi',
-      is_emergency: true,
       image_url: '/api/webhook-events/44/images/overview',
     },
     {
@@ -44,7 +37,6 @@ const response: ForcedOpenHistoryResponse = {
       resolved_at: '2026-08-21T08:20:00.000Z',
       resolved_by: { id: 13, name: 'Bekzod Aliyev' },
       resolution_note: null,
-      is_emergency: false,
       image_url: null,
     },
   ],
@@ -109,17 +101,13 @@ describe('ForcedOpenHistoryTab', () => {
     )
   })
 
-  it('Tez yordam ustunida emergency holatini to‘g‘ri ko‘rsatadi', async () => {
+  it('Tez yordam ustunini ko‘rsatmaydi', async () => {
     renderTab()
 
-    const emergencyRow = (await screen.findByText('01A123BC')).closest('tr')
-    const ordinaryRow = screen.getByText('01B456CD').closest('tr')
-
+    await screen.findByText('01A123BC')
     expect(
-      screen.getByRole('columnheader', { name: 'Tez yordam bilanmi' }),
-    ).toBeInTheDocument()
-    expect(within(emergencyRow!).getByText('Ha')).toBeInTheDocument()
-    expect(within(ordinaryRow!).getByText('Yo‘q')).toBeInTheDocument()
+      screen.queryByRole('columnheader', { name: 'Tez yordam bilanmi' }),
+    ).not.toBeInTheDocument()
   })
 
   it('thumbnail bosilganda rasm previewini ochadi', async () => {

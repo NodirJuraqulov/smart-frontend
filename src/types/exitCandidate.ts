@@ -1,4 +1,5 @@
 import type { PaymentMethod, SessionSource } from './parking'
+import type { PaginationMeta } from './parking'
 
 export interface ExitCandidateImages {
   overview_url: string | null
@@ -49,6 +50,35 @@ export type ExitCandidateActiveSession = ExitCandidateSessionOption
 export interface ExitCandidateSearchResponse {
   results: ExitCandidateSearchResult[]
   active_sessions: ExitCandidateActiveSession[]
+}
+
+export interface CancelledExitResolver {
+  id: number
+  name: string | null
+}
+
+export interface CancelledExitHistoryItem {
+  id: number
+  detected_plate: string | null
+  confidence: number
+  camera_event_at: string
+  resolved_at: string
+  resolved_by?: CancelledExitResolver | null
+  webhook_event_id: number
+  has_image: boolean
+  image_url: string | null
+}
+
+export interface CancelledExitHistoryParams {
+  from: string
+  to: string
+  page: number
+  limit: number
+}
+
+export interface CancelledExitHistoryResponse {
+  history: CancelledExitHistoryItem[]
+  pagination: PaginationMeta
 }
 
 export type ExitCandidatePaymentMethod =

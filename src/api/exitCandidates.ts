@@ -1,5 +1,7 @@
 import { axiosInstance } from './axiosInstance'
 import type {
+  CancelledExitHistoryParams,
+  CancelledExitHistoryResponse,
   ExitCandidateBarrierResponse,
   ExitCandidateConfirmPayload,
   ExitCandidateConfirmResponse,
@@ -66,6 +68,15 @@ export const forceOpenExitCandidate = (
 export const cancelExitCandidate = (id: string) =>
   axiosInstance
     .post(`${candidatePath(id)}/cancel-exit`)
+    .then((response) => response.data)
+
+export const getCancelledExitCandidates = (
+  params: CancelledExitHistoryParams,
+) =>
+  axiosInstance
+    .get<CancelledExitHistoryResponse>('/api/exit-candidates/cancelled', {
+      params,
+    })
     .then((response) => response.data)
 
 export const retryExitCandidateBarrier = (id: string) =>
